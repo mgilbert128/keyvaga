@@ -24,8 +24,8 @@ describe("dollarsToCents", () => {
 describe("quoteStay", () => {
   const listing = { nightlyRateCents: 18500, cleaningFeeCents: 9500, minNights: 2 };
   it("prices nights plus cleaning", () => {
-    expect(quoteStay(listing, d("2026-11-14"), d("2026-11-18"))).toEqual({
-      ok: true, nights: 4, nightlyRateCents: 18500, nightsCents: 74000, cleaningCents: 9500, totalCents: 83500,
+    expect(quoteStay(listing, d("2026-11-14"), d("2026-11-18"))).toMatchObject({
+      ok: true, nights: 4, nightlyRateCents: 18500, nightsCents: 74000, discountCents: 0, cleaningCents: 9500, totalCents: 83500,
     });
   });
   it("enforces the minimum stay", () => {

@@ -2,7 +2,10 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { getPublishedStay, getUnavailableNights } from "@/lib/stay";
+import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { db } from "@/lib/db";
+import { toggleSaved } from "@/app/actions/guest";
 import { playableUrl } from "@/lib/storage";
 import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
@@ -44,7 +47,8 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   if (!stay) notFound();
 
   const today = todayIn();
-  const unavailable = await getUnavailableNights(stay.id, today);
+  const [unavailable, reviewData, viewer] = await Promise.all([getUnavailableNights(stay.id, today), getStayReviews(stay.id), getCurrentUser()]);
+  const saved = viewer ? Boolean(await db.savedListing.findUnique({ where: { userId_listingId: { userId: viewer.id, listingId: stay.id } } })) : false;
 
   const str = (v: unknown) => (typeof v === "string" ? v : undefined);
   const checkIn = parseISODate(str(sp.checkIn));
@@ -57,7 +61,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   if (checkIn && checkOut) {
     if (checkIn < today) quoteError = "Check-in can't be in the past.";
     else {
-      quote = quoteStay(stay, checkIn, checkOut);
+      quote = quoteStay({ ...stay, seasons: stay.seasonalRates }, checkIn, checkOut);
       if (!quote.ok) quoteError = quote.reason === "below_min_nights" ? `This stay has a ${quote.minNights}-night minimum.` : "Check-out must be after check-in.";
       else if (rangeHasConflict(checkIn, checkOut, unavailable)) quoteError = "Some of those nights are already booked. Try other dates.";
     }
@@ -74,11 +78,19 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
 
   return (
     <article className="flex flex-col gap-8 pt-6 sm:pt-10">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{stay.title}</h1>
-        <p className="text-lg text-ink-muted">
-          {stay.city}, {stay.region} · {propertyTypeLabel(stay.propertyType)}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{stay.title}</h1>
+          <p className="text-lg text-ink-muted">
+            {reviewData.count ? <><span className="text-brand" aria-hidden="true">★</span> {reviewData.average!.toFixed(1)} ({reviewData.count} review{reviewData.count === 1 ? "" : "s"}) · </> : null}
+            {stay.city}, {stay.region} · {propertyTypeLabel(stay.propertyType)}
+          </p>
+        </div>
+        <form action={toggleSaved.bind(null, stay.id, stay.slug)}>
+          <button type="submit" aria-pressed={saved} className={buttonClass("secondary")}>
+            <span aria-hidden="true">{saved ? "♥" : "♡"}</span> {saved ? "Saved" : "Save"}
+          </button>
+        </form>
       </div>
 
       <Gallery
@@ -113,6 +125,11 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
           <section aria-labelledby="availability" className="flex flex-col gap-4 border-t border-line pt-8">
             <h2 id="availability" className="text-2xl font-bold">Availability</h2>
             {stay.minNights > 1 ? <p className="text-ink-muted">{stay.minNights}-night minimum stay.</p> : null}
+            {stay.weeklyDiscountBps || stay.monthlyDiscountBps ? (
+              <p className="text-ink-muted">
+                {[stay.weeklyDiscountBps ? `${stay.weeklyDiscountBps / 100}% off stays of 7+ nights` : null, stay.monthlyDiscountBps ? `${stay.monthlyDiscountBps / 100}% off stays of 28+ nights` : null].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
             <AvailabilityCalendar
               months={[firstMonth, { year: second.getUTCFullYear(), monthIndex: second.getUTCMonth() }]}
               unavailable={unavailable}
@@ -134,8 +151,22 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
           </section>
 
           <section aria-labelledby="reviews" className="flex flex-col gap-2 border-t border-line pt-8">
-            <h2 id="reviews" className="text-2xl font-bold">Reviews</h2>
-            <p className="text-ink-muted">No reviews yet. Reviews appear here after guests stay.</p>
+            <h2 id="reviews" className="text-2xl font-bold">
+              Reviews{reviewData.count ? <span className="font-medium"> · <span className="text-brand" aria-hidden="true">★</span> {reviewData.average!.toFixed(1)} ({reviewData.count})</span> : null}
+            </h2>
+            {reviewData.count === 0 ? (
+              <p className="text-ink-muted">No reviews yet. Reviews appear here after guests stay.</p>
+            ) : (
+              <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                {reviewData.reviews.map((r) => (
+                  <li key={r.id} className="flex flex-col gap-1">
+                    <p className="font-semibold">{r.guest.name.split(" ")[0]} <span className="font-normal text-ink-muted">· {r.createdAt.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span></p>
+                    <p aria-label={`${r.rating} out of 5 stars`} className="text-brand">{"★".repeat(r.rating)}<span className="text-line-strong">{"★".repeat(5 - r.rating)}</span></p>
+                    <p className="whitespace-pre-line text-ink-muted">{r.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section aria-labelledby="host" className="flex items-center gap-4 border-t border-line pt-8">
@@ -180,6 +211,9 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                       <dt>{formatCents(quote.nightlyRateCents)} × {quote.nights} night{quote.nights === 1 ? "" : "s"}</dt>
                       <dd>{formatCents(quote.nightsCents)}</dd>
                     </div>
+                    {quote.discountCents ? (
+                      <div className="flex justify-between gap-4 text-on-soft"><dt>{quote.discountLabel}</dt><dd>−{formatCents(quote.discountCents)}</dd></div>
+                    ) : null}
                     {quote.cleaningCents ? (
                       <div className="flex justify-between gap-4"><dt>Cleaning fee</dt><dd>{formatCents(quote.cleaningCents)}</dd></div>
                     ) : null}

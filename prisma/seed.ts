@@ -92,11 +92,13 @@ async function main() {
 
   for (const l of listings) {
     const { summary, amenities, houseRules, addressLine1, postalCode, minNights } = l;
+    const checkInInstructions = "Sample: the lockbox is by the front door; your code arrives here before check-in.\nWi-Fi: KeyvagaGuest / password on the fridge.\nPark in the driveway, not on the street.";
+    const guidebook = "Sample guidebook.\n\nCoffee: the corner café opens at 7.\nGroceries: 5 minutes by car.\nDon't miss: sunset from the dock.";
     await db.listing.upsert({
       where: { slug: l.slug },
       // Refresh sample details on existing demo rows without touching owner edits to other fields.
-      update: { summary, amenities, houseRules, addressLine1, postalCode, minNights: minNights ?? 1 },
-      create: { ...l, ownerId: owner.id, status: "PUBLISHED", featured: true, instantBook: true, publishedAt: new Date() },
+      update: { summary, amenities, houseRules, addressLine1, postalCode, minNights: minNights ?? 1, checkInInstructions, guidebook },
+      create: { ...l, ownerId: owner.id, status: "PUBLISHED", featured: true, instantBook: true, publishedAt: new Date(), checkInInstructions, guidebook },
     });
   }
   console.log(`Seeded 4 users and ${listings.length} listings. Password: ${password}`);

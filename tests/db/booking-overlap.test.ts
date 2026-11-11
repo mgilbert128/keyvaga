@@ -19,7 +19,7 @@ suite("double-booking prevention (database constraint)", () => {
     db.booking.create({
       data: {
         listingId: lid, guestId, checkIn: d(checkIn), checkOut: d(checkOut), guests: 2, status,
-        nightlyCents: 10000, cleaningCents: 0, serviceCents: 0, totalCents: 10000,
+        nightlyCents: 10000, cleaningCents: 0, serviceCents: 0, totalCents: 10000, dueNowCents: 10000,
       },
     });
 

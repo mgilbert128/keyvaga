@@ -9,6 +9,7 @@ import { ownerCancel } from "@/app/actions/bookings";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 import { BookingStatusChip } from "@/components/booking/BookingStatus";
 import { BookingSummary } from "@/components/booking/BookingSummary";
 import { CancelBooking } from "@/components/booking/CancelBooking";
@@ -50,6 +51,9 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
             {b.cancelledBy === "owner" ? "You cancelled this booking and the guest was refunded in full." : `The guest cancelled. ${b.payoutDueCents > 0 ? `You'll still receive ${formatCents(b.payoutDueCents)} under your cancellation policy.` : "No payout is due."}`}
           </p>
         ) : null}
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={`/owner/messages/${b.id}`} variant="secondary">Message guest</ButtonLink>
+        </div>
         <Card><BookingSummary b={b} view="owner" /></Card>
         {canCancel ? (
           <Card className="flex flex-col gap-3">

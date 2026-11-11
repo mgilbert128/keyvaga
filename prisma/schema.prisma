@@ -21,21 +21,24 @@ enum Role {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String
-  passwordHash String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  roles        UserRole[]
-  sessions     Session[]
-  listings     Listing[]  @relation("ListingOwner")
-  bookings     Booking[]  @relation("BookingGuest")
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String
+  passwordHash     String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  roles            UserRole[]
+  sessions         Session[]
+  listings         Listing[]      @relation("ListingOwner")
+  bookings         Booking[]      @relation("BookingGuest")
+  messages         Message[]
+  reviews          Review[]
+  saved            SavedListing[]
   /// Stripe customer used to save the guest's card for the balance charge.
-  stripeCustomerId     String? @unique
+  stripeCustomerId String?        @unique
   /// Stripe Connect account that receives the owner's payouts.
-  stripeAccountId      String? @unique
-  payoutsEnabled       Boolean @default(false)
+  stripeAccountId  String?        @unique
+  payoutsEnabled   Boolean        @default(false)
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -79,61 +82,88 @@ enum PropertyType {
 }
 
 model Listing {
-  id               String          @id @default(cuid())
-  ownerId          String
-  slug             String          @unique
-  title            String
-  summary          String
-  description      String          @default("")
-  propertyType     PropertyType
-  city             String
-  region           String
-  country          String          @default("US")
-  bedrooms         Int
-  bathrooms        Decimal         @db.Decimal(3, 1)
-  maxGuests        Int
+  id                  String             @id @default(cuid())
+  ownerId             String
+  slug                String             @unique
+  title               String
+  summary             String
+  description         String             @default("")
+  propertyType        PropertyType
+  city                String
+  region              String
+  country             String             @default("US")
+  bedrooms            Int
+  bathrooms           Decimal            @db.Decimal(3, 1)
+  maxGuests           Int
   /// All money is stored in minor units (cents). Launch currency is USD.
-  nightlyRateCents Int
-  cleaningFeeCents Int             @default(0)
-  currency         String          @default("USD") @db.Char(3)
+  nightlyRateCents    Int
+  cleaningFeeCents    Int                @default(0)
+  currency            String             @default("USD") @db.Char(3)
   /// Instant book is the launch default; kept per listing so request-to-book can be added later.
-  instantBook      Boolean         @default(true)
-  minNights        Int             @default(1)
-  cancellationPolicy CancellationPolicy @default(MODERATE)
+  instantBook         Boolean            @default(true)
+  minNights           Int                @default(1)
+  cancellationPolicy  CancellationPolicy @default(MODERATE)
+  /// Friday and Saturday nights; null = same as nightlyRateCents.
+  weekendRateCents    Int?
+  /// Discounts on the nights (not cleaning) for longer stays, in basis points (1000 = 10%).
+  weeklyDiscountBps   Int                @default(0)
+  monthlyDiscountBps  Int                @default(0)
+  /// Private: shown to guests with a confirmed booking from accessReleaseDays before check-in.
+  checkInInstructions String             @default("")
+  accessReleaseDays   Int                @default(3)
+  /// Digital guidebook: local tips written by the owner, shown to booked guests.
+  guidebook           String             @default("")
+  seasonalRates       SeasonalRate[]
+  reviews             Review[]
+  savedBy             SavedListing[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
-  amenities        String[]        @default([])
-  houseRules       String          @default("")
+  amenities           String[]           @default([])
+  houseRules          String             @default("")
   /// "HH:MM" 24-hour local time
-  checkInTime      String          @default("16:00")
-  checkOutTime     String          @default("10:00")
+  checkInTime         String             @default("16:00")
+  checkOutTime        String             @default("10:00")
   /// Exact address: private, only released to guests with a confirmed booking (Phase 4).
-  addressLine1     String          @default("")
-  addressLine2     String          @default("")
-  postalCode       String          @default("")
-  latitude         Float?
-  longitude        Float?
-  status           ListingStatus   @default(DRAFT)
+  addressLine1        String             @default("")
+  addressLine2        String             @default("")
+  postalCode          String             @default("")
+  latitude            Float?
+  longitude           Float?
+  status              ListingStatus      @default(DRAFT)
   /// Feedback from the admin when a listing is sent back to the owner.
-  reviewNote       String?
-  submittedAt      DateTime?
-  publishedAt      DateTime?
-  featured         Boolean         @default(false)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  owner            User            @relation("ListingOwner", fields: [ownerId], references: [id])
-  bookings         Booking[]
-  calendarBlocks   CalendarBlock[]
-  photos           ListingPhoto[]
+  reviewNote          String?
+  submittedAt         DateTime?
+  publishedAt         DateTime?
+  featured            Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  owner               User               @relation("ListingOwner", fields: [ownerId], references: [id])
+  bookings            Booking[]
+  calendarBlocks      CalendarBlock[]
+  photos              ListingPhoto[]
   /// Optional short video tour (max 20 seconds). videoKey is the storage pathname.
-  videoKey         String?
+  videoKey            String?
   /// Direct URL for public/local storage; private stores get a short-lived signed URL at view time.
-  videoUrl         String?
-  videoAccess      String?
-  videoContentType String?
-  videoDurationSec Float?
+  videoUrl            String?
+  videoAccess         String?
+  videoContentType    String?
+  videoDurationSec    Float?
 
   @@index([status, city])
   @@index([ownerId])
+}
+
+/// A date range with its own nightly rate, e.g. summer or holidays. [startDate, endDate) like bookings.
+model SeasonalRate {
+  id               String   @id @default(cuid())
+  listingId        String
+  name             String
+  startDate        DateTime @db.Date
+  endDate          DateTime @db.Date
+  nightlyRateCents Int
+  createdAt        DateTime @default(now())
+  listing          Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, startDate])
 }
 
 model ListingPhoto {
@@ -173,43 +203,50 @@ enum BookingStatus {
 /// A Postgres exclusion constraint (see migration) refuses overlapping active
 /// bookings for the same listing.
 model Booking {
-  id                 String             @id @default(cuid())
-  listingId          String
-  guestId            String
-  checkIn            DateTime           @db.Date
-  checkOut           DateTime           @db.Date
-  guests             Int
-  status             BookingStatus      @default(PENDING_PAYMENT)
+  id                    String             @id @default(cuid())
+  listingId             String
+  guestId               String
+  checkIn               DateTime           @db.Date
+  checkOut              DateTime           @db.Date
+  guests                Int
+  status                BookingStatus      @default(PENDING_PAYMENT)
   /// Price snapshot at booking time (cents). serviceCents is the guest's 5% service fee.
-  nightlyCents       Int
-  cleaningCents      Int
-  serviceCents       Int
-  totalCents         Int
-  hostFeeCents       Int                @default(0)
-  hostPayoutCents    Int                @default(0)
-  currency           String             @default("USD") @db.Char(3)
-  cancellationPolicy CancellationPolicy @default(MODERATE)
+  nightlyCents          Int
+  cleaningCents         Int
+  serviceCents          Int
+  totalCents            Int
+  hostFeeCents          Int                @default(0)
+  hostPayoutCents       Int                @default(0)
+  currency              String             @default("USD") @db.Char(3)
+  cancellationPolicy    CancellationPolicy @default(MODERATE)
   /// Payment plan: dueNowCents at booking; balanceCents charged on balanceDueDate (null = paid in full).
-  dueNowCents        Int                @default(0)
-  balanceCents       Int                @default(0)
-  balanceDueDate     DateTime?          @db.Date
-  balanceStatus      BalanceStatus      @default(NONE)
-  balanceAttempts    Int                @default(0)
+  dueNowCents           Int                @default(0)
+  balanceCents          Int                @default(0)
+  balanceDueDate        DateTime?          @db.Date
+  balanceStatus         BalanceStatus      @default(NONE)
+  balanceAttempts       Int                @default(0)
   /// While PENDING_PAYMENT the dates are held until this time.
-  holdExpiresAt      DateTime?
+  holdExpiresAt         DateTime?
   stripePaymentMethodId String?
-  confirmedAt        DateTime?
-  cancelledAt        DateTime?
-  cancelledBy        String?
-  refundedCents      Int                @default(0)
+  confirmedAt           DateTime?
+  cancelledAt           DateTime?
+  cancelledBy           String?
+  refundedCents         Int                @default(0)
   /// Owner payout after cancellations/adjustments; paid out after check-in.
-  payoutDueCents     Int                @default(0)
-  payoutStatus       PayoutStatus       @default(NOT_DUE)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  listing            Listing            @relation(fields: [listingId], references: [id])
-  guest              User               @relation("BookingGuest", fields: [guestId], references: [id])
-  payments           Payment[]
+  payoutDueCents        Int                @default(0)
+  payoutStatus          PayoutStatus       @default(NOT_DUE)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  listing               Listing            @relation(fields: [listingId], references: [id])
+  guest                 User               @relation("BookingGuest", fields: [guestId], references: [id])
+  payments              Payment[]
+  messages              Message[]
+  review                Review?
+  /// Guest agreed to the house rules (part of "Before you arrive").
+  rulesAcceptedAt       DateTime?
+  /// For unread message counts.
+  guestLastReadAt       DateTime?
+  ownerLastReadAt       DateTime?
 
   @@index([listingId, checkIn])
   @@index([guestId])
@@ -249,19 +286,19 @@ enum PaymentStatus {
 
 /// Ledger of every money movement for a booking: guest charges, refunds and owner payouts.
 model Payment {
-  id          String        @id @default(cuid())
-  bookingId   String
-  kind        PaymentKind
-  amountCents Int
-  status      PaymentStatus @default(PENDING)
+  id             String        @id @default(cuid())
+  bookingId      String
+  kind           PaymentKind
+  amountCents    Int
+  status         PaymentStatus @default(PENDING)
   /// Stripe PaymentIntent, Refund or Transfer id.
-  stripeId    String?       @unique
+  stripeId       String?       @unique
   /// For charges: the Stripe charge id (used to fund payouts).
   stripeChargeId String?
   failureMessage String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  booking     Booking       @relation(fields: [bookingId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  booking        Booking       @relation(fields: [bookingId], references: [id])
 
   @@index([bookingId])
 }
@@ -284,4 +321,43 @@ model CalendarBlock {
   listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@index([listingId, startDate])
+}
+
+/// One conversation per booking between the guest and the host.
+model Message {
+  id        String   @id @default(cuid())
+  bookingId String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id])
+
+  @@index([bookingId, createdAt])
+}
+
+/// A guest's review of a completed stay. One per booking.
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  listingId String
+  guestId   String
+  rating    Int
+  body      String
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  guest     User     @relation(fields: [guestId], references: [id])
+
+  @@index([listingId, createdAt])
+}
+
+model SavedListing {
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listingId])
 }

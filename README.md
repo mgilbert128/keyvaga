@@ -4,7 +4,7 @@
 
 A vacation rental marketplace with three portals behind one login: guests book stays, owners run rentals, and service providers (cleaners, handymen and similar) take jobs from owners.
 
-## Status: Phase 3 (Booking and payments)
+## Status: Phases 1–4 done. See HANDOVER.md before making changes
 
 Done:
 - Next.js app with design tokens (all colors in `src/app/globals.css`)
@@ -30,6 +30,10 @@ Phase 3 adds:
 - Daily job (`/api/cron/daily`, scheduled in `vercel.json`): releases expired holds, charges balances, sends payouts
 - Stripe webhook (`/api/stripe/webhook`) keeps payments and payout-account status in sync
 - Guest trips pages, owner bookings and payouts pages
+
+Phase 4 adds:
+- Owner overview with real numbers and "Needs attention", calendar with date blocking, pricing (weekend rate, seasonal rates, weekly/monthly discounts), messages per booking
+- Guest trips with check-in details released before arrival, house-rules agreement, digital guidebook, reviews, Book again, Saved stays, profile and password change
 
 Decided: guests **book instantly**; currency is **USD** (stored as whole cents).
 
@@ -96,7 +100,7 @@ The `Booking` table has a Postgres exclusion constraint (`prisma/migrations/*_in
 1. **Foundation** ✅
 2. Listings and search ✅ (map still to do: needs a Mapbox account)
 3. Booking and payments ✅
-4. Guest portal, then owner portal
+4. Guest portal, then owner portal ✅
 5. Service portal
 6. Connections (iCal, Hospitable, PriceLabs, door locks)
 7. Polish and launch (notifications, admin tools, security review)

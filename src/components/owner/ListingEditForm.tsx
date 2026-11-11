@@ -33,6 +33,9 @@ export type EditableListing = {
   houseRules: string;
   amenities: string[];
   cancellationPolicy: string;
+  checkInInstructions: string;
+  accessReleaseDays: number;
+  guidebook: string;
 };
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -146,6 +149,12 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
           <Field label="Check out by" id="checkOutTime" type="time" defaultValue={listing.checkOutTime} error={e.checkOutTime} />
         </div>
         <TextAreaField label="House rules" id="houseRules" rows={5} maxLength={3000} defaultValue={listing.houseRules} error={e.houseRules} hint="One rule per line, e.g. No smoking. Quiet hours after 10pm." />
+      </Section>
+
+      <Section title="Check-in details and guidebook" description="Only guests with a confirmed booking see these.">
+        <TextAreaField label="Check-in instructions" id="checkInInstructions" rows={5} maxLength={3000} defaultValue={listing.checkInInstructions} error={e.checkInInstructions} hint="Door code or lockbox, parking, Wi-Fi name and password, trash day. Released with the address before arrival." />
+        <Field label="Release the address and instructions this many days before check-in" id="accessReleaseDays" type="number" min={0} max={30} inputMode="numeric" defaultValue={listing.accessReleaseDays} error={e.accessReleaseDays} />
+        <TextAreaField label="Digital guidebook" id="guidebook" rows={8} maxLength={8000} defaultValue={listing.guidebook} error={e.guidebook} hint="Your local tips: restaurants, coffee, hikes, beaches, grocery stores, how the hot tub works. Guests can read it as soon as they book." />
       </Section>
 
       <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-line bg-bg/95 px-4 py-4 backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-end sm:rounded-card sm:border sm:px-6">

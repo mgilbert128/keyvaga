@@ -28,7 +28,7 @@ suite("search filters (database)", () => {
     await db.listing.create({ data: { ...base, slug: "b", title: "Loft", propertyType: "APARTMENT", city: "Madison", bedrooms: 1, maxGuests: 2, nightlyRateCents: 9000, amenities: ["wifi"] } });
     const villa = await db.listing.create({ data: { ...base, slug: "c", title: "Villa", propertyType: "VILLA", city: "Lake Delton", bedrooms: 5, maxGuests: 10, nightlyRateCents: 40000, amenities: ["pool", "hot_tub"] } });
     await db.listing.create({ data: { ...base, slug: "d", title: "Draft", propertyType: "HOUSE", city: "Lake Geneva", bedrooms: 2, maxGuests: 4, nightlyRateCents: 10000, status: "DRAFT" } });
-    await db.booking.create({ data: { listingId: cabin.id, guestId: guest.id, checkIn: d("2026-12-10"), checkOut: d("2026-12-15"), guests: 2, status: "CONFIRMED", nightlyCents: 1, cleaningCents: 0, serviceCents: 0, totalCents: 1 } });
+    await db.booking.create({ data: { listingId: cabin.id, guestId: guest.id, checkIn: d("2026-12-10"), checkOut: d("2026-12-15"), guests: 2, status: "CONFIRMED", nightlyCents: 1, cleaningCents: 0, serviceCents: 0, totalCents: 1, dueNowCents: 1 } });
     await db.calendarBlock.create({ data: { listingId: villa.id, startDate: d("2026-12-20"), endDate: d("2026-12-24") } });
   });
   afterAll(() => db.$disconnect());

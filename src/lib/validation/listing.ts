@@ -56,6 +56,9 @@ export const listingSchema = z.object({
   checkInTime: time,
   checkOutTime: time,
   houseRules: text(3000),
+  checkInInstructions: text(3000),
+  accessReleaseDays: int("Days before arrival", 0, 30),
+  guidebook: text(8000),
   cancellationPolicy: z.enum(["FLEXIBLE", "MODERATE", "STRICT"], { message: "Choose a cancellation policy." }),
   amenities: z.array(z.string()).transform((keys) => [...new Set(keys.filter(isAmenityKey))]),
 });
@@ -83,6 +86,9 @@ export function listingFormToObject(fd: FormData) {
     checkInTime: get("checkInTime") || "16:00",
     checkOutTime: get("checkOutTime") || "10:00",
     houseRules: get("houseRules"),
+    checkInInstructions: get("checkInInstructions"),
+    accessReleaseDays: get("accessReleaseDays") || "3",
+    guidebook: get("guidebook"),
     cancellationPolicy: get("cancellationPolicy") || "MODERATE",
     amenities: fd.getAll("amenities").map(String),
   };

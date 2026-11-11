@@ -111,6 +111,9 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             houseRules: listing.houseRules,
             amenities: listing.amenities,
             cancellationPolicy: listing.cancellationPolicy,
+            checkInInstructions: listing.checkInInstructions,
+            accessReleaseDays: listing.accessReleaseDays,
+            guidebook: listing.guidebook,
           }}
         />
       </div>
