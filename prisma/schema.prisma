@@ -1,0 +1,162 @@
+// Keyvaga data model: Phase 1 (accounts, roles, sessions) plus the first
+// listing and booking tables. More models (payments, messages, services,
+// connections) arrive in later phases.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Accounts ----------
+
+enum Role {
+  GUEST
+  OWNER
+  PROVIDER
+  ADMIN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  roles        UserRole[]
+  sessions     Session[]
+  listings     Listing[]  @relation("ListingOwner")
+  bookings     Booking[]  @relation("BookingGuest")
+}
+
+/// One person can hold several roles (e.g. a guest who is also an owner).
+model UserRole {
+  userId    String
+  role      Role
+  grantedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+}
+
+/// Server-side sessions. `id` is the SHA-256 hash of the cookie token,
+/// so a database leak does not expose usable session tokens.
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------- Listings ----------
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  PAUSED
+}
+
+enum PropertyType {
+  HOUSE
+  APARTMENT
+  CABIN
+  CONDO
+  VILLA
+  OTHER
+}
+
+model Listing {
+  id               String          @id @default(cuid())
+  ownerId          String
+  slug             String          @unique
+  title            String
+  summary          String
+  description      String          @default("")
+  propertyType     PropertyType
+  city             String
+  region           String
+  country          String          @default("US")
+  bedrooms         Int
+  bathrooms        Decimal         @db.Decimal(3, 1)
+  maxGuests        Int
+  /// All money is stored in minor units (cents). Launch currency is USD.
+  nightlyRateCents Int
+  cleaningFeeCents Int             @default(0)
+  currency         String          @default("USD") @db.Char(3)
+  /// Instant book is the launch default; kept per listing so request-to-book can be added later.
+  instantBook      Boolean         @default(true)
+  minNights        Int             @default(1)
+  status           ListingStatus   @default(DRAFT)
+  featured         Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  owner            User            @relation("ListingOwner", fields: [ownerId], references: [id])
+  bookings         Booking[]
+  calendarBlocks   CalendarBlock[]
+
+  @@index([status, city])
+  @@index([ownerId])
+}
+
+// ---------- Availability and bookings ----------
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+/// checkIn is inclusive, checkOut is exclusive (the guest leaves that morning),
+/// so a stay ending on the 18th and one starting on the 18th do not overlap.
+/// A Postgres exclusion constraint (see migration) refuses overlapping active
+/// bookings for the same listing.
+model Booking {
+  id             String        @id @default(cuid())
+  listingId      String
+  guestId        String
+  checkIn        DateTime      @db.Date
+  checkOut       DateTime      @db.Date
+  guests         Int
+  status         BookingStatus @default(PENDING_PAYMENT)
+  nightlyCents   Int
+  cleaningCents  Int
+  serviceCents   Int
+  totalCents     Int
+  currency       String        @default("USD") @db.Char(3)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  listing        Listing       @relation(fields: [listingId], references: [id])
+  guest          User          @relation("BookingGuest", fields: [guestId], references: [id])
+
+  @@index([listingId, checkIn])
+  @@index([guestId])
+}
+
+enum BlockSource {
+  OWNER
+  ICAL
+  HOSPITABLE
+}
+
+/// Dates the owner (or a synced calendar) has blocked. Same [start, end) convention.
+model CalendarBlock {
+  id        String      @id @default(cuid())
+  listingId String
+  startDate DateTime    @db.Date
+  endDate   DateTime    @db.Date
+  source    BlockSource @default(OWNER)
+  note      String?
+  createdAt DateTime    @default(now())
+  listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, startDate])
+}
