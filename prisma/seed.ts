@@ -13,7 +13,8 @@ if (process.env.NODE_ENV === "production" && process.env.KEYVAGA_DEMO !== "true"
   throw new Error("Refusing to seed in production (set KEYVAGA_DEMO=true for a demo site)");
 }
 
-const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+const connectionString =
+  process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not set");
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 const password = process.env.SEED_PASSWORD ?? "keyvaga-demo-123";
