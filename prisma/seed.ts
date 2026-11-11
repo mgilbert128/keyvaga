@@ -47,6 +47,11 @@ async function main() {
       maxGuests: 6,
       nightlyRateCents: 18500,
       cleaningFeeCents: 9500,
+      minNights: 2,
+      addressLine1: "100 Sample Shore Rd",
+      postalCode: "53147",
+      amenities: ["wifi", "kitchen", "heating", "fire_pit", "waterfront", "free_parking", "patio", "smoke_alarm", "co_alarm"],
+      houseRules: "No smoking\nQuiet hours after 10pm\nNo parties or events",
     },
     {
       slug: "downtown-loft",
@@ -60,6 +65,10 @@ async function main() {
       maxGuests: 4,
       nightlyRateCents: 14000,
       cleaningFeeCents: 7500,
+      addressLine1: "200 Sample Ave, Unit 5",
+      postalCode: "60601",
+      amenities: ["wifi", "kitchen", "washer", "dryer", "air_conditioning", "workspace", "tv", "self_check_in", "smoke_alarm"],
+      houseRules: "No smoking\nNo pets",
     },
     {
       slug: "beach-house",
@@ -73,14 +82,21 @@ async function main() {
       maxGuests: 8,
       nightlyRateCents: 26000,
       cleaningFeeCents: 15000,
+      minNights: 3,
+      addressLine1: "300 Sample Beach Blvd",
+      postalCode: "36542",
+      amenities: ["wifi", "kitchen", "washer", "air_conditioning", "pool", "beach_access", "bbq", "pets_allowed", "free_parking", "crib", "smoke_alarm", "first_aid"],
+      houseRules: "No smoking\nPets welcome with approval\nRinse sand off at the outdoor shower",
     },
   ];
 
   for (const l of listings) {
+    const { summary, amenities, houseRules, addressLine1, postalCode, minNights } = l;
     await db.listing.upsert({
       where: { slug: l.slug },
-      update: {},
-      create: { ...l, ownerId: owner.id, status: "PUBLISHED", featured: true, instantBook: true },
+      // Refresh sample details on existing demo rows without touching owner edits to other fields.
+      update: { summary, amenities, houseRules, addressLine1, postalCode, minNights: minNights ?? 1 },
+      create: { ...l, ownerId: owner.id, status: "PUBLISHED", featured: true, instantBook: true, publishedAt: new Date() },
     });
   }
   console.log(`Seeded 4 users and ${listings.length} listings. Password: ${password}`);

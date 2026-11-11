@@ -29,6 +29,8 @@ suite("double-booking prevention (database constraint)", () => {
 
   beforeEach(async () => {
     await db.booking.deleteMany();
+    await db.calendarBlock.deleteMany();
+    await db.listingPhoto.deleteMany();
     await db.listing.deleteMany();
     await db.user.deleteMany();
     const owner = await db.user.create({ data: { email: "o@test", name: "O", passwordHash: "x" } });

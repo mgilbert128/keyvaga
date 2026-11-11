@@ -4,7 +4,7 @@
 
 A vacation rental marketplace with three portals behind one login: guests book stays, owners run rentals, and service providers (cleaners, handymen and similar) take jobs from owners.
 
-## Status: Phase 1 (Foundation)
+## Status: Phase 2 (Listings and search)
 
 Done:
 - Next.js app with design tokens (all colors in `src/app/globals.css`)
@@ -13,6 +13,13 @@ Done:
 - Public pages: home, search, listing detail, list your property, services
 - Database rule that blocks double-bookings
 - Tests for permissions, auth and the overlap rule
+
+Phase 2 adds:
+- Owners create, edit, save as draft, submit, pause and unpause listings, with photo uploads (Vercel Blob)
+- Admin review queue: approve and publish, or request changes with a note
+- Search filters (price, bedrooms, property type, amenities) and sorting
+- Stay page with photo gallery, amenities, house rules, availability calendar and price breakdown
+- The exact address stays private until booking
 
 Decided: guests **book instantly**; currency is **USD** (stored as whole cents).
 
@@ -44,6 +51,11 @@ Sample accounts (password `keyvaga-demo-123`): `guest@keyvaga.test`, `owner@keyv
 
 ## Preview site (Vercel + Neon)
 
+Environment variables on Vercel:
+- `DATABASE_URL` / `POSTGRES_*`: set automatically by the Neon integration
+- `BLOB_READ_WRITE_TOKEN`: set automatically when a Vercel Blob store is connected (photo uploads)
+- `ADMIN_EMAILS`: emails that get the admin role
+
 Vercel runs `npm run vercel-build`, which applies database migrations, loads the sample data (`KEYVAGA_DEMO=true`) and builds the site. The sample accounts are public on the preview, so **remove `KEYVAGA_DEMO=true prisma db seed` from `vercel-build` before real launch.**
 
 ## Tests
@@ -57,7 +69,8 @@ TEST_DATABASE_URL=postgresql://.../keyvaga_test npm run test:db      # database 
 
 - `src/proxy.ts` sends visitors without a session cookie to the login page (a fast first check only).
 - `src/lib/auth/dal.ts` is the real gate: every protected page calls `requirePortal(...)`, which checks the session in the database and the user's role.
-- Admin is never self-assigned at sign-up.
+- Admin is never self-assigned at sign-up. Set `ADMIN_EMAILS` (comma-separated) in the environment; those accounts get the admin role at their next login.
+- Owners can only see and change their own listings (`src/lib/listing-policy.ts`, `src/lib/owner-listings.ts`).
 
 ## How double-booking is prevented
 
@@ -66,7 +79,7 @@ The `Booking` table has a Postgres exclusion constraint (`prisma/migrations/*_in
 ## Build phases
 
 1. **Foundation** ✅
-2. Listings and search (owner listing creation, full search with filters and map, listing detail)
+2. Listings and search ✅ (map still to do: needs a Mapbox account)
 3. Booking and payments (checkout, Stripe Connect, confirmation, payouts)
 4. Guest portal, then owner portal
 5. Service portal

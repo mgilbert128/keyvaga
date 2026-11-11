@@ -13,5 +13,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     environment: "node",
     fileParallelism: false,
+    // Modules that import the app database client need a URL; it only connects when queried.
+    env: { DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgresql://unused@localhost/unused" },
   },
 });
