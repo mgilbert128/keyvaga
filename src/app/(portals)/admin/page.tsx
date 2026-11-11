@@ -10,6 +10,7 @@ import { reviewListing } from "@/app/actions/listings";
 import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
+import { playableUrl } from "@/lib/storage";
 
 export const metadata: Metadata = { title: "Listing reviews" };
 
@@ -61,6 +62,7 @@ async function Reviews() {
                   ))}
                 </ul>
               ) : null}
+              {l.videoKey ? <AdminVideo k={l.videoKey} url={l.videoUrl} access={l.videoAccess} /> : null}
               {l.summary ? <p className="font-medium">{l.summary}</p> : null}
               {l.description ? <p className="whitespace-pre-line text-ink-muted">{l.description}</p> : null}
               {l.amenities.length ? <p className="text-sm text-ink-muted">Amenities: {l.amenities.map(amenityLabel).join(", ")}</p> : null}
@@ -83,4 +85,10 @@ async function Reviews() {
       </div>
     </PortalShell>
   );
+}
+
+async function AdminVideo({ k, url, access }: { k: string; url: string | null; access: string | null }) {
+  const src = await playableUrl({ key: k, url, access });
+  if (!src) return <p className="text-sm text-ink-muted">Has a video (preview unavailable).</p>;
+  return <video src={src} controls playsInline preload="metadata" className="aspect-video w-full max-w-md rounded-xl bg-ink object-contain" aria-label="Listing video" />;
 }

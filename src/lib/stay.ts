@@ -12,6 +12,7 @@ export async function getPublishedStay(slug: string) {
       amenities: true, houseRules: true, checkInTime: true, checkOutTime: true,
       // Exact address deliberately not selected: guests get it only after booking.
       photos: { orderBy: { position: "asc" }, select: { id: true, url: true, alt: true } },
+      videoKey: true, videoUrl: true, videoAccess: true, videoDurationSec: true,
       owner: { select: { name: true, createdAt: true } },
     },
   });

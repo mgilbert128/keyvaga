@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPublishedStay, getUnavailableNights } from "@/lib/stay";
+import { playableUrl } from "@/lib/storage";
 import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
@@ -72,7 +73,12 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
         </p>
       </div>
 
-      <Gallery photos={stay.photos} title={stay.title} slug={stay.slug} />
+      <Gallery
+        photos={stay.photos}
+        title={stay.title}
+        slug={stay.slug}
+        videoSrc={stay.videoKey ? await playableUrl({ key: stay.videoKey, url: stay.videoUrl, access: stay.videoAccess }) : null}
+      />
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_24rem]">
         <div className="flex flex-col gap-10">

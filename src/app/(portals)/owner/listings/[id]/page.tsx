@@ -9,6 +9,8 @@ import { StatusChip } from "@/components/owner/StatusChip";
 import { StatusActions } from "@/components/owner/StatusActions";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { PhotoManager } from "@/components/owner/PhotoManager";
+import { VideoManager } from "@/components/owner/VideoManager";
+import { blobUploadAccess, playableUrl, storageMode } from "@/lib/storage";
 import { centsToDollarsInput } from "@/lib/pricing";
 import type { OwnerAction } from "@/lib/listing-policy";
 
@@ -72,7 +74,18 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
           </div>
         ) : null}
 
-        <PhotoManager listingId={listing.id} photos={listing.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt }))} />
+        <PhotoManager listingId={listing.id} photos={listing.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt }))}>
+          <VideoManager
+            listingId={listing.id}
+            mode={storageMode()}
+            access={blobUploadAccess()}
+            video={
+              listing.videoKey
+                ? { src: await playableUrl({ key: listing.videoKey, url: listing.videoUrl, access: listing.videoAccess }), durationSec: listing.videoDurationSec }
+                : null
+            }
+          />
+        </PhotoManager>
 
         <ListingEditForm
           listing={{

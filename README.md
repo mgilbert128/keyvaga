@@ -15,7 +15,7 @@ Done:
 - Tests for permissions, auth and the overlap rule
 
 Phase 2 adds:
-- Owners create, edit, save as draft, submit, pause and unpause listings, with photo uploads (Vercel Blob)
+- Owners create, edit, save as draft, submit, pause and unpause listings, with photo uploads and one optional video tour of up to 20 seconds (Vercel Blob; videos upload straight from the browser)
 - Admin review queue: approve and publish, or request changes with a note
 - Search filters (price, bedrooms, property type, amenities) and sorting
 - Stay page with photo gallery, amenities, house rules, availability calendar and price breakdown

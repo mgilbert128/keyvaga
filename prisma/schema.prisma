@@ -118,6 +118,13 @@ model Listing {
   bookings         Booking[]
   calendarBlocks   CalendarBlock[]
   photos           ListingPhoto[]
+  /// Optional short video tour (max 20 seconds). videoKey is the storage pathname.
+  videoKey         String?
+  /// Direct URL for public/local storage; private stores get a short-lived signed URL at view time.
+  videoUrl         String?
+  videoAccess      String?
+  videoContentType String?
+  videoDurationSec Float?
 
   @@index([status, city])
   @@index([ownerId])

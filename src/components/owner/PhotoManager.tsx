@@ -26,7 +26,7 @@ async function prepare(file: File): Promise<{ blob: Blob; width: number; height:
   return { blob, width, height };
 }
 
-export function PhotoManager({ listingId, photos }: { listingId: string; photos: Photo[] }) {
+export function PhotoManager({ listingId, photos, children }: { listingId: string; photos: Photo[]; children?: React.ReactNode }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string>("");
@@ -68,7 +68,7 @@ export function PhotoManager({ listingId, photos }: { listingId: string; photos:
   return (
     <section aria-labelledby="photos-title" className="flex flex-col gap-5 rounded-card border border-line bg-surface p-6 sm:p-8">
       <div>
-        <h2 id="photos-title" className="text-xl font-bold">Photos</h2>
+        <h2 id="photos-title" className="text-xl font-bold">Photos and video</h2>
         <p className="mt-1 text-ink-muted">The first photo is the cover in search results. Add at least one to submit for review.</p>
       </div>
 
@@ -130,6 +130,7 @@ export function PhotoManager({ listingId, photos }: { listingId: string; photos:
           ))}
         </ol>
       )}
+      {children}
     </section>
   );
 }

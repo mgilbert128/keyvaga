@@ -1,7 +1,7 @@
 import "server-only";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { del, get, put } from "@vercel/blob";
+import { del, get, head, issueSignedToken, presignUrl, put } from "@vercel/blob";
 
 /**
  * Photo storage. Uses Vercel Blob when it is connected (production), either via
@@ -80,4 +80,83 @@ function safeLocalPath(key: string): string {
   const file = path.resolve(LOCAL_DIR, key);
   if (!file.startsWith(LOCAL_DIR + path.sep)) throw new Error("Invalid storage key");
   return file;
+}
+
+
+// ---------- Video ----------
+
+/**
+ * Access level for files uploaded directly from the browser (videos). Newer Vercel Blob stores
+ * connected with BLOB_STORE_ID are private; older token-based stores are usually public.
+ * KEYVAGA_BLOB_ACCESS overrides the guess if needed.
+ */
+export function blobUploadAccess(): "public" | "private" {
+  const override = process.env.KEYVAGA_BLOB_ACCESS;
+  if (override === "public" || override === "private") return override;
+  return process.env.BLOB_STORE_ID ? "private" : "public";
+}
+
+/** Short-lived permission for the browser to upload one file to exactly this pathname. */
+export async function issueUploadToken(pathname: string, opts: { allowedContentTypes: string[]; maximumSizeInBytes: number }) {
+  return issueSignedToken({
+    pathname,
+    operations: ["put"],
+    validUntil: Date.now() + 15 * 60 * 1000,
+    allowedContentTypes: opts.allowedContentTypes,
+    maximumSizeInBytes: opts.maximumSizeInBytes,
+  });
+}
+
+/** Confirms an uploaded blob exists and returns its size and type. */
+export async function describeBlob(pathname: string) {
+  const info = await head(pathname);
+  return { size: info.size, contentType: info.contentType, url: info.url };
+}
+
+/** URL a browser can play. Private stores get a signed link valid for a few hours. */
+export async function playableUrl(v: { key: string; url: string | null; access: string | null }): Promise<string | null> {
+  if (v.access !== "private") return v.url;
+  try {
+    const validUntil = Date.now() + 6 * 60 * 60 * 1000;
+    const token = await issueSignedToken({ pathname: v.key, operations: ["get"], validUntil });
+    const { presignedUrl } = await presignUrl(token, { operation: "get", pathname: v.key, access: "private", validUntil });
+    return presignedUrl;
+  } catch (e) {
+    console.error("could not sign video url", e);
+    return null;
+  }
+}
+
+export async function deleteStored(key: string, access: string | null) {
+  if (access === "local") {
+    await unlink(safeLocalPath(key)).catch(() => {});
+    return;
+  }
+  if (blobConnected()) await del(key).catch((e) => console.error("delete from storage failed", e));
+}
+
+export async function putLocalFile(key: string, body: Buffer): Promise<string> {
+  const file = safeLocalPath(key);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, body);
+  return `/api/uploads/${key}`;
+}
+
+export async function statLocalFile(key: string): Promise<number | null> {
+  try {
+    return (await stat(safeLocalPath(key))).size;
+  } catch {
+    return null;
+  }
+}
+
+export async function readLocalRange(key: string, start: number, end: number): Promise<Buffer> {
+  const fh = await open(safeLocalPath(key), "r");
+  try {
+    const buf = Buffer.alloc(end - start + 1);
+    await fh.read(buf, 0, buf.length, start);
+    return buf;
+  } finally {
+    await fh.close();
+  }
 }

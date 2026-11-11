@@ -2,7 +2,19 @@ import { tintFor } from "@/lib/tint";
 
 type Photo = { id: string; url: string; alt: string };
 
-export function Gallery({ photos, title, slug }: { photos: Photo[]; title: string; slug: string }) {
+function VideoTour({ src, title }: { src: string; title: string }) {
+  return (
+    <figure className="flex flex-col gap-2">
+      <video src={src} controls playsInline preload="metadata" className="aspect-video w-full rounded-card bg-ink object-contain md:max-w-3xl" aria-label={`Video tour of ${title}`}>
+        Your browser can&apos;t play this video.
+      </video>
+      <figcaption className="text-sm text-ink-muted">Video tour</figcaption>
+    </figure>
+  );
+}
+
+export function Gallery({ photos, title, slug, videoSrc }: { photos: Photo[]; title: string; slug: string; videoSrc?: string | null }) {
+  if (photos.length === 0 && videoSrc) return <VideoTour src={videoSrc} title={title} />;
   if (photos.length === 0) {
     return <div className={`aspect-[21/9] w-full rounded-card ${tintFor(slug)}`} role="img" aria-label={`No photos yet for ${title}`} />;
   }
@@ -20,6 +32,7 @@ export function Gallery({ photos, title, slug }: { photos: Photo[]; title: strin
           <img key={p.id} src={p.url} alt={p.alt || title} className={`hidden h-full min-h-0 w-full rounded-xl object-cover md:block ${thumbs.length === 1 ? "md:row-span-2" : ""}`} loading="lazy" />
         ))}
       </div>
+      {videoSrc ? <VideoTour src={videoSrc} title={title} /> : null}
       {photos.length > 1 ? (
         <details className="group">
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-control border-2 border-brand px-5 font-semibold text-brand hover:bg-soft [&::-webkit-details-marker]:hidden">

@@ -8,7 +8,8 @@ import { getCurrentUser, type CurrentUser } from "@/lib/auth/dal";
 import { canEditListing, canReviewListings, missingForSubmit, nextStatus, type AdminAction, type OwnerAction } from "@/lib/listing-policy";
 import { listingFormToObject, listingSchema, type ListingFormState } from "@/lib/validation/listing";
 import { slugify } from "@/lib/slug";
-import { deleteImage } from "@/lib/storage";
+import { blobUploadAccess, deleteImage, deleteStored, describeBlob, statLocalFile, storageMode } from "@/lib/storage";
+import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, isAllowedDuration, isAllowedVideoType, isVideoPathForListing } from "@/lib/video";
 
 async function requireOwner(): Promise<CurrentUser> {
   const user = await getCurrentUser();
@@ -171,6 +172,79 @@ export async function movePhoto(listingId: string, photoId: string, direction: "
     photos.splice(target, 0, moved!);
     for (const [pos, p] of photos.entries()) if (p.position !== pos) await tx.listingPhoto.update({ where: { id: p.id }, data: { position: pos } });
   });
+  revalidatePath(`/owner/listings/${listingId}`);
+  revalidatePath(`/stays/${listing.slug}`);
+}
+
+// ---------- Video ----------
+
+export type VideoResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Saves an uploaded video on the listing after checking it on the server:
+ * it must be in this listing's folder, exist in storage, be a video, be small enough
+ * and be 20 seconds or shorter. Replaces (and deletes) any previous video.
+ */
+export async function attachVideo(listingId: string, input: { pathname: string; durationSec: number }): Promise<VideoResult> {
+  const user = await requireOwner();
+  const listing = await loadOwned(user, listingId);
+
+  if (!isVideoPathForListing(input.pathname, listingId)) return { ok: false, error: "That upload doesn't belong to this listing." };
+  if (!isAllowedDuration(input.durationSec)) {
+    await discard(input.pathname);
+    return { ok: false, error: `Videos can be up to ${VIDEO_MAX_SECONDS} seconds long.` };
+  }
+
+  let access: string;
+  let url: string | null;
+  let contentType: string;
+  const mode = storageMode();
+  if (mode === "local") {
+    const size = await statLocalFile(input.pathname);
+    if (size === null) return { ok: false, error: "Upload not found. Please try again." };
+    access = "local";
+    url = `/api/uploads/${input.pathname}`;
+    const ext = input.pathname.split(".").pop();
+    contentType = ext === "mov" ? "video/quicktime" : ext === "webm" ? "video/webm" : "video/mp4";
+  } else if (mode === "blob") {
+    const info = await describeBlob(input.pathname).catch(() => null);
+    if (!info) return { ok: false, error: "Upload not found. Please try again." };
+    if (info.size > VIDEO_MAX_BYTES || !isAllowedVideoType(info.contentType)) {
+      await discard(input.pathname);
+      return { ok: false, error: "Use an MP4, MOV or WebM video under 100 MB." };
+    }
+    access = blobUploadAccess();
+    url = access === "public" ? info.url : null;
+    contentType = info.contentType;
+  } else {
+    return { ok: false, error: "Video storage is not configured." };
+  }
+
+  const previous = listing.videoKey ? { key: listing.videoKey, access: listing.videoAccess } : null;
+  await db.listing.update({
+    where: { id: listingId },
+    data: { videoKey: input.pathname, videoUrl: url, videoAccess: access, videoContentType: contentType, videoDurationSec: input.durationSec },
+  });
+  if (previous && previous.key !== input.pathname) await deleteStored(previous.key, previous.access);
+
+  revalidatePath(`/owner/listings/${listingId}`);
+  revalidatePath(`/stays/${listing.slug}`);
+  return { ok: true };
+}
+
+async function discard(pathname: string) {
+  await deleteStored(pathname, storageMode() === "local" ? "local" : "blob");
+}
+
+export async function removeVideo(listingId: string) {
+  const user = await requireOwner();
+  const listing = await loadOwned(user, listingId);
+  if (!listing.videoKey) return;
+  await db.listing.update({
+    where: { id: listingId },
+    data: { videoKey: null, videoUrl: null, videoAccess: null, videoContentType: null, videoDurationSec: null },
+  });
+  await deleteStored(listing.videoKey, listing.videoAccess);
   revalidatePath(`/owner/listings/${listingId}`);
   revalidatePath(`/stays/${listing.slug}`);
 }
