@@ -160,3 +160,52 @@ export async function readLocalRange(key: string, start: number, end: number): P
     await fh.close();
   }
 }
+
+// ---------- Private documents (deeds, licenses) ----------
+
+const PRIVATE_DIR = path.join(process.cwd(), ".private-uploads");
+
+function safePrivatePath(key: string): string {
+  const file = path.resolve(PRIVATE_DIR, key);
+  if (!file.startsWith(PRIVATE_DIR + path.sep)) throw new Error("Invalid storage key");
+  return file;
+}
+
+/**
+ * Stores a verification document. Always PRIVATE: in Vercel Blob it uses private access (a public store
+ * is refused rather than exposing documents); locally it uses a folder no route serves directly.
+ */
+export async function putPrivateDocument(key: string, body: Buffer, contentType: string): Promise<string> {
+  const mode = storageMode();
+  if (mode === "blob") {
+    const blob = await put(key, body, { access: "private", contentType, addRandomSuffix: true });
+    return blob.pathname;
+  }
+  if (mode === "local") {
+    const file = safePrivatePath(key);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, body);
+    return key;
+  }
+  throw new Error("Document storage is not configured.");
+}
+
+export async function readPrivateDocument(key: string): Promise<ReadableStream<Uint8Array> | Uint8Array | null> {
+  if (storageMode() === "blob") {
+    const result = await get(key, { access: "private", useCache: false });
+    return result && result.statusCode === 200 ? result.stream : null;
+  }
+  try {
+    return new Uint8Array(await readFile(safePrivatePath(key)));
+  } catch {
+    return null;
+  }
+}
+
+export async function deletePrivateDocument(key: string) {
+  if (storageMode() === "blob") {
+    await del(key).catch((e) => console.error("document delete failed", e));
+    return;
+  }
+  await unlink(safePrivatePath(key)).catch(() => {});
+}

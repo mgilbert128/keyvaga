@@ -147,6 +147,15 @@ model Listing {
   videoAccess         String?
   videoContentType    String?
   videoDurationSec    Float?
+  /// Proof of the right to rent this property.
+  hostingRole         HostingRole?
+  /// Management company name when hostingRole = MANAGER.
+  managerCompany      String             @default("")
+  /// Owner says the area requires a short-term rental permit; then a permit document is required.
+  permitRequired      Boolean            @default(false)
+  /// Shown publicly on the stay page once the permit document is approved.
+  permitNumber        String             @default("")
+  documents           ListingDocument[]
 
   @@index([status, city])
   @@index([ownerId])
@@ -164,6 +173,64 @@ model SeasonalRate {
   listing          Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@index([listingId, startDate])
+}
+
+enum HostingRole {
+  OWNER
+  MANAGER
+}
+
+enum DocumentType {
+  OWNERSHIP_PROOF
+  RENTAL_PERMIT
+  MANAGEMENT_LICENSE
+  MANAGEMENT_AGREEMENT
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Private verification documents (deed, permit, management license...). Never public:
+/// stored in private storage and served only to the listing owner and admins, with every access logged.
+model ListingDocument {
+  id             String              @id @default(cuid())
+  listingId      String
+  type           DocumentType
+  /// Storage key (private store / private local folder).
+  fileKey        String
+  fileName       String
+  contentType    String
+  sizeBytes      Int
+  /// License or permit number, where relevant.
+  documentNumber String              @default("")
+  expiresAt      DateTime?           @db.Date
+  status         DocumentStatus      @default(PENDING)
+  reviewNote     String?
+  uploadedById   String
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  listing        Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  accessLogs     DocumentAccessLog[]
+
+  @@index([listingId, type])
+  @@index([status])
+}
+
+/// Audit trail: who uploaded, viewed, approved, rejected or deleted each document.
+model DocumentAccessLog {
+  id         String           @id @default(cuid())
+  documentId String?
+  listingId  String
+  userId     String
+  action     String
+  createdAt  DateTime         @default(now())
+  document   ListingDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([listingId, createdAt])
 }
 
 model ListingPhoto {

@@ -35,6 +35,13 @@ Phase 4 adds:
 - Owner overview with real numbers and "Needs attention", calendar with date blocking, pricing (weekend rate, seasonal rates, weekly/monthly discounts), messages per booking
 - Guest trips with check-in details released before arrival, house-rules agreement, digital guidebook, reviews, Book again, Saved stays, profile and password change
 
+Proof of ownership:
+- Each listing records whether the host owns or manages it, and whether a short-term rental permit is required
+- Owners upload a deed / tax bill / utility bill; managers upload their management license and agreement; plus the permit where required (with number and expiry)
+- Documents are stored privately and only the owner and admins can open them; every upload, view and review is logged
+- Listings can't be submitted until documents are uploaded, and can't be published until an admin approves each one; the verified permit number is shown on the stay page
+- A "Preview" banner shows on every page until live Stripe keys are used (hide with `KEYVAGA_PREVIEW_BANNER=off`)
+
 Decided: guests **book instantly**; currency is **USD** (stored as whole cents).
 
 ## Tech stack
@@ -61,7 +68,7 @@ npm run db:seed                   # sample users and listings
 npm run dev                       # http://localhost:3000
 ```
 
-Sample accounts (password `keyvaga-demo-123`): `guest@keyvaga.test`, `owner@keyvaga.test`, `provider@keyvaga.test`, `admin@keyvaga.test`.
+Sample accounts (password `keyvaga-demo-123`): `guest@keyvaga.test`, `owner@keyvaga.test`, `provider@keyvaga.test`, and `admin@keyvaga.test` (local development only; the demo admin is removed in production).
 
 ## Preview site (Vercel + Neon)
 

@@ -8,6 +8,8 @@ import { getCurrentUser, type CurrentUser } from "@/lib/auth/dal";
 import { canEditListing, canReviewListings, missingForSubmit, nextStatus, type AdminAction, type OwnerAction } from "@/lib/listing-policy";
 import { listingFormToObject, listingSchema, type ListingFormState } from "@/lib/validation/listing";
 import { slugify } from "@/lib/slug";
+import { documentsApproved, missingDocuments } from "@/lib/documents";
+import { todayIn } from "@/lib/dates";
 import { blobUploadAccess, deleteImage, deleteStored, describeBlob, statLocalFile, storageMode } from "@/lib/storage";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, isAllowedDuration, isAllowedVideoType, isVideoPathForListing } from "@/lib/video";
 
@@ -19,7 +21,7 @@ async function requireOwner(): Promise<CurrentUser> {
 }
 
 async function loadOwned(user: CurrentUser, id: string) {
-  const listing = await db.listing.findUnique({ where: { id }, include: { _count: { select: { photos: true } } } });
+  const listing = await db.listing.findUnique({ where: { id }, include: { _count: { select: { photos: true } }, documents: true } });
   if (!listing || !canEditListing(user, listing)) throw new Error("Listing not found");
   return listing;
 }
@@ -123,7 +125,10 @@ async function changeStatus(user: CurrentUser, id: string, action: OwnerAction):
   if (!to) return { message: "That change isn't available for this listing right now." };
 
   if (action === "submit") {
-    const missing = missingForSubmit({ ...listing, photoCount: listing._count.photos });
+    const missing = [
+      ...missingForSubmit({ ...listing, photoCount: listing._count.photos }),
+      ...missingDocuments(listing.hostingRole, listing.permitRequired, listing.documents, todayIn()),
+    ];
     if (missing.length) return { message: `Before submitting, add ${missing.join(", ")}.` };
   }
 
@@ -258,10 +263,12 @@ export async function removeVideo(listingId: string) {
 export async function reviewListing(id: string, action: AdminAction, formData: FormData) {
   const user = await getCurrentUser();
   if (!user || !canReviewListings(user)) redirect("/no-access?portal=admin");
-  const listing = await db.listing.findUnique({ where: { id } });
+  const listing = await db.listing.findUnique({ where: { id }, include: { documents: true } });
   if (!listing) return;
   const to = nextStatus(action, listing.status);
   if (!to) return;
+  // Publishing requires every ownership/licensing document to be approved first.
+  if (action === "approve" && !documentsApproved(listing.hostingRole, listing.permitRequired, listing.documents, todayIn())) return;
   const note = String(formData.get("note") ?? "").trim().slice(0, 1000);
   await db.listing.update({
     where: { id },

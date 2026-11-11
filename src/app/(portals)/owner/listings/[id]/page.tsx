@@ -10,6 +10,9 @@ import { StatusActions } from "@/components/owner/StatusActions";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
+import { OwnershipSection } from "@/components/owner/OwnershipSection";
+import { db } from "@/lib/db";
+import { todayIn } from "@/lib/dates";
 import { blobUploadAccess, playableUrl, storageMode } from "@/lib/storage";
 import { centsToDollarsInput } from "@/lib/pricing";
 import type { OwnerAction } from "@/lib/listing-policy";
@@ -73,6 +76,12 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             <p>{listing.reviewNote}</p>
           </div>
         ) : null}
+
+        <OwnershipSection
+          listing={listing}
+          docs={await db.listingDocument.findMany({ where: { listingId: listing.id }, orderBy: { createdAt: "desc" } })}
+          today={todayIn()}
+        />
 
         <PhotoManager listingId={listing.id} photos={listing.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt }))}>
           <VideoManager

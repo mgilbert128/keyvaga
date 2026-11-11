@@ -35,7 +35,7 @@ npm run db:seed                  # demo users/listings; password keyvaga-demo-12
 npm run dev
 ```
 
-Demo accounts: `guest@`, `owner@`, `provider@`, `admin@keyvaga.test`. Without Stripe keys the site works except checkout. Without Blob, uploads go to `./.uploads` in development.
+Demo accounts: `guest@`, `owner@`, `provider@` and `admin@keyvaga.test` (the demo admin exists only locally; production deletes it). Without Stripe keys the site works except checkout. Without Blob, uploads go to `./.uploads` in development.
 
 ## 3. Environment variables
 
@@ -93,6 +93,11 @@ tests/
   - Records: every movement is recorded in `Payment`. DB check constraints enforce non-negative amounts and that `dueNowCents + balanceCents = totalCents`.
 - **Payment state sync.** `syncPaymentIntent()` is idempotent. It runs from the checkout return page (`/trips/[id]?paid=1`) **and** the webhook, so things work even before the webhook is configured. It also handles the edge case "hold expired while paying and someone else booked" (auto-refund).
 - **Listing lifecycle.** DRAFT → (owner submits; needs a title, summary, address, price and 1+ photos) → PENDING_REVIEW → (admin approves at `/admin`) → PUBLISHED ⇄ PAUSED. A rejection returns to DRAFT with `reviewNote`.
+- **Proof of ownership.** `src/lib/documents.ts` (rules) plus `ListingDocument` and `DocumentAccessLog`.
+  - Owners need a deed, tax bill or utility bill. Managers need a management license and agreement. Both need the rental permit when required.
+  - Uploads go to `/api/listings/[id]/documents` and are stored privately (`putPrivateDocument`: a private Blob, or `.private-uploads` locally). They're viewed only via `/api/documents/[id]` (listing owner or admin), and every action is logged.
+  - Submitting requires the documents to be uploaded; publishing requires each one to be approved (`documentsApproved`).
+  - Listings that were live before this feature stay live and show an owner reminder. Consider a retention policy, and disclose document handling in the privacy policy.
 - **Privacy.** Exact address and check-in instructions are only shown to a confirmed guest from `accessReleaseDays` before check-in (`src/lib/checkin.ts`). Public queries never select address fields.
 
 ## 5. Gotchas
@@ -105,7 +110,8 @@ tests/
 6. **Server-action success messages.** Several actions revalidate the page so the form disappears (cancel, review). The page itself shows the new state instead of a toast.
 7. **"Today"** is computed in `America/Chicago` (`todayIn()` in `dates.ts`). Make this per-listing when you add time zones.
 8. **`Booking.nightlyCents`** stores the nights total **after** weekly/monthly discounts. `serviceCents` = guest fee.
-9. **Demo data in production.** `vercel-build` runs the seed with `KEYVAGA_DEMO=true` and the demo password is public. **Remove that from `package.json` before launch** and delete the demo accounts.
+9. **Preview banner** (`PreviewBanner.tsx`) shows until `STRIPE_SECRET_KEY` is a live key.
+10. **Demo data in production.** `vercel-build` runs the seed with `KEYVAGA_DEMO=true` and the demo password is public. **Remove that from `package.json` before launch** and delete the demo accounts.
 
 ## 6. Tests
 
@@ -116,7 +122,7 @@ STRIPE_SECRET_KEY=sk_test_… TEST_DATABASE_URL=… npm run test:stripe       # 
 npm run lint && npx tsc --noEmit && npm run build
 ```
 
-At handover: **91 tests passing** (unit + DB + Stripe test mode), lint and types clean, production build OK. The test DB must be separate and disposable, because the suites wipe tables.
+At handover: **98 tests passing** (unit + DB + Stripe test mode), lint and types clean, production build OK. The test DB must be separate and disposable, because the suites wipe tables.
 
 ## 7. What's done
 

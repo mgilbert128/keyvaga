@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { addDays, nightsBetween, todayIn } from "@/lib/dates";
+import { DOC_INFO, currentDoc, expiresSoon, isExpired, requiredDocuments } from "@/lib/documents";
 
 /** Nights of [a, b) that fall inside [from, to). */
 export function overlapNights(a: Date, b: Date, from: Date, to: Date): number {
@@ -18,7 +19,7 @@ export async function ownerOverview(ownerId: string) {
   const daysInMonth = nightsBetween(monthStart, monthEnd);
 
   const [listings, monthBookings, upcoming, pendingPayouts, owner, blocks] = await Promise.all([
-    db.listing.findMany({ where: { ownerId }, select: { id: true, title: true, status: true, reviewNote: true } }),
+    db.listing.findMany({ where: { ownerId }, select: { id: true, title: true, status: true, reviewNote: true, hostingRole: true, permitRequired: true, documents: true } }),
     db.booking.findMany({
       where: { listing: { ownerId }, checkIn: { lt: monthEnd }, checkOut: { gt: monthStart }, OR: [{ status: "CONFIRMED" }, { status: "CANCELLED", payoutDueCents: { gt: 0 } }] },
       select: { checkIn: true, checkOut: true, status: true, hostPayoutCents: true, payoutDueCents: true },
@@ -70,6 +71,18 @@ export async function ownerOverview(ownerId: string) {
   if (unanswered) attention.push({ key: "messages", text: `${unanswered} unanswered message${unanswered === 1 ? "" : "s"}`, action: "Reply", href: "/owner/messages" });
   for (const l of listings.filter((l) => l.status === "DRAFT" && l.reviewNote)) {
     attention.push({ key: `fix-${l.id}`, text: `Changes requested on ${l.title}`, action: "Fix listing", href: `/owner/listings/${l.id}` });
+  }
+  for (const l of listings.filter((l) => l.status === "PUBLISHED" || l.status === "PAUSED")) {
+    const required = requiredDocuments(l.hostingRole, l.permitRequired);
+    if (!l.hostingRole) {
+      attention.push({ key: `docs-${l.id}`, text: `Add proof of ownership for ${l.title}`, action: "Add", href: `/owner/listings/${l.id}#ownership-title` });
+      continue;
+    }
+    for (const type of required) {
+      const d = currentDoc(l.documents, type);
+      const problem = !d ? "is missing" : d.status === "REJECTED" ? "needs a new upload" : isExpired(d, today) ? "has expired" : expiresSoon(d, today) ? "expires soon" : null;
+      if (problem) attention.push({ key: `doc-${l.id}-${type}`, text: `${DOC_INFO[type].label} for ${l.title} ${problem}`, action: "Update", href: `/owner/listings/${l.id}#ownership-title` });
+    }
   }
   if (!owner.payoutsEnabled && (pendingPayouts.length || upcoming.length)) {
     attention.push({ key: "payouts", text: "Set up payouts to get paid for your bookings", action: "Set up", href: "/owner/payouts" });

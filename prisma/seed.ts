@@ -32,7 +32,12 @@ async function main() {
   const owner = await upsertUser("owner@keyvaga.test", "Jordan Owens", ["GUEST", "OWNER"], hash);
   await upsertUser("guest@keyvaga.test", "Alex Garcia", ["GUEST"], hash);
   await upsertUser("provider@keyvaga.test", "Sam Clean", ["GUEST", "PROVIDER"], hash);
-  await upsertUser("admin@keyvaga.test", "Keyvaga Admin", ["ADMIN"], hash);
+  if (process.env.NODE_ENV === "production") {
+    // Never keep a demo admin with a known password on a public site. Real admins come from ADMIN_EMAILS.
+    await db.user.deleteMany({ where: { email: "admin@keyvaga.test", bookings: { none: {} }, listings: { none: {} } } });
+  } else {
+    await upsertUser("admin@keyvaga.test", "Keyvaga Admin", ["ADMIN"], hash);
+  }
 
   const listings = [
     {
@@ -101,7 +106,7 @@ async function main() {
       create: { ...l, ownerId: owner.id, status: "PUBLISHED", featured: true, instantBook: true, publishedAt: new Date(), checkInInstructions, guidebook },
     });
   }
-  console.log(`Seeded 4 users and ${listings.length} listings. Password: ${password}`);
+  console.log(`Seeded demo users and ${listings.length} listings. Password: ${password}`);
 }
 
 main()

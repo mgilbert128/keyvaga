@@ -169,6 +169,10 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             )}
           </section>
 
+          {stay.permitRequired && stay.permitNumber && stay.documents.length && !(stay.documents[0]!.expiresAt && stay.documents[0]!.expiresAt < today) ? (
+            <p className="border-t border-line pt-8 text-ink-muted">Short-term rental permit: <span className="font-semibold text-ink">{stay.permitNumber}</span> (verified by Keyvaga)</p>
+          ) : null}
+
           <section aria-labelledby="host" className="flex items-center gap-4 border-t border-line pt-8">
             <Avatar name={stay.owner.name} />
             <div>
