@@ -42,6 +42,10 @@ npm run dev                       # http://localhost:3000
 
 Sample accounts (password `keyvaga-demo-123`): `guest@keyvaga.test`, `owner@keyvaga.test`, `provider@keyvaga.test`, `admin@keyvaga.test`.
 
+## Preview site (Vercel + Neon)
+
+Vercel runs `npm run vercel-build`, which applies database migrations, loads the sample data (`KEYVAGA_DEMO=true`) and builds the site. The sample accounts are public on the preview, so **remove `KEYVAGA_DEMO=true prisma db seed` from `vercel-build` before real launch.**
+
 ## Tests
 
 ```bash

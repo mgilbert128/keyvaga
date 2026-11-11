@@ -1,6 +1,7 @@
 /**
- * Sample data for local development. Every account uses the password in
- * SEED_PASSWORD (default "keyvaga-demo-123"). Never run against production.
+ * Sample data for local development and the preview site. Every account uses the
+ * password in SEED_PASSWORD (default "keyvaga-demo-123").
+ * In production it only runs when KEYVAGA_DEMO=true. Remove that before real launch.
  */
 import "dotenv/config";
 import bcrypt from "bcryptjs";
@@ -8,9 +9,13 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import type { Role } from "../src/generated/prisma/enums";
 
-if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed in production");
+if (process.env.NODE_ENV === "production" && process.env.KEYVAGA_DEMO !== "true") {
+  throw new Error("Refusing to seed in production (set KEYVAGA_DEMO=true for a demo site)");
+}
 
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is not set");
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 const password = process.env.SEED_PASSWORD ?? "keyvaga-demo-123";
 
 async function upsertUser(email: string, name: string, roles: Role[], passwordHash: string) {
