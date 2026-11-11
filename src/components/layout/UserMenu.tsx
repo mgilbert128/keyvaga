@@ -25,6 +25,11 @@ export async function UserMenu() {
       <Link href={defaultLandingFor(user.roles)} className={navLink}>
         My portal
       </Link>
+      {user.roles.includes("ADMIN") ? (
+        <Link href="/admin" className={navLink}>
+          Admin
+        </Link>
+      ) : null}
       <form action={logout}>
         <Button type="submit" variant="ghost">
           Log out

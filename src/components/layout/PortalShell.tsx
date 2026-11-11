@@ -26,6 +26,16 @@ export function PortalShell({
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <HomeLogoLink portal={portal} />
           <div className="flex items-center gap-2">
+            {user.roles.includes("ADMIN") && portal !== "Admin" ? (
+              <Link href="/admin" className="inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft">
+                Admin
+              </Link>
+            ) : null}
+            {portal === "Admin" && user.roles.includes("OWNER") ? (
+              <Link href="/owner" className="inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft">
+                Owner portal
+              </Link>
+            ) : null}
             <form action={logout}>
               <Button type="submit" variant="ghost">Log out</Button>
             </form>
