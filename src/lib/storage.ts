@@ -4,7 +4,9 @@ import path from "node:path";
 import { del, get, put } from "@vercel/blob";
 
 /**
- * Photo storage. Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (production),
+ * Photo storage. Uses Vercel Blob when it is connected (production), either via
+ * BLOB_STORE_ID (newer stores, signed in automatically with Vercel's OIDC token) or
+ * BLOB_READ_WRITE_TOKEN (older stores),
  * otherwise a local folder for development. Keep all storage calls behind this module
  * so the provider can change (e.g. to S3 or R2) without touching the rest of the app.
  */
@@ -20,8 +22,12 @@ export async function getPrivateBlob(pathname: string) {
   return result && result.statusCode === 200 ? result : null;
 }
 
+function blobConnected(): boolean {
+  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 export function storageMode(): "blob" | "local" | "none" {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
+  if (blobConnected()) return "blob";
   if (process.env.NODE_ENV !== "production" || process.env.KEYVAGA_LOCAL_UPLOADS === "true") return "local";
   return "none";
 }
@@ -56,7 +62,7 @@ export async function putImage(key: string, body: Buffer, contentType: string): 
 
 export async function deleteImage(storageKey: string): Promise<void> {
   if (storageKey.startsWith("https://")) {
-    if (process.env.BLOB_READ_WRITE_TOKEN) await del(storageKey);
+    if (blobConnected()) await del(storageKey);
     return;
   }
   await unlink(safeLocalPath(storageKey)).catch(() => {});

@@ -53,7 +53,7 @@ Sample accounts (password `keyvaga-demo-123`): `guest@keyvaga.test`, `owner@keyv
 
 Environment variables on Vercel:
 - `DATABASE_URL` / `POSTGRES_*`: set automatically by the Neon integration
-- `BLOB_READ_WRITE_TOKEN`: set automatically when a Vercel Blob store is connected (photo uploads)
+- `BLOB_STORE_ID` (or `BLOB_READ_WRITE_TOKEN` on older stores): set automatically when a Vercel Blob store is connected (photo uploads)
 - `ADMIN_EMAILS`: emails that get the admin role
 
 Vercel runs `npm run vercel-build`, which applies database migrations, loads the sample data (`KEYVAGA_DEMO=true`) and builds the site. The sample accounts are public on the preview, so **remove `KEYVAGA_DEMO=true prisma db seed` from `vercel-build` before real launch.**
