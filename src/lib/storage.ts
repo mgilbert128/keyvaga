@@ -1,7 +1,7 @@
 import "server-only";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { del, put } from "@vercel/blob";
+import { del, get, put } from "@vercel/blob";
 
 /**
  * Photo storage. Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (production),
@@ -9,6 +9,16 @@ import { del, put } from "@vercel/blob";
  * so the provider can change (e.g. to S3 or R2) without touching the rest of the app.
  */
 const LOCAL_DIR = path.join(process.cwd(), ".uploads");
+
+/** Learned on first upload: whether the connected Blob store accepts public files. */
+let blobAccess: "public" | "private" | undefined;
+
+/** Streams a privately stored listing photo. Only listing photos are ever served. */
+export async function getPrivateBlob(pathname: string) {
+  if (!pathname.startsWith("listings/") || pathname.includes("..")) return null;
+  const result = await get(pathname, { access: "private" });
+  return result && result.statusCode === 200 ? result : null;
+}
 
 export function storageMode(): "blob" | "local" | "none" {
   if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
@@ -19,8 +29,21 @@ export function storageMode(): "blob" | "local" | "none" {
 export async function putImage(key: string, body: Buffer, contentType: string): Promise<{ url: string; storageKey: string }> {
   const mode = storageMode();
   if (mode === "blob") {
-    const blob = await put(key, body, { access: "public", contentType, addRandomSuffix: true });
-    return { url: blob.url, storageKey: blob.url };
+    // Public stores serve photos straight from Vercel's CDN. Private stores (the newer default)
+    // reject public uploads, so we fall back to private and serve through /api/photos.
+    if (blobAccess !== "private") {
+      try {
+        const blob = await put(key, body, { access: "public", contentType, addRandomSuffix: true });
+        blobAccess = "public";
+        return { url: blob.url, storageKey: blob.url };
+      } catch (e) {
+        if (blobAccess === "public") throw e;
+        console.warn("public blob upload failed, retrying as private", e instanceof Error ? e.message : e);
+      }
+    }
+    const blob = await put(key, body, { access: "private", contentType, addRandomSuffix: true });
+    blobAccess = "private";
+    return { url: `/api/photos/${blob.pathname}`, storageKey: blob.url };
   }
   if (mode === "local") {
     const file = safeLocalPath(key);
