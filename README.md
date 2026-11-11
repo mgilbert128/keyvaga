@@ -4,7 +4,7 @@
 
 A vacation rental marketplace with three portals behind one login: guests book stays, owners run rentals, and service providers (cleaners, handymen and similar) take jobs from owners.
 
-## Status: Phase 2 (Listings and search)
+## Status: Phase 3 (Booking and payments)
 
 Done:
 - Next.js app with design tokens (all colors in `src/app/globals.css`)
@@ -20,6 +20,16 @@ Phase 2 adds:
 - Search filters (price, bedrooms, property type, amenities) and sorting
 - Stay page with photo gallery, amenities, house rules, availability calendar and price breakdown
 - The exact address stays private until booking
+
+Phase 3 adds:
+- Instant booking with a 15-minute date hold while the guest pays (Stripe Payment Element; card numbers never touch Keyvaga)
+- Fees: 10% total, 5% guest service fee + 5% host fee (`src/lib/booking-money.ts`)
+- Payment plan: 30% at booking, balance charged automatically to the saved card 30 days before check-in (full payment when booking within 30 days)
+- Cancellation policies per listing: Flexible, Moderate, Strict; refunds computed from what the guest has paid, owner cancellations refund in full
+- Owner payouts with Stripe Connect Express, transferred after check-in (separate charges and transfers)
+- Daily job (`/api/cron/daily`, scheduled in `vercel.json`): releases expired holds, charges balances, sends payouts
+- Stripe webhook (`/api/stripe/webhook`) keeps payments and payout-account status in sync
+- Guest trips pages, owner bookings and payouts pages
 
 Decided: guests **book instantly**; currency is **USD** (stored as whole cents).
 
@@ -55,6 +65,10 @@ Environment variables on Vercel:
 - `DATABASE_URL` / `POSTGRES_*`: set automatically by the Neon integration
 - `BLOB_STORE_ID` (or `BLOB_READ_WRITE_TOKEN` on older stores): set automatically when a Vercel Blob store is connected (photo uploads)
 - `ADMIN_EMAILS`: emails that get the admin role
+- `STRIPE_SECRET_KEY`: Stripe secret key (`sk_test_…` while testing)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key (`pk_test_…`)
+- `STRIPE_WEBHOOK_SECRET`: signing secret (`whsec_…`) of the webhook endpoint `https://<site>/api/stripe/webhook` with events `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `account.updated`
+- `CRON_SECRET`: any long random string; Vercel sends it to the daily job
 
 Vercel runs `npm run vercel-build`, which applies database migrations, loads the sample data (`KEYVAGA_DEMO=true`) and builds the site. The sample accounts are public on the preview, so **remove `KEYVAGA_DEMO=true prisma db seed` from `vercel-build` before real launch.**
 
@@ -63,6 +77,7 @@ Vercel runs `npm run vercel-build`, which applies database migrations, loads the
 ```bash
 npm test                                                             # unit tests
 TEST_DATABASE_URL=postgresql://.../keyvaga_test npm run test:db      # database rules (use a separate, empty database)
+STRIPE_SECRET_KEY=sk_test_... TEST_DATABASE_URL=... npm run test:stripe   # full booking money flow in Stripe TEST mode
 ```
 
 ## How permissions work
@@ -80,7 +95,7 @@ The `Booking` table has a Postgres exclusion constraint (`prisma/migrations/*_in
 
 1. **Foundation** ✅
 2. Listings and search ✅ (map still to do: needs a Mapbox account)
-3. Booking and payments (checkout, Stripe Connect, confirmation, payouts)
+3. Booking and payments ✅
 4. Guest portal, then owner portal
 5. Service portal
 6. Connections (iCal, Hospitable, PriceLabs, door locks)

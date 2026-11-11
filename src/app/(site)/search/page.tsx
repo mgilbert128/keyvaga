@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { StaySearchForm } from "@/components/search/StaySearchForm";
 import { SearchFilters } from "@/components/search/SearchFilters";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -20,6 +21,7 @@ export default function SearchPage({ searchParams }: PageProps<"/search">) {
 }
 
 async function SearchBody({ searchParams }: { searchParams: PageProps<"/search">["searchParams"] }) {
+  await connection(); // results depend on today's date and live availability
   const f = parseSearchParams(await searchParams);
   const datesInvalid = Boolean(f.checkIn && f.checkOut && f.checkOut <= f.checkIn);
   const results = await searchListings(f);

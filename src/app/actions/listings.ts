@@ -94,6 +94,7 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
       checkInTime: v.checkInTime,
       checkOutTime: v.checkOutTime,
       houseRules: v.houseRules,
+      cancellationPolicy: v.cancellationPolicy,
       amenities: v.amenities,
     },
   });

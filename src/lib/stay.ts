@@ -8,7 +8,7 @@ export async function getPublishedStay(slug: string) {
     select: {
       id: true, slug: true, title: true, summary: true, description: true, propertyType: true,
       city: true, region: true, bedrooms: true, bathrooms: true, maxGuests: true,
-      nightlyRateCents: true, cleaningFeeCents: true, minNights: true, instantBook: true,
+      nightlyRateCents: true, cleaningFeeCents: true, minNights: true, instantBook: true, cancellationPolicy: true,
       amenities: true, houseRules: true, checkInTime: true, checkOutTime: true,
       // Exact address deliberately not selected: guests get it only after booking.
       photos: { orderBy: { position: "asc" }, select: { id: true, url: true, alt: true } },
@@ -23,7 +23,12 @@ export async function getUnavailableNights(listingId: string, from: Date, days =
   const until = addDays(from, days);
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
-      where: { listingId, status: { in: ["PENDING_PAYMENT", "CONFIRMED"] }, checkOut: { gt: from }, checkIn: { lt: until } },
+      where: {
+        listingId,
+        checkOut: { gt: from },
+        checkIn: { lt: until },
+        OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }],
+      },
       select: { checkIn: true, checkOut: true },
     }),
     db.calendarBlock.findMany({

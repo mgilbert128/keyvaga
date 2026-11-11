@@ -67,7 +67,14 @@ export function buildSearchWhere(f: SearchFilters): Prisma.ListingWhereInput {
   if (f.checkIn && f.checkOut && f.checkOut > f.checkIn) {
     const { checkIn, checkOut } = f;
     and.push({
-      bookings: { none: { status: { in: ["PENDING_PAYMENT", "CONFIRMED"] }, checkIn: { lt: checkOut }, checkOut: { gt: checkIn } } },
+      // Confirmed stays and unexpired checkout holds occupy dates.
+      bookings: {
+        none: {
+          checkIn: { lt: checkOut },
+          checkOut: { gt: checkIn },
+          OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: f.now ?? new Date() } }],
+        },
+      },
       calendarBlocks: { none: { startDate: { lt: checkOut }, endDate: { gt: checkIn } } },
     });
   }

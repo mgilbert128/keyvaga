@@ -7,6 +7,7 @@ import { SelectField, TextAreaField } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { PROPERTY_TYPES } from "@/lib/property-types";
 import { AMENITY_GROUPS } from "@/lib/amenities";
+import { CANCELLATION_POLICIES, POLICY_INFO } from "@/lib/booking-money";
 import type { ListingFormState } from "@/lib/validation/listing";
 
 export type EditableListing = {
@@ -31,6 +32,7 @@ export type EditableListing = {
   checkOutTime: string;
   houseRules: string;
   amenities: string[];
+  cancellationPolicy: string;
 };
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -102,6 +104,22 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
           <Field label="Cleaning fee ($)" id="cleaningFee" inputMode="decimal" placeholder="95" defaultValue={listing.cleaningFee} error={e.cleaningFee} hint="Charged once per stay." />
           <Field label="Minimum stay (nights)" id="minNights" type="number" min={1} max={365} inputMode="numeric" defaultValue={listing.minNights} error={e.minNights} />
         </div>
+      </Section>
+
+      <Section title="Cancellation policy" description="What guests get back if they cancel. Guests always get a full refund if you cancel.">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="sr-only">Cancellation policy</legend>
+          {CANCELLATION_POLICIES.map((p) => (
+            <label key={p} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border border-line px-4 py-3 has-[:checked]:border-brand has-[:checked]:bg-soft">
+              <input type="radio" name="cancellationPolicy" value={p} defaultChecked={listing.cancellationPolicy === p} className="mt-1 h-5 w-5 accent-[var(--kv-brand)]" />
+              <span className="flex flex-col">
+                <span className="font-semibold">{POLICY_INFO[p].label}</span>
+                <span className="text-sm text-ink-muted">{POLICY_INFO[p].summary}</span>
+              </span>
+            </label>
+          ))}
+          {e.cancellationPolicy ? <p className="text-sm font-medium text-danger">{e.cancellationPolicy[0]}</p> : null}
+        </fieldset>
       </Section>
 
       <Section title="Amenities">

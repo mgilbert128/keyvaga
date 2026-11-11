@@ -31,6 +31,11 @@ model User {
   sessions     Session[]
   listings     Listing[]  @relation("ListingOwner")
   bookings     Booking[]  @relation("BookingGuest")
+  /// Stripe customer used to save the guest's card for the balance charge.
+  stripeCustomerId     String? @unique
+  /// Stripe Connect account that receives the owner's payouts.
+  stripeAccountId      String? @unique
+  payoutsEnabled       Boolean @default(false)
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -94,6 +99,7 @@ model Listing {
   /// Instant book is the launch default; kept per listing so request-to-book can be added later.
   instantBook      Boolean         @default(true)
   minNights        Int             @default(1)
+  cancellationPolicy CancellationPolicy @default(MODERATE)
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities        String[]        @default([])
   houseRules       String          @default("")
@@ -149,6 +155,12 @@ model ListingPhoto {
 
 // ---------- Availability and bookings ----------
 
+enum CancellationPolicy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
 enum BookingStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -161,25 +173,97 @@ enum BookingStatus {
 /// A Postgres exclusion constraint (see migration) refuses overlapping active
 /// bookings for the same listing.
 model Booking {
-  id             String        @id @default(cuid())
-  listingId      String
-  guestId        String
-  checkIn        DateTime      @db.Date
-  checkOut       DateTime      @db.Date
-  guests         Int
-  status         BookingStatus @default(PENDING_PAYMENT)
-  nightlyCents   Int
-  cleaningCents  Int
-  serviceCents   Int
-  totalCents     Int
-  currency       String        @default("USD") @db.Char(3)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  listing        Listing       @relation(fields: [listingId], references: [id])
-  guest          User          @relation("BookingGuest", fields: [guestId], references: [id])
+  id                 String             @id @default(cuid())
+  listingId          String
+  guestId            String
+  checkIn            DateTime           @db.Date
+  checkOut           DateTime           @db.Date
+  guests             Int
+  status             BookingStatus      @default(PENDING_PAYMENT)
+  /// Price snapshot at booking time (cents). serviceCents is the guest's 5% service fee.
+  nightlyCents       Int
+  cleaningCents      Int
+  serviceCents       Int
+  totalCents         Int
+  hostFeeCents       Int                @default(0)
+  hostPayoutCents    Int                @default(0)
+  currency           String             @default("USD") @db.Char(3)
+  cancellationPolicy CancellationPolicy @default(MODERATE)
+  /// Payment plan: dueNowCents at booking; balanceCents charged on balanceDueDate (null = paid in full).
+  dueNowCents        Int                @default(0)
+  balanceCents       Int                @default(0)
+  balanceDueDate     DateTime?          @db.Date
+  balanceStatus      BalanceStatus      @default(NONE)
+  balanceAttempts    Int                @default(0)
+  /// While PENDING_PAYMENT the dates are held until this time.
+  holdExpiresAt      DateTime?
+  stripePaymentMethodId String?
+  confirmedAt        DateTime?
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  refundedCents      Int                @default(0)
+  /// Owner payout after cancellations/adjustments; paid out after check-in.
+  payoutDueCents     Int                @default(0)
+  payoutStatus       PayoutStatus       @default(NOT_DUE)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  listing            Listing            @relation(fields: [listingId], references: [id])
+  guest              User               @relation("BookingGuest", fields: [guestId], references: [id])
+  payments           Payment[]
 
   @@index([listingId, checkIn])
   @@index([guestId])
+  @@index([status, balanceDueDate])
+  @@index([payoutStatus, checkIn])
+}
+
+enum BalanceStatus {
+  NONE
+  SCHEDULED
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  NOT_DUE
+  PENDING
+  PAID
+  NONE
+}
+
+enum PaymentKind {
+  DEPOSIT
+  BALANCE
+  FULL
+  REFUND
+  PAYOUT
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+/// Ledger of every money movement for a booking: guest charges, refunds and owner payouts.
+model Payment {
+  id          String        @id @default(cuid())
+  bookingId   String
+  kind        PaymentKind
+  amountCents Int
+  status      PaymentStatus @default(PENDING)
+  /// Stripe PaymentIntent, Refund or Transfer id.
+  stripeId    String?       @unique
+  /// For charges: the Stripe charge id (used to fund payouts).
+  stripeChargeId String?
+  failureMessage String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  booking     Booking       @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
 }
 
 enum BlockSource {

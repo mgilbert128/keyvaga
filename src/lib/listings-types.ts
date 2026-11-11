@@ -19,4 +19,6 @@ export type SearchFilters = {
   types?: PropertyType[];
   amenities?: string[];
   sort?: SortKey;
+  /** For tests: the moment used to decide whether checkout holds have expired. */
+  now?: Date;
 };

@@ -28,6 +28,7 @@ suite("double-booking prevention (database constraint)", () => {
   });
 
   beforeEach(async () => {
+    await db.payment.deleteMany();
     await db.booking.deleteMany();
     await db.calendarBlock.deleteMany();
     await db.listingPhoto.deleteMany();

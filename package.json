@@ -12,11 +12,14 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && KEYVAGA_DEMO=true prisma db seed && next build"
+    "vercel-build": "prisma generate && prisma migrate deploy && KEYVAGA_DEMO=true prisma db seed && next build",
+    "test:stripe": "STRIPE_INTEGRATION=1 NODE_USE_ENV_PROXY=1 vitest run tests/stripe"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "@stripe/react-stripe-js": "^7.0.1",
+    "@stripe/stripe-js": "^10.2.1",
     "@vercel/blob": "^2.9.0",
     "bcryptjs": "^3.0.3",
     "next": "16.4.6",
@@ -24,6 +27,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
+    "stripe": "^23.1.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

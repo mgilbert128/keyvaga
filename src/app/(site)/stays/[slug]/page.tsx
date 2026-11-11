@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { getPublishedStay, getUnavailableNights } from "@/lib/stay";
 import { playableUrl } from "@/lib/storage";
 import { formatCents } from "@/lib/money";
@@ -8,6 +9,8 @@ import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
 import { parseISODate, rangeHasConflict, todayIn, toISODate, addDays } from "@/lib/dates";
 import { quoteStay } from "@/lib/pricing";
+import { bookingAmounts, paymentSchedule, POLICY_INFO } from "@/lib/booking-money";
+import { reserve } from "@/app/actions/bookings";
 import { Card, Chip, Avatar } from "@/components/ui/Card";
 import { inputClass } from "@/components/ui/Field";
 import { buttonClass } from "@/components/ui/Button";
@@ -36,6 +39,7 @@ const timeFmt = (hhmm: string) => {
 async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "params" | "searchParams">) {
   const { slug } = await params;
   const sp = await searchParams;
+  await connection(); // availability and prices depend on today's date
   const stay = await getPublishedStay(slug);
   if (!stay) notFound();
 
@@ -59,6 +63,10 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
     }
   }
   if (!quoteError && guests && guests > stay.maxGuests) quoteError = `This place sleeps up to ${stay.maxGuests}.`;
+  const reserveError = str(sp.error)?.slice(0, 200);
+  const amounts = quote?.ok && !quoteError ? bookingAmounts(quote.totalCents) : null;
+  const schedule = amounts && checkIn ? paymentSchedule(amounts.guestTotalCents, checkIn, today) : null;
+  const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
   const firstMonth = { year: today.getUTCFullYear(), monthIndex: today.getUTCMonth() };
   const second = new Date(Date.UTC(firstMonth.year, firstMonth.monthIndex + 1, 1));
@@ -165,7 +173,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
 
             <div aria-live="polite" className="flex flex-col gap-3">
               {quoteError ? <p role="alert" className="font-medium text-danger">{quoteError}</p> : null}
-              {quote?.ok && !quoteError ? (
+              {quote?.ok && !quoteError && amounts && schedule ? (
                 <>
                   <dl className="flex flex-col gap-2 border-t border-line pt-4">
                     <div className="flex justify-between gap-4">
@@ -175,16 +183,44 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                     {quote.cleaningCents ? (
                       <div className="flex justify-between gap-4"><dt>Cleaning fee</dt><dd>{formatCents(quote.cleaningCents)}</dd></div>
                     ) : null}
+                    <div className="flex justify-between gap-4"><dt>Keyvaga service fee</dt><dd>{formatCents(amounts.guestFeeCents)}</dd></div>
                     <div className="flex justify-between gap-4 border-t border-line pt-2 text-lg font-bold">
-                      <dt>Total before taxes</dt><dd>{formatCents(quote.totalCents)}</dd>
+                      <dt>Total (USD)</dt><dd>{formatCents(amounts.guestTotalCents)}</dd>
                     </div>
                   </dl>
-                  <p className="text-sm text-ink-muted">Any service fees and taxes are shown at checkout.</p>
+                  <div className="rounded-control bg-soft px-4 py-3 text-sm text-on-soft">
+                    {schedule.kind === "split" ? (
+                      <p>
+                        <strong>Pay {formatCents(schedule.dueNowCents)} today</strong> (30%), and the remaining {formatCents(schedule.balanceCents)} is
+                        charged automatically on {dateFmt.format(schedule.balanceDueDate)}.
+                      </p>
+                    ) : (
+                      <p><strong>Pay {formatCents(schedule.dueNowCents)} today.</strong> Check-in is within 30 days, so the full amount is due now.</p>
+                    )}
+                  </div>
                 </>
               ) : null}
+              {reserveError ? <p role="alert" className="font-medium text-danger">{reserveError}</p> : null}
             </div>
-            <button type="button" disabled className={buttonClass("primary", "w-full")} aria-describedby="book-soon">Reserve</button>
-            <p id="book-soon" className="text-center text-sm text-ink-muted">Online booking opens soon.</p>
+            {quote?.ok && !quoteError && checkIn && checkOut ? (
+              <form action={reserve}>
+                <input type="hidden" name="listingId" value={stay.id} />
+                <input type="hidden" name="slug" value={stay.slug} />
+                <input type="hidden" name="checkIn" value={toISODate(checkIn)} />
+                <input type="hidden" name="checkOut" value={toISODate(checkOut)} />
+                <input type="hidden" name="guests" value={guests ?? 1} />
+                <button type="submit" className={buttonClass("primary", "w-full")}>Reserve</button>
+              </form>
+            ) : (
+              <button type="button" disabled className={buttonClass("primary", "w-full")} aria-describedby="book-hint">Reserve</button>
+            )}
+            <p id="book-hint" className="text-center text-sm text-ink-muted">
+              {quote?.ok && !quoteError ? "You won't be charged until you confirm payment." : "Choose dates and click Check price to book."}
+            </p>
+            <div className="border-t border-line pt-4 text-sm">
+              <p className="font-semibold">Cancellation: {POLICY_INFO[stay.cancellationPolicy].label}</p>
+              <p className="text-ink-muted">{POLICY_INFO[stay.cancellationPolicy].summary}</p>
+            </div>
           </Card>
         </aside>
       </div>
