@@ -22,10 +22,10 @@ const portals = [
   },
   {
     chip: "Services",
-    title: "Find cleaners and handymen",
-    body: "Request quotes from vetted local pros.",
-    cta: "Service portal",
-    href: "/services",
+    title: "Offer your services",
+    body: "Cleaners, handymen and local pros: get jobs from Keyvaga hosts.",
+    cta: "Join as a provider",
+    href: "/signup?intent=PROVIDER",
   },
 ];
 

@@ -60,7 +60,7 @@ export async function ownerOverview(ownerId: string) {
       key: `clean-${b.id}`,
       text: `Turnover cleaning, ${fmt.format(b.checkOut)} · ${b.listing.title}`,
       action: "Book a cleaner",
-      href: `/services?need=cleaning&listing=${b.listing.id}&date=${b.checkOut.toISOString().slice(0, 10)}`,
+      href: `/owner/services?need=cleaning&listing=${b.listing.id}&date=${b.checkOut.toISOString().slice(0, 10)}`,
     });
   }
   const threads = await db.booking.findMany({

@@ -18,7 +18,7 @@ export default function ListYourPropertyPage() {
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">List your property on Keyvaga</h1>
         <p className="text-lg text-ink-muted">
           Run your calendar, pricing, bookings and payouts in one place, and book trusted local cleaners and
-          handymen when you need them.
+          handymen when you need them, right from your owner portal.
         </p>
         <ButtonLink href="/signup?intent=OWNER" className="self-start">Get started</ButtonLink>
       </div>

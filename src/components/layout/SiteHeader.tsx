@@ -17,9 +17,6 @@ export function SiteHeader() {
           <Link href="/list-your-property" className={navLink}>
             List your property
           </Link>
-          <Link href="/services" className={navLink}>
-            Services
-          </Link>
           <Suspense fallback={<UserMenuFallback />}>
             <UserMenu />
           </Suspense>
@@ -38,7 +35,7 @@ export function SiteFooter() {
         <nav aria-label="Footer" className="flex flex-wrap gap-x-2">
           <Link href="/search" className="inline-flex min-h-11 items-center px-2 hover:text-ink">Stays</Link>
           <Link href="/list-your-property" className="inline-flex min-h-11 items-center px-2 hover:text-ink">List your property</Link>
-          <Link href="/services" className="inline-flex min-h-11 items-center px-2 hover:text-ink">Services</Link>
+          <Link href="/signup?intent=PROVIDER" className="inline-flex min-h-11 items-center px-2 hover:text-ink">Offer your services</Link>
         </nav>
       </div>
     </footer>

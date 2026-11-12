@@ -13,7 +13,7 @@ export const ownerNav = (current: string) =>
       { label: "Pricing", href: "/owner/pricing" },
       { label: "Messages", href: "/owner/messages" },
       { label: "Payouts", href: "/owner/payouts" },
-      { label: "Find services", href: "/services" },
+      { label: "Find services", href: "/owner/services" },
     ],
     current,
   );

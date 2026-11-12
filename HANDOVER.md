@@ -153,7 +153,7 @@ Spec phases (section 12 of the brief):
 - Owners responding to reviews; becoming an owner from an existing guest account (today owners sign up with "List my property").
 - Help center, Terms, Privacy and Cancellation policy pages (linked from checkout copy but not built).
 
-**Phase 5, service portal** (spec §7): provider profiles, categories, quote requests and "post a job", quotes, accept, job tracking, payment and reviews. Placeholders exist: `/services` (public) and `/provider`. "Book a cleaner" links already pass `need`, `listing` and `date` query params to `/services`.
+**Phase 5, service portal** (spec §7): provider profiles, categories, quote requests and "post a job", quotes, accept, job tracking, payment and reviews. The owner-only entry point is `/owner/services` (the founder wants services visible to owners only; `/services` redirects there). The provider portal placeholder is `/provider`, and providers join via `/signup?intent=PROVIDER` (linked from the home page and footer). "Book a cleaner" links already pass `need`, `listing` and `date` query params to `/owner/services`.
 
 **Phase 6, connections** (spec §10, §10a): iCal import and export first (`CalendarBlock.source` already has `ICAL` and `HOSPITABLE`), then Hospitable, PriceLabs (Dynamic Pricing API, needs certification) and smart locks (Seam or RemoteLock), plus the Connections page.
 
