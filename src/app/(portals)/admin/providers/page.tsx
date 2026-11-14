@@ -34,8 +34,8 @@ async function Providers() {
   // Coverage map: state → city → providers. "All of <state>" for providers with no city list.
   const byState = new Map<string, Map<string, typeof live>>();
   for (const p of live) {
-    const state = p.region.toUpperCase() || "No state";
-    const cities = p.serviceAreas.length ? p.serviceAreas.map(titleCase) : [`All of ${state}`];
+    const state = p.region.toUpperCase() || "Anywhere / no state";
+    const cities = p.serviceAreas.length ? p.serviceAreas.map(titleCase) : [p.region ? `All of ${state}` : "Everywhere (sample)"];
     const m = byState.get(state) ?? new Map();
     for (const c of cities) m.set(c, [...(m.get(c) ?? []), p]);
     byState.set(state, m);

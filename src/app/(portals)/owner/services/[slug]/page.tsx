@@ -57,7 +57,7 @@ async function Provider({ params }: { params: PageProps<"/owner/services/[slug]"
           <Card className="flex flex-col gap-2">
             <h2 className="text-xl font-bold">About</h2>
             <p className="whitespace-pre-line text-ink-muted">{p.bio}</p>
-            <p className="text-sm"><strong>Serves:</strong> {p.serviceAreaText || `all of ${p.region}`} ({p.region})</p>
+            <p className="text-sm"><strong>Serves:</strong> {p.serviceAreaText || (p.region ? `all of ${p.region}` : "anywhere")}{p.region ? ` (${p.region})` : ""}</p>
             {p.availabilityNote ? <p className="text-sm"><strong>Availability:</strong> {p.availabilityNote}</p> : null}
           </Card>
           <Card className="flex flex-col gap-2">

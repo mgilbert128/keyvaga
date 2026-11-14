@@ -67,6 +67,9 @@ export type JobMatchInput = { category: string; city: string; region: string };
 export function providerServes(p: ProviderMatchInput, j: JobMatchInput): boolean {
   if (p.status !== "APPROVED") return false;
   if (!p.categories.includes(j.category)) return false;
+  // No state and no towns: serves anywhere. Only possible for Keyvaga's own sample/demo provider;
+  // real providers must choose a state before submitting their profile.
+  if (!p.region.trim() && p.serviceAreas.length === 0) return true;
   const city = j.city.trim().toLowerCase();
   const sameRegion = p.region.trim().toLowerCase() === j.region.trim().toLowerCase();
   if (p.serviceAreas.length === 0) return sameRegion;

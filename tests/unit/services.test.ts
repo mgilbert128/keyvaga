@@ -59,3 +59,11 @@ describe("multi-state providers", () => {
     expect(providerServes(p, { category: "cleaning", city: "Madison", region: "WI" })).toBe(false);
   });
 });
+
+describe("sample provider (no state, no towns)", () => {
+  it("serves every property for its categories", () => {
+    const p = { status: "APPROVED", categories: ["cleaning"], serviceAreas: [], region: "" };
+    expect(providerServes(p, { category: "cleaning", city: "Anywhere", region: "TX" })).toBe(true);
+    expect(providerServes(p, { category: "plumbing", city: "Anywhere", region: "TX" })).toBe(false);
+  });
+});

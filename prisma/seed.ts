@@ -33,23 +33,22 @@ async function main() {
   await upsertUser("guest@keyvaga.test", "Alex Garcia", ["GUEST"], hash);
   const provider = await upsertUser("provider@keyvaga.test", "Sam Clean", ["GUEST", "PROVIDER"], hash);
   // Sample service provider so owners see a card in the services directory.
+  const sample = {
+    businessName: "Sparkle Turnovers (sample)",
+    bio: "Sample provider for the Keyvaga preview. Turnover cleaning, linens and restocking for vacation rentals, with a photo checklist after every clean.",
+    categories: ["cleaning", "linen"],
+    // No state and no towns = shows for every property (sample only; real providers must pick a state).
+    serviceAreaText: "Anywhere (sample provider)",
+    serviceAreas: [] as string[],
+    region: "",
+    pricingGuidance: "Turnover cleans from $120 for a 2-bedroom.",
+    availabilityNote: "Same-day available",
+    status: "APPROVED" as const,
+  };
   await db.providerProfile.upsert({
     where: { userId: provider.id },
-    update: {},
-    create: {
-      userId: provider.id,
-      slug: "sparkle-turnovers-sample",
-      businessName: "Sparkle Turnovers (sample)",
-      bio: "Sample provider for the Keyvaga preview. Turnover cleaning, linens and restocking for vacation rentals, with a photo checklist after every clean.",
-      categories: ["cleaning", "linen"],
-      serviceAreaText: "Lake Geneva, Chicago, Gulf Shores",
-      serviceAreas: ["lake geneva", "chicago", "gulf shores"],
-      region: "",
-      pricingGuidance: "Turnover cleans from $120 for a 2-bedroom.",
-      availabilityNote: "Same-day available",
-      status: "APPROVED",
-      approvedAt: new Date(),
-    },
+    update: sample, // keep the demo provider's sample profile current on every deploy
+    create: { ...sample, userId: provider.id, slug: "sparkle-turnovers-sample", approvedAt: new Date() },
   });
   if (process.env.NODE_ENV === "production") {
     // Never keep a demo admin with a known password on a public site. Real admins come from ADMIN_EMAILS.

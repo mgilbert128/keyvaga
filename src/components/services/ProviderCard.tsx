@@ -30,7 +30,7 @@ export function ProviderCard({ p, stats, requestHref }: { p: P; stats: ProviderS
         {response ? ` · ${response}` : ""}
         {p.availabilityNote ? ` · ${p.availabilityNote}` : ""}
       </p>
-      <p className="text-sm text-ink-muted">Serves {p.serviceAreaText || `all of ${p.region}`}</p>
+      <p className="text-sm text-ink-muted">Serves {p.serviceAreaText || (p.region ? `all of ${p.region}` : "anywhere")}</p>
       <div className="mt-auto flex flex-wrap gap-2">
         <ButtonLink href={requestHref} variant="secondary">Request quote</ButtonLink>
         <ButtonLink href={`/owner/services/${p.slug}`} variant="ghost">View profile</ButtonLink>
