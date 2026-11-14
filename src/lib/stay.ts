@@ -9,7 +9,8 @@ export async function getPublishedStay(slug: string) {
       id: true, slug: true, title: true, summary: true, description: true, propertyType: true,
       city: true, region: true, bedrooms: true, bathrooms: true, maxGuests: true,
       nightlyRateCents: true, cleaningFeeCents: true, minNights: true, instantBook: true, cancellationPolicy: true, permitRequired: true, permitNumber: true,
-      documents: { where: { type: "RENTAL_PERMIT", status: "APPROVED" }, select: { id: true, expiresAt: true }, take: 1, orderBy: { createdAt: "desc" } },
+      hostingRole: true,
+      documents: { select: { id: true, type: true, status: true, expiresAt: true, createdAt: true } },
       weekendRateCents: true, weeklyDiscountBps: true, monthlyDiscountBps: true,
       seasonalRates: { select: { name: true, startDate: true, endDate: true, nightlyRateCents: true } },
       // Custom per-night prices from the owner calendar (future nights only).

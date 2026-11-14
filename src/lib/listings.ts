@@ -1,5 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { listingVerification } from "@/lib/documents";
+import { todayIn } from "@/lib/dates";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ListingCardData = {
@@ -13,6 +15,8 @@ export type ListingCardData = {
   nightlyRateCents: number;
   coverUrl: string | null;
   coverAlt: string;
+  /** Host documents approved by Keyvaga (shows a "Verified" tag). */
+  verified?: boolean;
 };
 
 const cardSelect = {
@@ -25,12 +29,16 @@ const cardSelect = {
   bedrooms: true,
   nightlyRateCents: true,
   photos: { orderBy: { position: "asc" }, take: 1, select: { url: true, alt: true } },
+  hostingRole: true,
+  permitRequired: true,
+  documents: { select: { type: true, status: true, expiresAt: true, createdAt: true } },
 } satisfies Prisma.ListingSelect;
 
 type CardRow = Prisma.ListingGetPayload<{ select: typeof cardSelect }>;
 
-function toCard({ photos, ...l }: CardRow): ListingCardData {
-  return { ...l, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title };
+function toCard({ photos, hostingRole, permitRequired, documents, ...l }: CardRow): ListingCardData {
+  const verified = listingVerification({ hostingRole, permitRequired, documents }, todayIn()).host !== null;
+  return { ...l, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified };
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {

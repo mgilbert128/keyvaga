@@ -52,3 +52,19 @@ describe("document file types", () => {
     expect(sniffDocumentType(new TextEncoder().encode("PK\u0003\u0004"))).toBeNull(); // zip/docx
   });
 });
+
+import { listingVerification } from "@/lib/documents";
+
+describe("guest-facing verification badges", () => {
+  it("shows Verified owner/manager only when all required documents are approved", () => {
+    expect(listingVerification({ hostingRole: "OWNER", permitRequired: false, documents: [doc("OWNERSHIP_PROOF", "APPROVED")] }, today)).toEqual({ host: "owner", permit: false });
+    expect(listingVerification({ hostingRole: "OWNER", permitRequired: false, documents: [doc("OWNERSHIP_PROOF", "PENDING")] }, today)).toEqual({ host: null, permit: false });
+    expect(listingVerification({ hostingRole: "MANAGER", permitRequired: false, documents: [doc("MANAGEMENT_LICENSE", "APPROVED"), doc("MANAGEMENT_AGREEMENT", "APPROVED")] }, today).host).toBe("manager");
+    expect(listingVerification({ hostingRole: null, permitRequired: false, documents: [] }, today).host).toBeNull();
+  });
+  it("drops the permit badge (and the host badge) when the permit expires", () => {
+    const docs = [doc("OWNERSHIP_PROOF", "APPROVED"), doc("RENTAL_PERMIT", "APPROVED", { expiresAt: d("2027-01-01") })];
+    expect(listingVerification({ hostingRole: "OWNER", permitRequired: true, permitNumber: "STR-1", documents: docs }, today)).toEqual({ host: "owner", permit: true });
+    expect(listingVerification({ hostingRole: "OWNER", permitRequired: true, permitNumber: "STR-1", documents: docs }, d("2027-02-01"))).toEqual({ host: null, permit: false });
+  });
+});

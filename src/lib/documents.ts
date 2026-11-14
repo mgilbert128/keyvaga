@@ -89,3 +89,16 @@ export function sniffDocumentType(bytes: Uint8Array): "application/pdf" | "image
   if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "image/webp";
   return null;
 }
+
+export type Verification = { host: "owner" | "manager" | null; permit: boolean };
+
+/**
+ * Badges shown to guests: "Verified owner/manager" when every required document is approved and
+ * in date, and "Permit verified" when the rental permit is approved and in date.
+ */
+export function listingVerification(l: { hostingRole: HostingRole | null; permitRequired: boolean; permitNumber?: string; documents: DocLike[] }, today: Date): Verification {
+  const host = documentsApproved(l.hostingRole, l.permitRequired, l.documents, today) ? (l.hostingRole === "MANAGER" ? "manager" : "owner") : null;
+  const permitDoc = currentDoc(l.documents, "RENTAL_PERMIT");
+  const permit = Boolean(l.permitRequired && (l.permitNumber ?? "x") && permitDoc?.status === "APPROVED" && !isExpired(permitDoc, today));
+  return { host, permit };
+}

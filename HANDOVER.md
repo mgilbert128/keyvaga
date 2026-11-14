@@ -96,7 +96,7 @@ tests/
   - Records: every movement is recorded in `Payment`. DB check constraints enforce non-negative amounts and that `dueNowCents + balanceCents = totalCents`.
 - **Payment state sync.** `syncPaymentIntent()` is idempotent. It runs from the checkout return page (`/trips/[id]?paid=1`) **and** the webhook, so things work even before the webhook is configured. It also handles the edge case "hold expired while paying and someone else booked" (auto-refund).
 - **Listing lifecycle.** DRAFT → (owner submits; needs a title, summary, address, price and 1+ photos) → PENDING_REVIEW → (admin approves at `/admin`) → PUBLISHED ⇄ PAUSED. A rejection returns to DRAFT with `reviewNote`.
-- **Proof of ownership.** `src/lib/documents.ts` (rules) plus `ListingDocument` and `DocumentAccessLog`.
+- **Proof of ownership.** `src/lib/documents.ts` (rules) plus `ListingDocument` and `DocumentAccessLog`. Guests see "Verified owner/manager" and "Permit verified" badges (`listingVerification`) computed live from approved, in-date documents.
   - Owners need a deed, tax bill or utility bill. Managers need a management license and agreement. Both need the rental permit when required.
   - Uploads go to `/api/listings/[id]/documents` and are stored privately (`putPrivateDocument`: a private Blob, or `.private-uploads` locally). They're viewed only via `/api/documents/[id]` (listing owner or admin), and every action is logged.
   - Submitting requires the documents to be uploaded; publishing requires each one to be approved (`documentsApproved`).

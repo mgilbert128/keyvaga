@@ -6,6 +6,8 @@ import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/st
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { toggleSaved } from "@/app/actions/guest";
+import { listingVerification } from "@/lib/documents";
+import { VerifiedBadges } from "@/components/listings/VerifiedBadges";
 import { playableUrl } from "@/lib/storage";
 import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
@@ -48,6 +50,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
 
   const today = todayIn();
   const [unavailable, reviewData, viewer] = await Promise.all([getUnavailableNights(stay.id, today), getStayReviews(stay.id), getCurrentUser()]);
+  const verification = listingVerification(stay, today);
   const saved = viewer ? Boolean(await db.savedListing.findUnique({ where: { userId_listingId: { userId: viewer.id, listingId: stay.id } } })) : false;
 
   const str = (v: unknown) => (typeof v === "string" ? v : undefined);
@@ -85,6 +88,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             {reviewData.count ? <><span className="text-brand" aria-hidden="true">★</span> {reviewData.average!.toFixed(1)} ({reviewData.count} review{reviewData.count === 1 ? "" : "s"}) · </> : null}
             {stay.city}, {stay.region} · {propertyTypeLabel(stay.propertyType)}
           </p>
+          <VerifiedBadges v={verification} />
         </div>
         <form action={toggleSaved.bind(null, stay.id, stay.slug)}>
           <button type="submit" aria-pressed={saved} className={buttonClass("secondary")}>
@@ -169,7 +173,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             )}
           </section>
 
-          {stay.permitRequired && stay.permitNumber && stay.documents.length && !(stay.documents[0]!.expiresAt && stay.documents[0]!.expiresAt < today) ? (
+          {verification.permit && stay.permitNumber ? (
             <p className="border-t border-line pt-8 text-ink-muted">Short-term rental permit: <span className="font-semibold text-ink">{stay.permitNumber}</span> (verified by Keyvaga)</p>
           ) : null}
 
@@ -177,7 +181,9 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             <Avatar name={stay.owner.name} />
             <div>
               <h2 id="host" className="text-xl font-bold">Hosted by {stay.owner.name}</h2>
-              <p className="text-ink-muted">On Keyvaga since {stay.owner.createdAt.getFullYear()}</p>
+              <p className="text-ink-muted">
+                {verification.host ? <span className="font-semibold text-on-soft">✓ Verified {verification.host} · </span> : null}On Keyvaga since {stay.owner.createdAt.getFullYear()}
+              </p>
             </div>
           </section>
         </div>

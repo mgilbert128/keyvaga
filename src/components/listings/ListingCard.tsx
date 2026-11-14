@@ -22,6 +22,11 @@ export function ListingCard({ listing, index, query }: { listing: ListingCardDat
         <p className="text-ink-muted">
           {listing.city}, {listing.region} · Sleeps {listing.maxGuests} · {listing.bedrooms} bd
         </p>
+        {listing.verified ? (
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-soft px-2.5 py-0.5 text-xs font-semibold text-on-soft" title="Keyvaga checked this host's ownership documents">
+            <span aria-hidden="true">✓</span> Verified host
+          </p>
+        ) : null}
       </div>
       <p className="mt-auto text-xl font-semibold sm:text-2xl">
         {formatCents(listing.nightlyRateCents)} <span className="text-base font-medium sm:text-lg">/ night</span>
