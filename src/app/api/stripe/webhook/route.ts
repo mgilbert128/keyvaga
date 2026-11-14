@@ -2,6 +2,7 @@ import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { syncPaymentIntent } from "@/lib/bookings";
+import { syncJobPayment } from "@/lib/jobs";
 
 /**
  * Stripe calls this when payments succeed or fail and when an owner's payout account changes.
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
       case "payment_intent.succeeded":
       case "payment_intent.payment_failed":
       case "payment_intent.canceled":
-        await syncPaymentIntent(event.data.object as Stripe.PaymentIntent);
+        if ((event.data.object as Stripe.PaymentIntent).metadata?.jobId) await syncJobPayment(event.data.object as Stripe.PaymentIntent);
+        else await syncPaymentIntent(event.data.object as Stripe.PaymentIntent);
         break;
       case "account.updated": {
         const account = event.data.object as Stripe.Account;

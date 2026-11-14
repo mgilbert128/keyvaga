@@ -5,7 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { buttonClass } from "@/components/ui/Button";
 
-type Props = { publishableKey: string; clientSecret: string; bookingId: string; amountLabel: string; holdExpiresAt: string | null };
+type Props = { publishableKey: string; clientSecret: string; bookingId: string; amountLabel: string; holdExpiresAt: string | null; returnPath?: string };
 
 /** Card details are entered in Stripe's secure fields; Keyvaga's servers never see card numbers. */
 export function PaymentForm(props: Props) {
@@ -26,7 +26,7 @@ export function PaymentForm(props: Props) {
   );
 }
 
-function Inner({ bookingId, amountLabel, holdExpiresAt }: Props) {
+function Inner({ bookingId, amountLabel, holdExpiresAt, returnPath }: Props) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState("");
@@ -40,7 +40,7 @@ function Inner({ bookingId, amountLabel, holdExpiresAt }: Props) {
     setError("");
     const { error } = await stripe.confirmPayment({
       elements,
-      confirmParams: { return_url: `${window.location.origin}/trips/${bookingId}?paid=1` },
+      confirmParams: { return_url: `${window.location.origin}${returnPath ?? `/trips/${bookingId}?paid=1`}` },
     });
     // Only reached if the payment failed or needs fixing; on success Stripe redirects to the trip page.
     setError(error?.message ?? "Payment didn't go through. Please check your details and try again.");

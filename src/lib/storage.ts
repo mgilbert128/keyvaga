@@ -17,7 +17,7 @@ let blobAccess: "public" | "private" | undefined;
 
 /** Streams a privately stored listing photo. Only listing photos are ever served. */
 export async function getPrivateBlob(pathname: string) {
-  if (!pathname.startsWith("listings/") || pathname.includes("..")) return null;
+  if (!(pathname.startsWith("listings/") || pathname.startsWith("providers/")) || pathname.includes("..")) return null;
   const result = await get(pathname, { access: "private" });
   return result && result.statusCode === 200 ? result : null;
 }

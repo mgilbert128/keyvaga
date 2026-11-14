@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 
 /** Creates (once) the owner's Stripe Express account and returns a Stripe-hosted onboarding link. */
-export async function payoutOnboardingLink(userId: string, origin: string): Promise<string> {
+export async function payoutOnboardingLink(userId: string, origin: string, returnPath = "/owner/payouts"): Promise<string> {
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   let accountId = user.stripeAccountId;
   if (!accountId) {
@@ -13,7 +13,9 @@ export async function payoutOnboardingLink(userId: string, origin: string): Prom
         country: "US",
         email: user.email,
         capabilities: { transfers: { requested: true } },
-        business_profile: { product_description: "Vacation rental host on Keyvaga", mcc: "7011" },
+        business_profile: returnPath.startsWith("/provider")
+          ? { product_description: "Home and property services for vacation rentals on Keyvaga", mcc: "7349" }
+          : { product_description: "Vacation rental host on Keyvaga", mcc: "7011" },
         metadata: { keyvagaUserId: user.id },
       },
       { idempotencyKey: `connect-account-${user.id}` },
@@ -23,8 +25,8 @@ export async function payoutOnboardingLink(userId: string, origin: string): Prom
   }
   const link = await stripe().accountLinks.create({
     account: accountId,
-    refresh_url: `${origin}/owner/payouts?refresh=1`,
-    return_url: `${origin}/owner/payouts?return=1`,
+    refresh_url: `${origin}${returnPath}?refresh=1`,
+    return_url: `${origin}${returnPath}?return=1`,
     type: "account_onboarding",
   });
   return link.url;

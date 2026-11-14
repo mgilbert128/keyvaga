@@ -14,6 +14,7 @@ export const ownerNav = (current: string) =>
       { label: "Messages", href: "/owner/messages" },
       { label: "Payouts", href: "/owner/payouts" },
       { label: "Find services", href: "/owner/services" },
+      { label: "Service jobs", href: "/owner/jobs" },
     ],
     current,
   );
@@ -28,6 +29,17 @@ export const guestNav = (current: string) =>
       { label: "Messages", href: "/messages" },
       { label: "Profile", href: "/profile" },
       { label: "Find a stay", href: "/search" },
+    ],
+    current,
+  );
+
+export const providerNav = (current: string) =>
+  mark(
+    [
+      { label: "Overview", href: "/provider" },
+      { label: "Jobs", href: "/provider/jobs" },
+      { label: "Business profile", href: "/provider/profile" },
+      { label: "Payouts", href: "/provider/payouts" },
     ],
     current,
   );
