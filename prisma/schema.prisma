@@ -120,6 +120,11 @@ model Listing {
   seasonalRates       SeasonalRate[]
   dateRates           DateRate[]
   jobs                Job[]
+  /// The owner's usual cleaner for this property; turnover cleans can be requested automatically.
+  regularCleanerId    String?
+  regularCleaner      ProviderProfile?   @relation("RegularCleaner", fields: [regularCleanerId], references: [id], onDelete: SetNull)
+  /// When a booking is confirmed, send a turnover cleaning request for checkout day to the regular cleaner.
+  autoRequestCleaning Boolean            @default(false)
   reviews             Review[]
   savedBy             SavedListing[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
@@ -482,6 +487,7 @@ model ProviderProfile {
   photos           ProviderPhoto[]
   quotes           Quote[]
   directJobs       Job[]           @relation("JobTargetProvider")
+  regularFor       Listing[]       @relation("RegularCleaner")
   jobMessages      JobMessage[]
 
   @@index([status, region])

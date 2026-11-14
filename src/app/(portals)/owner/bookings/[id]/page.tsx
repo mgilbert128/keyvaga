@@ -31,7 +31,7 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
   const { id } = await params;
   await connection();
   const user = await requirePortal("owner", `/owner/bookings/${id}`);
-  const b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, ownerId: true } }, guest: { select: { name: true, email: true } } } });
+  const b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
   if (!b || b.listing.ownerId !== user.id || b.status === "PENDING_PAYMENT") notFound();
   const today = todayIn();
   const canCancel = b.status === "CONFIRMED" && b.checkOut > today;
@@ -53,6 +53,15 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
         ) : null}
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/owner/messages/${b.id}`} variant="secondary">Message guest</ButtonLink>
+          {b.status === "CONFIRMED" && b.checkOut >= today ? (
+            b.jobs[0] ? (
+              <ButtonLink href={`/owner/jobs/${b.jobs[0].id}`} variant="secondary">
+                Cleaning: {b.jobs[0].status === "OPEN" ? `requested${b.jobs[0].targetProvider ? ` from ${b.jobs[0].targetProvider.businessName}` : ""}` : `${b.jobs[0].acceptedQuote?.provider.businessName ?? "scheduled"}`}
+              </ButtonLink>
+            ) : (
+              <ButtonLink href={`/owner/jobs/new?category=cleaning&listing=${b.listing.id}&date=${b.checkOut.toISOString().slice(0, 10)}${b.listing.regularCleanerId ? `&provider=${b.listing.regularCleanerId}` : ""}`}>Book a cleaner</ButtonLink>
+            )
+          ) : null}
         </div>
         <Card><BookingSummary b={b} view="owner" /></Card>
         {canCancel ? (

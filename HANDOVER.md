@@ -68,6 +68,9 @@ src/
   lib/
     auth/                  dal.ts = the permission gate (requireUser/requirePortal); roles, sessions, passwords
     booking-money.ts       ALL fee / deposit / refund math (pure, unit-tested)
+    services.ts            service marketplace rules: categories, job fees (5% + 5%), area matching, job lifecycle (pure)
+    jobs.ts                service job engine: create, quote, accept+pay, complete, release/auto-release, problems, refunds, payouts, turnover automation
+    providers.ts           provider profiles, ratings/response time, directory search
     pricing.ts             nightly rates (custom date price > season > weekend > base), weekly/monthly discounts (pure)
     bookings.ts            booking engine: hold → Stripe → confirm, balance charge, cancel/refund, payouts, daily job
     payouts.ts             Stripe Connect onboarding + status
@@ -122,7 +125,7 @@ STRIPE_SECRET_KEY=sk_test_… TEST_DATABASE_URL=… npm run test:stripe       # 
 npm run lint && npx tsc --noEmit && npm run build
 ```
 
-At handover: **98 tests passing** (unit + DB + Stripe test mode), lint and types clean, production build OK. The test DB must be separate and disposable, because the suites wipe tables.
+At handover: **118 tests passing** (unit + DB + Stripe test mode), lint and types clean, production build OK. The test DB must be separate and disposable, because the suites wipe tables.
 
 ## 7. What's done
 
@@ -141,6 +144,13 @@ Spec phases (section 12 of the brief):
    - Owner overview with real numbers and "Needs attention", calendar with tap-to-select dates to set custom prices (e.g. a holiday weekend), block or reset; pricing (weekend, seasonal, weekly/monthly discounts), bookings, payouts and messages.
    - Guest trips with check-in details released before arrival, house-rules agreement and digital guidebook.
    - Reviews (average shown on the stay page), Book again, Saved stays, profile and password change.
+5. **Service portal:**
+   - **Providers (`/provider`):** business profile (services, towns served, state, photos, pricing guidance, availability) that goes live after admin approval; job inbox (direct requests + open jobs matching their area and category); quote builder; mark done; payouts via Stripe Connect; reviews.
+   - **Owners (owner-only, `/owner/services`, `/owner/jobs`):** directory filtered by category and by the property's city, or any state/city where providers work; provider cards and profiles; request a quote or post a job; compare and accept quotes; pay; message providers; release payment or report a problem; reviews.
+   - **Money:** the owner pays quote + 5% when accepting. Keyvaga holds the funds (separate charges and transfers) and transfers quote − 5% to the provider when the owner releases, or automatically 3 days after the provider marks the job done (daily cron). Owner or provider cancellation refunds in full. Reported problems go to `/admin/problems` (pay the provider or refund).
+   - **Turnover cleaning:** owners set a regular cleaner per listing. With "automatically request" on, a confirmed booking creates a direct cleaning request for checkout day (`autoRequestTurnover`), and a cancelled booking cancels and refunds its cleaning (`cancelJobsForBooking`). "Book a cleaner" on bookings and in Needs attention pre-fills the request.
+   - **Admin:** `/admin/providers` (approval queue plus providers by state → city coverage) and `/admin/problems`.
+   - **Fees** for service jobs were an open decision in the spec; they're set to 5% + 5% in `src/lib/services.ts` (`JOB_OWNER_FEE_BPS`, `JOB_PROVIDER_FEE_BPS`).
 
 ## 8. What's next
 
@@ -153,7 +163,7 @@ Spec phases (section 12 of the brief):
 - Owners responding to reviews; becoming an owner from an existing guest account (today owners sign up with "List my property").
 - Help center, Terms, Privacy and Cancellation policy pages (linked from checkout copy but not built).
 
-**Phase 5, service portal** (spec §7): provider profiles, categories, quote requests and "post a job", quotes, accept, job tracking, payment and reviews. The owner-only entry point is `/owner/services` (the founder wants services visible to owners only; `/services` redirects there). The provider portal placeholder is `/provider`, and providers join via `/signup?intent=PROVIDER` (linked from the home page and footer). "Book a cleaner" links already pass `need`, `listing` and `date` query params to `/owner/services`.
+**Service portal follow-ups:** provider verification documents (license/insurance) reusing the listing-documents pattern; optional paid "featured" tier for providers; cleaner checklists with photo proof; maintenance reports from cleaners that become handyman jobs; auto-accept at a regular cleaner's standing price.
 
 **Phase 6, connections** (spec §10, §10a): iCal import and export first (`CalendarBlock.source` already has `ICAL` and `HOSPITABLE`), then Hospitable, PriceLabs (Dynamic Pricing API, needs certification) and smart locks (Seam or RemoteLock), plus the Connections page.
 

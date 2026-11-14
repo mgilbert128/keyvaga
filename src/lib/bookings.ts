@@ -6,6 +6,7 @@ import { HOLD_MINUTES, bookingAmounts, cancellationOutcome, paymentSchedule, spl
 import { addDays, rangeHasConflict, todayIn, toISODate, unavailableNights } from "@/lib/dates";
 import { quoteStay } from "@/lib/pricing";
 import type { Prisma } from "@/generated/prisma/client";
+import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
@@ -162,6 +163,8 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
             payoutStatus: "PENDING",
           },
         });
+        // Owner's regular cleaner gets the turnover request automatically (if they turned it on).
+        await autoRequestTurnover(booking.id).catch((e) => console.error("auto turnover request failed", e));
         return "confirmed";
       } catch {
         // The hold expired and someone else booked the dates while this payment was finishing: refund in full.
@@ -281,6 +284,8 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner") {
     remaining -= amount;
   }
   await db.booking.update({ where: { id: b.id }, data: { refundedCents: { increment: outcome.refundCents - remaining } } });
+  // No stay, no turnover: cancel any cleaning booked for it.
+  await cancelJobsForBooking(b.id).catch((e) => console.error("cancel cleaning for booking failed", e));
   return outcome;
 }
 

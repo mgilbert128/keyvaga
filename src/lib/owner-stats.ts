@@ -55,13 +55,21 @@ export async function ownerOverview(ownerId: string) {
   // Needs attention
   const attention: AttentionItem[] = [];
   const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-  for (const b of upcoming.filter((b) => b.checkOut <= addDays(today, 14))) {
-    attention.push({
-      key: `clean-${b.id}`,
-      text: `Turnover cleaning, ${fmt.format(b.checkOut)} · ${b.listing.title}`,
-      action: "Book a cleaner",
-      href: `/owner/services?need=cleaning&listing=${b.listing.id}&date=${b.checkOut.toISOString().slice(0, 10)}`,
-    });
+  // Turnover cleanings for checkouts in the next 14 days: link to the cleaning job, or offer to book one.
+  const soon = upcoming.filter((b) => b.checkOut <= addDays(today, 14));
+  const cleaningJobs = soon.length
+    ? await db.job.findMany({ where: { bookingId: { in: soon.map((b) => b.id) }, category: "cleaning", status: { not: "CANCELLED" } }, select: { id: true, bookingId: true, status: true, quotes: { where: { status: "SUBMITTED" }, select: { id: true } } } })
+    : [];
+  const regular = await db.listing.findMany({ where: { id: { in: soon.map((b) => b.listing.id) } }, select: { id: true, regularCleanerId: true } });
+  for (const b of soon) {
+    const job = cleaningJobs.find((j) => j.bookingId === b.id);
+    const when = `${fmt.format(b.checkOut)} · ${b.listing.title}`;
+    if (!job) {
+      const cleaner = regular.find((l) => l.id === b.listing.id)?.regularCleanerId;
+      attention.push({ key: `clean-${b.id}`, text: `Turnover cleaning, ${when}`, action: "Book a cleaner", href: `/owner/jobs/new?category=cleaning&listing=${b.listing.id}&date=${b.checkOut.toISOString().slice(0, 10)}${cleaner ? `&provider=${cleaner}` : ""}` });
+    } else if (job.status === "OPEN") {
+      attention.push({ key: `clean-${b.id}`, text: job.quotes.length ? `Cleaning quote ready to accept, ${when}` : `Cleaning requested, waiting for a quote, ${when}`, action: job.quotes.length ? "Review quote" : "View", href: `/owner/jobs/${job.id}` });
+    }
   }
   const threads = await db.booking.findMany({
     where: { listing: { ownerId }, messages: { some: {} } },
@@ -83,6 +91,18 @@ export async function ownerOverview(ownerId: string) {
       const problem = !d ? "is missing" : d.status === "REJECTED" ? "needs a new upload" : isExpired(d, today) ? "has expired" : expiresSoon(d, today) ? "expires soon" : null;
       if (problem) attention.push({ key: `doc-${l.id}-${type}`, text: `${DOC_INFO[type].label} for ${l.title} ${problem}`, action: "Update", href: `/owner/listings/${l.id}#ownership-title` });
     }
+  }
+  // Service jobs needing the owner: quotes to compare, finished work to approve.
+  const jobsNeeding = await db.job.findMany({
+    where: { ownerId, OR: [{ status: "COMPLETED" }, { status: "OPEN", quotes: { some: { status: "SUBMITTED" } }, bookingId: { notIn: soon.map((b) => b.id) } }] },
+    select: { id: true, title: true, status: true, quotes: { where: { status: "SUBMITTED" }, select: { id: true } } },
+  });
+  for (const j of jobsNeeding) {
+    attention.push(
+      j.status === "COMPLETED"
+        ? { key: `job-${j.id}`, text: `${j.title} is done. Release payment?`, action: "Review", href: `/owner/jobs/${j.id}` }
+        : { key: `job-${j.id}`, text: `${j.quotes.length} quote${j.quotes.length === 1 ? "" : "s"} for ${j.title}`, action: "Compare", href: `/owner/jobs/${j.id}` },
+    );
   }
   if (!owner.payoutsEnabled && (pendingPayouts.length || upcoming.length)) {
     attention.push({ key: "payouts", text: "Set up payouts to get paid for your bookings", action: "Set up", href: "/owner/payouts" });

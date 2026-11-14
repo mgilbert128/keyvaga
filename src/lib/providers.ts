@@ -42,8 +42,11 @@ export async function findProviders(f: { category?: string; city?: string; regio
     where: {
       status: "APPROVED",
       ...(f.category ? { categories: { has: f.category } } : {}),
-      ...(f.region ? { region: { equals: f.region, mode: "insensitive" } } : {}),
-      ...(f.text ? { OR: [{ businessName: { contains: f.text, mode: "insensitive" } }, { serviceAreaText: { contains: f.text, mode: "insensitive" } }] } : {}),
+      AND: [
+        // Providers in that state, plus multi-state providers (no single state) who are matched by town below.
+        ...(f.region ? [{ OR: [{ region: { equals: f.region, mode: "insensitive" as const } }, { region: "" }] }] : []),
+        ...(f.text ? [{ OR: [{ businessName: { contains: f.text, mode: "insensitive" as const } }, { serviceAreaText: { contains: f.text, mode: "insensitive" as const } }] }] : []),
+      ],
     },
     include: { photos: { orderBy: { position: "asc" }, take: 1 } },
     orderBy: { approvedAt: "asc" },

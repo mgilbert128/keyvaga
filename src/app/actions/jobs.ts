@@ -177,3 +177,19 @@ export async function submitJobReview(jobId: string, _prev: JobResult, fd: FormD
   refreshJob(jobId);
   return { ok: true, message: "Thanks for your review!" };
 }
+
+/** Owner picks their regular cleaner for a property and whether turnover requests are sent automatically. */
+export async function setRegularCleaner(listingId: string, _prev: JobResult, fd: FormData): Promise<JobResult> {
+  const u = await user("OWNER");
+  const listing = await db.listing.findFirst({ where: { id: listingId, ownerId: u.id } });
+  if (!listing) return { message: "Listing not found." };
+  const cleanerId = String(fd.get("regularCleanerId") ?? "") || null;
+  if (cleanerId) {
+    const p = await db.providerProfile.findFirst({ where: { id: cleanerId, status: "APPROVED", categories: { has: "cleaning" } } });
+    if (!p) return { message: "That cleaner isn't available." };
+  }
+  const auto = fd.get("autoRequestCleaning") === "on";
+  await db.listing.update({ where: { id: listing.id }, data: { regularCleanerId: cleanerId, autoRequestCleaning: Boolean(cleanerId) && auto } });
+  revalidatePath(`/owner/listings/${listing.id}`);
+  return { ok: true, message: cleanerId ? (auto ? "Saved. New bookings will automatically send your cleaner a turnover request." : "Saved.") : "Regular cleaner removed." };
+}

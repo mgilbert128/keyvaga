@@ -51,3 +51,11 @@ describe("response time", () => {
     expect(responseTimeLabel(null)).toBeNull();
   });
 });
+
+describe("multi-state providers", () => {
+  it("match by town when they have no single state", () => {
+    const p = { status: "APPROVED", categories: ["cleaning"], serviceAreas: ["lake geneva", "chicago"], region: "" };
+    expect(providerServes(p, { category: "cleaning", city: "Chicago", region: "IL" })).toBe(true);
+    expect(providerServes(p, { category: "cleaning", city: "Madison", region: "WI" })).toBe(false);
+  });
+});

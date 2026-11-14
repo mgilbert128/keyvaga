@@ -11,6 +11,8 @@ import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
 import { OwnershipSection } from "@/components/owner/OwnershipSection";
+import { TurnoverCleaning } from "@/components/owner/TurnoverCleaning";
+import { findProviders } from "@/lib/providers";
 import { db } from "@/lib/db";
 import { todayIn } from "@/lib/dates";
 import { blobUploadAccess, playableUrl, storageMode } from "@/lib/storage";
@@ -81,6 +83,13 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
           listing={listing}
           docs={await db.listingDocument.findMany({ where: { listingId: listing.id }, orderBy: { createdAt: "desc" } })}
           today={todayIn()}
+        />
+
+        <TurnoverCleaning
+          listingId={listing.id}
+          cleaners={listing.city ? (await findProviders({ category: "cleaning", city: listing.city, region: listing.region })).map((r) => ({ id: r.profile.id, businessName: r.profile.businessName, slug: r.profile.slug })) : []}
+          current={listing.regularCleanerId ? await db.providerProfile.findUnique({ where: { id: listing.regularCleanerId }, select: { id: true, businessName: true, slug: true, status: true } }) : null}
+          auto={listing.autoRequestCleaning}
         />
 
         <PhotoManager listingId={listing.id} photos={listing.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt }))}>

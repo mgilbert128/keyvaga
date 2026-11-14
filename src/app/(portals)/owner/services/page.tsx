@@ -34,7 +34,22 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
   const category = isServiceCategory(str("need")) ? str("need") : "";
   const date = parseISODate(str("date"));
   const text = str("q").slice(0, 60);
-  const results = await findProviders({ category: category || undefined, city: listing?.city, region: listing?.region, text: text || undefined });
+  // Location: the chosen property's city by default, or any city/state where providers work.
+  const areas = await db.providerProfile.findMany({ where: { status: "APPROVED" }, select: { region: true, serviceAreas: true } });
+  const locs = new Map<string, Set<string>>();
+  for (const a of areas) {
+    const st = a.region.toUpperCase();
+    if (!st) continue;
+    const set = locs.get(st) ?? new Set<string>();
+    a.serviceAreas.forEach((c) => set.add(c));
+    locs.set(st, set);
+  }
+  const titleCase = (x: string) => x.replace(/\b\w/g, (c) => c.toUpperCase());
+  const loc = str("loc"); // "WI" (whole state) or "WI|lake geneva"
+  const [locState, locCity] = loc ? [loc.split("|")[0]!, loc.split("|")[1] ?? ""] : ["", ""];
+  const where = loc && locs.has(locState) ? { city: locCity || undefined, region: locState } : { city: listing?.city, region: listing?.region };
+  const whereLabel = loc && locs.has(locState) ? (locCity ? `${titleCase(locCity)}, ${locState}` : `all of ${locState}`) : listing?.city;
+  const results = await findProviders({ category: category || undefined, city: where.city, region: where.region, text: text || undefined });
   const ctx = new URLSearchParams(Object.entries({ listing: listing?.id ?? "", category, date: str("date") }).filter(([, v]) => v)).toString();
 
   return (
@@ -48,7 +63,7 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
           <ButtonLink href={`/owner/jobs/new${ctx ? `?${ctx}` : ""}`}>Post a job</ButtonLink>
         </div>
 
-        <form method="get" className="grid grid-cols-1 gap-4 rounded-card border border-line bg-surface p-6 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+        <form method="get" className="grid grid-cols-1 gap-4 rounded-card border border-line bg-surface p-6 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">
           <div className="flex flex-col gap-2">
             <label htmlFor="need" className="text-sm font-semibold">What do you need?</label>
             <select id="need" name="need" defaultValue={category} className={inputClass}>
@@ -63,8 +78,20 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
             </select>
           </div>
           <div className="flex flex-col gap-2">
-            <label htmlFor="q" className="text-sm font-semibold">Name or town (optional)</label>
-            <input id="q" name="q" defaultValue={text} className={inputClass} placeholder="e.g. Sparkle" />
+            <label htmlFor="loc" className="text-sm font-semibold">Location</label>
+            <select id="loc" name="loc" defaultValue={loc} className={inputClass}>
+              <option value="">Near the selected property</option>
+              {[...locs.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([st, cities]) => (
+                <optgroup key={st} label={st}>
+                  <option value={st}>All of {st}</option>
+                  {[...cities].sort().map((c) => <option key={c} value={`${st}|${c}`}>{titleCase(c)}, {st}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="q" className="text-sm font-semibold">Name (optional)</label>
+            <input id="q" name="q" defaultValue={text} className={inputClass} placeholder="Business name" />
           </div>
           {date ? <input type="hidden" name="date" value={str("date")} /> : null}
           <button type="submit" className={buttonClass("primary")}>Search pros</button>
@@ -79,7 +106,7 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
         ) : null}
 
         <section aria-labelledby="results" className="flex flex-col gap-4">
-          <h2 id="results" className="text-2xl font-bold">{listing?.city ? `Available near ${listing.city}` : "Available pros"}</h2>
+          <h2 id="results" className="text-2xl font-bold">{whereLabel ? `Available in ${whereLabel}` : "Available pros"} <span className="text-base font-normal text-ink-muted">({results.length})</span></h2>
           {!listing ? (
             <p className="text-ink-muted">Add a property first so we can find pros near it.</p>
           ) : (

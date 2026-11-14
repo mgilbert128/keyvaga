@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { SERVICE_CATEGORIES, isServiceCategory, categoryNoun } from "@/lib/services";
 import { addDays, parseISODate, todayIn, toISODate } from "@/lib/dates";
 import { createJobAction } from "@/app/actions/jobs";
+import { turnoverDetails } from "@/lib/jobs";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
@@ -14,7 +15,6 @@ import { SelectField, TextAreaField } from "@/components/ui/Select";
 import { ActionForm } from "@/components/owner/ActionForm";
 
 export const metadata: Metadata = { title: "Request a quote" };
-const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 export default function Page({ searchParams }: PageProps<"/owner/jobs/new">) {
   return (
@@ -36,7 +36,8 @@ async function NewJob({ searchParams }: { searchParams: PageProps<"/owner/jobs/n
   const listingId = listings.some((l) => l.id === str("listing")) ? str("listing") : listings[0]?.id;
   // Turnover cleans: link to the booking that checks out on that date.
   const booking = date && listingId ? await db.booking.findFirst({ where: { listingId, status: "CONFIRMED", checkOut: date }, select: { id: true, checkOut: true } }) : null;
-  const title = category === "cleaning" && booking ? `Turnover cleaning after checkout ${fmt.format(booking.checkOut)}` : categoryNoun(category);
+  const turnover = category === "cleaning" && booking ? await turnoverDetails(booking.id) : null;
+  const title = turnover?.title ?? categoryNoun(category);
 
   return (
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/jobs")}>
@@ -55,7 +56,7 @@ async function NewJob({ searchParams }: { searchParams: PageProps<"/owner/jobs/n
                 {SERVICE_CATEGORIES.filter((c) => !provider || provider.categories.includes(c.key)).map((c) => <option key={c.key} value={c.key}>{c.noun}</option>)}
               </SelectField>
               <Field label="Short title" id="title" defaultValue={title} maxLength={100} required />
-              <TextAreaField label="Details" id="description" rows={5} maxLength={3000} required hint="Size of the property, what needs doing, access instructions, anything the pro should know." />
+              <TextAreaField label="Details" id="description" rows={5} maxLength={3000} required defaultValue={turnover?.description} hint="Size of the property, what needs doing, access instructions, anything the pro should know." />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-end">
                 <Field label="Preferred date" id="preferredDate" type="date" min={toISODate(todayIn())} max={toISODate(addDays(todayIn(), 365))} defaultValue={date ? toISODate(date) : undefined} />
                 <label className="flex min-h-11 cursor-pointer items-center gap-3">

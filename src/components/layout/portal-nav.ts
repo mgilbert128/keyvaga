@@ -19,7 +19,15 @@ export const ownerNav = (current: string) =>
     current,
   );
 
-export const adminNav = (current: string) => mark([{ label: "Listing reviews", href: "/admin" }], current);
+export const adminNav = (current: string) =>
+  mark(
+    [
+      { label: "Listing reviews", href: "/admin" },
+      { label: "Providers", href: "/admin/providers" },
+      { label: "Problems", href: "/admin/problems" },
+    ],
+    current,
+  );
 
 export const guestNav = (current: string) =>
   mark(

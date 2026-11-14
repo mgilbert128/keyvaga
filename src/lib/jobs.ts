@@ -57,7 +57,7 @@ export async function providerInbox(profile: Profile) {
       OR: [
         { targetProviderId: profile.id },
         { quotes: { some: { providerId: profile.id } } },
-        { status: "OPEN", targetProviderId: null, category: { in: profile.categories.length ? profile.categories : ["_none"] }, listing: { region: { equals: profile.region || "_none", mode: "insensitive" } } },
+        { status: "OPEN", targetProviderId: null, category: { in: profile.categories.length ? profile.categories : ["_none"] }, ...(profile.region ? { listing: { region: { equals: profile.region, mode: "insensitive" as const } } } : {}) },
       ],
     },
     orderBy: { createdAt: "desc" },
@@ -246,4 +246,52 @@ export async function runDailyJobTasks() {
   const payouts: Record<string, string> = {};
   for (const { id } of unpaid) payouts[id] = String(await payOutJob(id).catch((e) => `error: ${e.message}`));
   return { released, payouts };
+}
+
+// ---------- Turnover cleanings ----------
+
+const shortDate = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+
+/** Title and details for the cleaning after a booking's checkout (used for auto and one-tap requests). */
+export async function turnoverDetails(bookingId: string) {
+  const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { listing: true } });
+  const next = await db.booking.findFirst({
+    where: { listingId: b.listingId, status: "CONFIRMED", checkIn: { gte: b.checkOut } },
+    orderBy: { checkIn: "asc" },
+    select: { checkIn: true },
+  });
+  const sameDay = next && +next.checkIn === +b.checkOut;
+  return {
+    booking: b,
+    title: `Turnover cleaning after checkout ${shortDate.format(b.checkOut)}`,
+    description: [
+      `Guests check out ${shortDate.format(b.checkOut)} by ${b.listing.checkOutTime}.`,
+      next ? `Next guests check in ${sameDay ? "the same day" : shortDate.format(next.checkIn)} from ${b.listing.checkInTime}${sameDay ? ", so the clean must be finished before then" : ""}.` : "No next booking yet.",
+      `${b.listing.bedrooms} bedroom${b.listing.bedrooms === 1 ? "" : "s"}, ${b.listing.bathrooms.toString()} bath${b.listing.bathrooms.toString() === "1" ? "" : "s"}, sleeps ${b.listing.maxGuests}.`,
+      "Usual turnover: strip and remake beds, bathrooms, kitchen, floors, trash, restock basics.",
+    ].join("\n"),
+  };
+}
+
+/**
+ * Called when a booking is confirmed: if the owner turned on automatic turnover requests and has an
+ * approved regular cleaner, send that cleaner a request for checkout day. Never creates duplicates.
+ */
+export async function autoRequestTurnover(bookingId: string) {
+  const b = await db.booking.findUnique({ where: { id: bookingId }, include: { listing: { include: { regularCleaner: true } } } });
+  if (!b || b.status !== "CONFIRMED") return "skipped";
+  const l = b.listing;
+  if (!l.autoRequestCleaning || !l.regularCleaner || l.regularCleaner.status !== "APPROVED") return "not_enabled";
+  const existing = await db.job.findFirst({ where: { bookingId, category: "cleaning", status: { not: "CANCELLED" } } });
+  if (existing) return "exists";
+  const d = await turnoverDetails(bookingId);
+  await createJob(l.ownerId, { listingId: l.id, category: "cleaning", title: d.title, description: d.description, preferredDate: b.checkOut, flexibleDate: false, bookingId, providerId: l.regularCleaner.id });
+  return "requested";
+}
+
+/** Called when a booking is cancelled: cancel its cleaning jobs (refunding anything paid). */
+export async function cancelJobsForBooking(bookingId: string) {
+  const jobs = await db.job.findMany({ where: { bookingId, status: { in: ["OPEN", "ASSIGNED"] } }, select: { id: true, ownerId: true } });
+  for (const j of jobs) await cancelJob(j.ownerId, j.id).catch((e) => console.error("cancel job for booking failed", j.id, e));
+  return jobs.length;
 }

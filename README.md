@@ -4,7 +4,7 @@
 
 A vacation rental marketplace with three portals behind one login: guests book stays, owners run rentals, and service providers (cleaners, handymen and similar) take jobs from owners.
 
-## Status: Phases 1–4 done. See HANDOVER.md before making changes
+## Status: Phases 1–5 done. See HANDOVER.md before making changes
 
 Done:
 - Next.js app with design tokens (all colors in `src/app/globals.css`)
@@ -41,6 +41,8 @@ Proof of ownership:
 - Documents are stored privately and only the owner and admins can open them; every upload, view and review is logged
 - Listings can't be submitted until documents are uploaded, and can't be published until an admin approves each one; the verified permit number is shown on the stay page
 - A "Preview" banner shows on every page until live Stripe keys are used (hide with `KEYVAGA_PREVIEW_BANNER=off`)
+
+Phase 5 adds the service marketplace: provider business profiles with admin approval, an owner-only directory by category and location, quote requests and open jobs, quotes, payment held until the job is done (5% owner + 5% provider fee), release or auto-release after 3 days, problem reports, reviews, provider payouts, and automatic turnover-cleaning requests to an owner's regular cleaner when a booking is confirmed.
 
 Decided: guests **book instantly**; currency is **USD** (stored as whole cents).
 
