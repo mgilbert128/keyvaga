@@ -15,7 +15,7 @@ suite("search filters (database)", () => {
     (await db.listing.findMany({ where: buildSearchWhere(f), select: { title: true }, orderBy: { title: "asc" } })).map((l) => l.title);
 
   beforeAll(async () => {
-    await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany(); await db.providerPhoto.deleteMany(); await db.providerProfile.deleteMany();
+    await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany(); await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany(); await db.providerPhoto.deleteMany(); await db.providerProfile.deleteMany();
     await db.payment.deleteMany();
     await db.booking.deleteMany();
     await db.calendarBlock.deleteMany();

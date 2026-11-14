@@ -17,7 +17,7 @@ suite("automatic turnover cleaning", () => {
   let cleaner: Awaited<ReturnType<typeof db.providerProfile.create>>;
 
   beforeAll(async () => {
-    await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany();
+    await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany(); await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany();
     await db.payment.deleteMany(); await db.booking.deleteMany(); await db.listingPhoto.deleteMany(); await db.listing.deleteMany();
     await db.providerPhoto.deleteMany(); await db.providerProfile.deleteMany(); await db.session.deleteMany(); await db.userRole.deleteMany(); await db.user.deleteMany();
     const owner = await db.user.create({ data: { email: "o-turn@test.example", name: "Owner T", passwordHash: "x" } });

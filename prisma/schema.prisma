@@ -21,28 +21,29 @@ enum Role {
 }
 
 model User {
-  id               String           @id @default(cuid())
-  email            String           @unique
+  id               String            @id @default(cuid())
+  email            String            @unique
   name             String
   passwordHash     String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   roles            UserRole[]
   sessions         Session[]
-  listings         Listing[]        @relation("ListingOwner")
-  bookings         Booking[]        @relation("BookingGuest")
+  listings         Listing[]         @relation("ListingOwner")
+  bookings         Booking[]         @relation("BookingGuest")
   messages         Message[]
   reviews          Review[]
   saved            SavedListing[]
   providerProfile  ProviderProfile?
-  jobsPosted       Job[]            @relation("JobOwner")
+  messageTemplates MessageTemplate[]
+  jobsPosted       Job[]             @relation("JobOwner")
   jobMessages      JobMessage[]
-  jobReviewsGiven  JobReview[]      @relation("JobReviewer")
+  jobReviewsGiven  JobReview[]       @relation("JobReviewer")
   /// Stripe customer used to save the guest's card for the balance charge.
-  stripeCustomerId String?          @unique
+  stripeCustomerId String?           @unique
   /// Stripe Connect account that receives the owner's payouts.
-  stripeAccountId  String?          @unique
-  payoutsEnabled   Boolean          @default(false)
+  stripeAccountId  String?           @unique
+  payoutsEnabled   Boolean           @default(false)
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -127,6 +128,7 @@ model Listing {
   autoRequestCleaning Boolean            @default(false)
   reviews             Review[]
   savedBy             SavedListing[]
+  messageTemplates    MessageTemplate[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
   houseRules          String             @default("")
@@ -331,6 +333,7 @@ model Booking {
   payments              Payment[]
   messages              Message[]
   review                Review?
+  autoMessages          AutoMessageLog[]
   jobs                  Job[]
   /// Guest agreed to the house rules (part of "Before you arrive").
   rulesAcceptedAt       DateTime?
@@ -419,6 +422,8 @@ model Message {
   bookingId String
   senderId  String
   body      String
+  /// Sent automatically from an owner message template.
+  automated Boolean  @default(false)
   createdAt DateTime @default(now())
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   sender    User     @relation(fields: [senderId], references: [id])
@@ -638,4 +643,47 @@ model JobPayment {
   job            Job            @relation(fields: [jobId], references: [id])
 
   @@index([jobId])
+}
+
+// ---------- Automated guest messages ----------
+
+enum MessageTrigger {
+  BOOKING_CONFIRMED
+  BEFORE_CHECKIN
+  CHECKIN_DAY
+  BEFORE_CHECKOUT
+  AFTER_CHECKOUT
+}
+
+/// An owner's automated message, sent to every matching booking. listingId null = all the owner's listings.
+model MessageTemplate {
+  id         String           @id @default(cuid())
+  ownerId    String
+  listingId  String?
+  name       String
+  trigger    MessageTrigger
+  /// Days before (BEFORE_CHECKIN, BEFORE_CHECKOUT) or after (AFTER_CHECKOUT) the event.
+  offsetDays Int              @default(0)
+  body       String
+  enabled    Boolean          @default(true)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  owner      User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  listing    Listing?         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  logs       AutoMessageLog[]
+
+  @@index([ownerId])
+}
+
+/// Records that a template was sent for a booking, so it's never sent twice.
+model AutoMessageLog {
+  id         String          @id @default(cuid())
+  bookingId  String
+  templateId String
+  messageId  String?
+  sentAt     DateTime        @default(now())
+  booking    Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  template   MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, templateId])
 }

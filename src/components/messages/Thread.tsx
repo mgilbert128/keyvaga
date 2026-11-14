@@ -6,7 +6,7 @@ import { sendMessage } from "@/app/actions/messages";
 const timeFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-type Msg = { id: string; body: string; createdAt: Date; sender: { id: string; name: string } };
+type Msg = { id: string; body: string; createdAt: Date; automated?: boolean; sender: { id: string; name: string } };
 
 export function Thread({
   bookingId, meId, title, otherName, checkIn, checkOut, messages, backHref, bookingHref, cancelled,
@@ -32,7 +32,7 @@ export function Thread({
               return (
                 <li key={m.id} className={`flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
                   <div className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 ${mine ? "bg-brand text-on-brand" : "bg-soft text-ink"}`}>{m.body}</div>
-                  <span className="text-xs text-ink-muted">{mine ? "You" : m.sender.name.split(" ")[0]} · {timeFmt.format(m.createdAt)}</span>
+                  <span className="text-xs text-ink-muted">{mine ? "You" : m.sender.name.split(" ")[0]} · {timeFmt.format(m.createdAt)}{m.automated ? " · Automated" : ""}</span>
                 </li>
               );
             })}

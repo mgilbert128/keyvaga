@@ -6,6 +6,7 @@ import { listThreads } from "@/lib/messages";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Inbox } from "@/components/messages/Inbox";
+import { MessagesTabs } from "@/components/automessages/MessagesTabs";
 
 export const metadata: Metadata = { title: "Messages" };
 
@@ -25,6 +26,7 @@ async function Messages() {
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/messages")}>
       <div className="flex flex-col gap-6 pt-6 sm:pt-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Messages</h1>
+        <MessagesTabs current="inbox" />
         <Inbox threads={threads} base="/owner/messages" />
       </div>
     </PortalShell>

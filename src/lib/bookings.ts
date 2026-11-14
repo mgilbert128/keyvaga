@@ -7,6 +7,7 @@ import { addDays, rangeHasConflict, todayIn, toISODate, unavailableNights } from
 import { quoteStay } from "@/lib/pricing";
 import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
+import { sendDueAutoMessages } from "@/lib/auto-messages-server";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
@@ -165,6 +166,8 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
         });
         // Owner's regular cleaner gets the turnover request automatically (if they turned it on).
         await autoRequestTurnover(booking.id).catch((e) => console.error("auto turnover request failed", e));
+        // "Thanks for booking" and any messages already due (late bookings) go out right away.
+        await sendDueAutoMessages(booking.id).catch((e) => console.error("auto messages failed", e));
         return "confirmed";
       } catch {
         // The hold expired and someone else booked the dates while this payment was finishing: refund in full.

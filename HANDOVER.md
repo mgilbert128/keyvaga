@@ -71,6 +71,8 @@ src/
     services.ts            service marketplace rules: categories, job fees (5% + 5%), area matching, job lifecycle (pure)
     jobs.ts                service job engine: create, quote, accept+pay, complete, release/auto-release, problems, refunds, payouts, turnover automation
     providers.ts           provider profiles, ratings/response time, directory search
+    auto-messages.ts       automated guest message rules: triggers, send days, catch-up window, fill-ins, suggested templates (pure)
+    auto-messages-server.ts sends due automated messages (on booking confirmation + daily cron), deduped by AutoMessageLog
     pricing.ts             nightly rates (custom date price > season > weekend > base), weekly/monthly discounts (pure)
     bookings.ts            booking engine: hold → Stripe → confirm, balance charge, cancel/refund, payouts, daily job
     payouts.ts             Stripe Connect onboarding + status
@@ -151,6 +153,8 @@ Spec phases (section 12 of the brief):
    - **Turnover cleaning:** owners set a regular cleaner per listing. With "automatically request" on, a confirmed booking creates a direct cleaning request for checkout day (`autoRequestTurnover`), and a cancelled booking cancels and refunds its cleaning (`cancelJobsForBooking`). "Book a cleaner" on bookings and in Needs attention pre-fills the request.
    - **Admin:** `/admin/providers` (approval queue plus providers by state → city coverage) and `/admin/problems`.
    - **Fees** for service jobs were an open decision in the spec; they're set to 5% + 5% in `src/lib/services.ts` (`JOB_OWNER_FEE_BPS`, `JOB_PROVIDER_FEE_BPS`).
+
+6. **Automated guest messages:** owners create message templates (Messages → Automated messages) sent on booking confirmation, X days before check-in, on check-in day, X days before checkout or X days after checkout, for all listings or one, with fill-ins such as `{guest_first_name}`, `{check_in_date}`, `{address}` and `{checkin_instructions}`. Suggested set of five, live preview, on/off. Delivered into the booking's message thread (marked Automated). Confirmation messages send instantly; scheduled ones go out with the daily cron (Vercel Hobby runs crons once a day; move to hourly on Pro for time-of-day sending). Late bookings catch up on missed pre-arrival messages. **Email/SMS delivery is not built**: add an email provider (e.g. Resend) and send the same rendered text.
 
 ## 8. What's next
 
