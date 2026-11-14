@@ -68,7 +68,7 @@ src/
   lib/
     auth/                  dal.ts = the permission gate (requireUser/requirePortal); roles, sessions, passwords
     booking-money.ts       ALL fee / deposit / refund math (pure, unit-tested)
-    pricing.ts             nightly rates (season > weekend > base), weekly/monthly discounts (pure)
+    pricing.ts             nightly rates (custom date price > season > weekend > base), weekly/monthly discounts (pure)
     bookings.ts            booking engine: hold → Stripe → confirm, balance charge, cancel/refund, payouts, daily job
     payouts.ts             Stripe Connect onboarding + status
     listing-policy.ts      who can edit/review listings; listing status transitions
@@ -138,7 +138,7 @@ Spec phases (section 12 of the brief):
    - Instant booking, Stripe checkout, the 30% deposit then balance schedule, cancellations and refunds.
    - Owner payouts (Connect), daily cron and webhook.
 4. **Portals:**
-   - Owner overview with real numbers and "Needs attention", calendar with blocking, pricing (weekend, seasonal, weekly/monthly discounts), bookings, payouts and messages.
+   - Owner overview with real numbers and "Needs attention", calendar with tap-to-select dates to set custom prices (e.g. a holiday weekend), block or reset; pricing (weekend, seasonal, weekly/monthly discounts), bookings, payouts and messages.
    - Guest trips with check-in details released before arrival, house-rules agreement and digital guidebook.
    - Reviews (average shown on the stay page), Book again, Saved stays, profile and password change.
 

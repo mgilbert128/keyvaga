@@ -45,7 +45,7 @@ async function ensureCustomer(userId: string): Promise<string> {
  * The database refuses overlapping bookings, so two guests can't hold the same nights.
  */
 export async function startBooking(input: { guestId: string; listingId: string; checkIn: Date; checkOut: Date; guests: number }) {
-  const listing = await db.listing.findFirst({ where: { id: input.listingId, status: "PUBLISHED" }, include: { seasonalRates: true } });
+  const listing = await db.listing.findFirst({ where: { id: input.listingId, status: "PUBLISHED" }, include: { seasonalRates: true, dateRates: { where: { date: { gte: input.checkIn, lt: input.checkOut } } } } });
   if (!listing) throw new BookingError("This stay isn't available.");
   if (listing.ownerId === input.guestId) throw new BookingError("You can't book your own listing.");
   if (input.guests < 1 || input.guests > listing.maxGuests) throw new BookingError(`This place sleeps up to ${listing.maxGuests}.`);
@@ -53,7 +53,7 @@ export async function startBooking(input: { guestId: string; listingId: string; 
   const today = todayIn();
   if (input.checkIn < today) throw new BookingError("Check-in can't be in the past.");
   if (input.checkIn > addDays(today, 540)) throw new BookingError("Bookings open up to 18 months ahead.");
-  const quote = quoteStay({ ...listing, seasons: listing.seasonalRates }, input.checkIn, input.checkOut);
+  const quote = quoteStay({ ...listing, seasons: listing.seasonalRates, dateRates: listing.dateRates }, input.checkIn, input.checkOut);
   if (!quote.ok) throw new BookingError(quote.reason === "below_min_nights" ? `This stay has a ${quote.minNights}-night minimum.` : "Check-out must be after check-in.");
 
   const blocks = await db.calendarBlock.findMany({ where: { listingId: listing.id, startDate: { lt: input.checkOut }, endDate: { gt: input.checkIn } } });

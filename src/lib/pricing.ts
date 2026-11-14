@@ -24,6 +24,8 @@ export type PriceInputs = {
   weeklyDiscountBps?: number;
   monthlyDiscountBps?: number;
   seasons?: SeasonInput[];
+  /** Custom prices for specific nights (from the owner calendar). */
+  dateRates?: { date: Date; rateCents: number }[];
 };
 
 export const WEEKLY_NIGHTS = 7;
@@ -43,15 +45,19 @@ export type StayQuote =
       /** nights - discount + cleaning: the owner's price, before Keyvaga's fees. */
       totalCents: number;
       /** Rate charged for each night, in order. */
-      perNight: { date: Date; rateCents: number; source: "base" | "weekend" | "season" }[];
+      perNight: { date: Date; rateCents: number; source: RateSource }[];
     }
   | { ok: false; reason: "invalid_dates" | "below_min_nights"; minNights?: number };
 
+export type RateSource = "base" | "weekend" | "season" | "custom";
+
 /**
- * Rate for one night (the night starting on `date`). A seasonal rate wins; otherwise Friday
- * and Saturday nights use the weekend rate; otherwise the base rate.
+ * Rate for one night (the night starting on `date`). Priority: a custom price set on the calendar
+ * for that exact night, then a seasonal rate, then the weekend rate (Friday/Saturday), then the base rate.
  */
-export function rateForNight(listing: PriceInputs, date: Date): { rateCents: number; source: "base" | "weekend" | "season" } {
+export function rateForNight(listing: PriceInputs, date: Date): { rateCents: number; source: RateSource } {
+  const custom = listing.dateRates?.find((r) => +r.date === +date);
+  if (custom) return { rateCents: custom.rateCents, source: "custom" };
   const season = listing.seasons?.find((s) => date >= s.startDate && date < s.endDate);
   if (season) return { rateCents: season.nightlyRateCents, source: "season" };
   const dow = date.getUTCDay(); // 5 = Friday, 6 = Saturday

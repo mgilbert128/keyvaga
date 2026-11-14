@@ -61,7 +61,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   if (checkIn && checkOut) {
     if (checkIn < today) quoteError = "Check-in can't be in the past.";
     else {
-      quote = quoteStay({ ...stay, seasons: stay.seasonalRates }, checkIn, checkOut);
+      quote = quoteStay({ ...stay, seasons: stay.seasonalRates, dateRates: stay.dateRates }, checkIn, checkOut);
       if (!quote.ok) quoteError = quote.reason === "below_min_nights" ? `This stay has a ${quote.minNights}-night minimum.` : "Check-out must be after check-in.";
       else if (rangeHasConflict(checkIn, checkOut, unavailable)) quoteError = "Some of those nights are already booked. Try other dates.";
     }
@@ -211,10 +211,27 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
               {quote?.ok && !quoteError && amounts && schedule ? (
                 <>
                   <dl className="flex flex-col gap-2 border-t border-line pt-4">
-                    <div className="flex justify-between gap-4">
-                      <dt>{formatCents(quote.nightlyRateCents)} × {quote.nights} night{quote.nights === 1 ? "" : "s"}</dt>
-                      <dd>{formatCents(quote.nightsCents)}</dd>
-                    </div>
+                    {new Set(quote.perNight.map((n) => n.rateCents)).size === 1 ? (
+                      <div className="flex justify-between gap-4">
+                        <dt>{formatCents(quote.perNight[0]!.rateCents)} × {quote.nights} night{quote.nights === 1 ? "" : "s"}</dt>
+                        <dd>{formatCents(quote.nightsCents)}</dd>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between gap-4">
+                          <dt>{quote.nights} nights (prices vary)</dt>
+                          <dd>{formatCents(quote.nightsCents)}</dd>
+                        </div>
+                        <ul className="flex flex-col gap-0.5 pl-3 text-sm text-ink-muted" aria-label="Price per night">
+                          {quote.perNight.map((n) => (
+                            <li key={n.date.toISOString()} className="flex justify-between gap-4">
+                              <span>{dateFmt.format(n.date).replace(/, \d{4}$/, "")}</span>
+                              <span>{formatCents(n.rateCents)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {quote.discountCents ? (
                       <div className="flex justify-between gap-4 text-on-soft"><dt>{quote.discountLabel}</dt><dd>−{formatCents(quote.discountCents)}</dd></div>
                     ) : null}

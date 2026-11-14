@@ -107,3 +107,41 @@ export async function deleteSeason(listingId: string, seasonId: string) {
   await db.seasonalRate.deleteMany({ where: { id: seasonId, listingId } });
   refresh(listing);
 }
+
+/** Reads the selected [first night, last night] from a form, as [start, end) for storage. */
+function selectedRange(fd: FormData): { start: Date; end: Date; nights: Date[] } | { error: string } {
+  const start = parseISODate(String(fd.get("start") ?? ""));
+  const last = parseISODate(String(fd.get("end") ?? ""));
+  if (!start || !last) return { error: "Select the dates first." };
+  if (last < start) return { error: "The last night must be on or after the first." };
+  const nights: Date[] = [];
+  for (let t = start.getTime(); t <= last.getTime(); t += 86_400_000) nights.push(new Date(t));
+  if (nights.length > 366) return { error: "Change at most a year at a time." };
+  return { start, end: new Date(last.getTime() + 86_400_000), nights };
+}
+
+/** Sets a custom nightly price for each selected night (e.g. a holiday weekend). Replaces earlier custom prices on those nights. */
+export async function setDatePrice(listingId: string, _prev: FormResult, fd: FormData): Promise<FormResult> {
+  const listing = await ownedListing(listingId);
+  const range = selectedRange(fd);
+  if ("error" in range) return { message: range.error };
+  const rateCents = dollarsToCents(String(fd.get("rate") ?? ""));
+  if (!rateCents) return { message: "Enter the nightly price in dollars, like 350." };
+  if (rateCents > 10_000_000) return { message: "That price looks too high." };
+  await db.$transaction([
+    db.dateRate.deleteMany({ where: { listingId, date: { gte: range.start, lt: range.end } } }),
+    db.dateRate.createMany({ data: range.nights.map((date) => ({ listingId, date, rateCents })) }),
+  ]);
+  refresh(listing);
+  return { ok: true, message: `Price set for ${range.nights.length} night${range.nights.length === 1 ? "" : "s"}. Existing bookings keep the price they paid.` };
+}
+
+/** Removes custom prices from the selected nights, back to the normal (seasonal/weekend/base) price. */
+export async function resetDatePrice(listingId: string, _prev: FormResult, fd: FormData): Promise<FormResult> {
+  const listing = await ownedListing(listingId);
+  const range = selectedRange(fd);
+  if ("error" in range) return { message: range.error };
+  const { count } = await db.dateRate.deleteMany({ where: { listingId, date: { gte: range.start, lt: range.end } } });
+  refresh(listing);
+  return { ok: true, message: count ? "Back to your normal prices." : "Those nights already use your normal prices." };
+}

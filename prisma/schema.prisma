@@ -114,6 +114,7 @@ model Listing {
   /// Digital guidebook: local tips written by the owner, shown to booked guests.
   guidebook           String             @default("")
   seasonalRates       SeasonalRate[]
+  dateRates           DateRate[]
   reviews             Review[]
   savedBy             SavedListing[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
@@ -231,6 +232,17 @@ model DocumentAccessLog {
   document   ListingDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
   @@index([listingId, createdAt])
+}
+
+/// A custom price for one specific night, set from the owner calendar. Wins over seasonal, weekend and base rates.
+model DateRate {
+  listingId String
+  date      DateTime @db.Date
+  rateCents Int
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, date])
 }
 
 model ListingPhoto {

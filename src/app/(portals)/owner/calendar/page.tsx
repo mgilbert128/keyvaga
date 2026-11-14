@@ -5,13 +5,12 @@ import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { ownerListingsWithSelection } from "@/lib/owner-pages";
-import { blockDates, unblockDates } from "@/app/actions/calendar";
+import { blockDates, resetDatePrice, setDatePrice, unblockDates } from "@/app/actions/calendar";
+import { CalendarSelector, type CalendarCell } from "@/components/owner/CalendarSelector";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
-import { Field } from "@/components/ui/Field";
 import { buttonClass } from "@/components/ui/Button";
-import { ActionForm } from "@/components/owner/ActionForm";
 import { ListingPicker } from "@/components/owner/ListingPicker";
 import { addDays, monthGrid, todayIn, toISODate } from "@/lib/dates";
 import { rateForNight } from "@/lib/pricing";
@@ -21,7 +20,6 @@ export const metadata: Metadata = { title: "Calendar" };
 const monthFmt = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 const dayFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 const shortFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-const WEEKDAYS = [["Sun", "Sunday"], ["Mon", "Monday"], ["Tue", "Tuesday"], ["Wed", "Wednesday"], ["Thu", "Thursday"], ["Fri", "Friday"], ["Sat", "Saturday"]] as const;
 
 export default function Page({ searchParams }: PageProps<"/owner/calendar">) {
   return (
@@ -52,7 +50,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
     );
   }
 
-  const listing = await db.listing.findUniqueOrThrow({ where: { id: current.id }, include: { seasonalRates: true } });
+  const listing = await db.listing.findUniqueOrThrow({ where: { id: current.id }, include: { seasonalRates: true, dateRates: { where: { date: { gte: first, lt: next } } } } });
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
       where: { listingId: listing.id, checkIn: { lt: next }, checkOut: { gt: first }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }] },
@@ -65,7 +63,8 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
     if (booking) return { kind: "booked" as const, label: booking.status === "CONFIRMED" ? booking.guest.name.split(" ")[0]! : "On hold", href: booking.status === "CONFIRMED" ? `/owner/bookings/${booking.id}` : null, start: +d === +booking.checkIn };
     const block = blocks.find((b) => d >= b.startDate && d < b.endDate);
     if (block) return { kind: "blocked" as const, label: block.note ?? "Blocked", href: null, start: +d === +block.startDate };
-    return { kind: "open" as const, label: formatCents(rateForNight({ ...listing, seasons: listing.seasonalRates }, d).rateCents), href: null, start: false };
+    const rate = rateForNight({ ...listing, seasons: listing.seasonalRates, dateRates: listing.dateRates }, d);
+    return { kind: "open" as const, label: formatCents(rate.rateCents), href: null, start: false, custom: rate.source === "custom" };
   };
   const q = (extra: Record<string, string>) => `/owner/calendar?${new URLSearchParams({ listing: listing.id, month: m, ...extra })}`;
 
@@ -81,59 +80,32 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
             <h2 className="text-xl font-bold">{listing.title} · {monthFmt.format(first)}</h2>
             <Link href={q({ month: nextMonth })} className={buttonClass("ghost")} aria-label="Next month">→</Link>
           </div>
-          <table className="w-full table-fixed border-collapse">
-            <caption className="sr-only">{listing.title} availability for {monthFmt.format(first)}</caption>
-            <thead>
-              <tr>{WEEKDAYS.map(([s, l]) => <th key={s} scope="col" className="pb-2 text-xs font-semibold text-ink-muted sm:text-sm"><abbr title={l} className="no-underline">{s}</abbr></th>)}</tr>
-            </thead>
-            <tbody>
-              {monthGrid(year, month - 1).map((week, wi) => (
-                <tr key={wi}>
-                  {week.map((d, di) => {
-                    if (!d) return <td key={di} />;
-                    const info = nightInfo(d);
-                    const past = d < today;
-                    const cls =
-                      info.kind === "booked" ? "bg-brand text-on-brand" : info.kind === "blocked" ? "bg-line text-ink" : past ? "bg-surface text-ink-muted/60" : "bg-surface";
-                    const content = (
-                      <span className="flex h-full flex-col gap-0.5 overflow-hidden">
-                        <span className="text-xs font-semibold sm:text-sm">{d.getUTCDate()}</span>
-                        <span className="truncate text-[11px] sm:text-xs">{info.kind === "open" && past ? "" : info.label}</span>
-                      </span>
-                    );
-                    return (
-                      <td key={di} className="p-0.5 align-top">
-                        <div className={`h-16 rounded-lg border border-line p-1.5 sm:h-20 ${cls}`} aria-label={`${dayFmt.format(d)}: ${info.kind === "booked" ? `booked by ${info.label}` : info.kind === "blocked" ? `blocked (${info.label})` : past ? "past" : `available at ${info.label}`}`}>
-                          {info.href ? <Link href={info.href} className="block h-full">{content}</Link> : content}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted" aria-label="Calendar key">
-            <li className="flex items-center gap-2"><span className="inline-block h-4 w-4 rounded border border-line bg-surface" aria-hidden="true" /> Open (nightly price)</li>
-            <li className="flex items-center gap-2"><span className="inline-block h-4 w-4 rounded bg-brand" aria-hidden="true" /> Booked</li>
-            <li className="flex items-center gap-2"><span className="inline-block h-4 w-4 rounded bg-line" aria-hidden="true" /> Blocked</li>
-          </ul>
+          <CalendarSelector
+            caption={`${listing.title} availability for ${monthFmt.format(first)}`}
+            weeks={monthGrid(year, month - 1).map((week) =>
+              week.map((d): CalendarCell | null => {
+                if (!d) return null;
+                const info = nightInfo(d);
+                const past = d < today;
+                return {
+                  iso: toISODate(d),
+                  day: d.getUTCDate(),
+                  kind: info.kind,
+                  label: info.label,
+                  href: info.href,
+                  past,
+                  custom: "custom" in info ? Boolean(info.custom) : false,
+                  a11y: `${dayFmt.format(d)}: ${info.kind === "booked" ? `booked by ${info.label}` : info.kind === "blocked" ? `blocked (${info.label})` : past ? "past" : `available at ${info.label}${"custom" in info && info.custom ? ", custom price" : ""}`}`,
+                };
+              }),
+            )}
+            setPrice={setDatePrice.bind(null, listing.id)}
+            block={blockDates.bind(null, listing.id)}
+            resetPrice={resetDatePrice.bind(null, listing.id)}
+          />
         </Card>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-xl font-bold">Block dates</h2>
-              <p className="text-ink-muted">For your own stays, maintenance or anything else. Guests can&apos;t book blocked nights.</p>
-            </div>
-            <ActionForm action={blockDates.bind(null, listing.id)} submitLabel="Block these nights" resetOnSuccess>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="First night" id="start" type="date" min={toISODate(today)} required />
-                <Field label="Last night" id="end" type="date" min={toISODate(today)} required />
-              </div>
-              <Field label="Note (only you see this)" id="note" maxLength={120} placeholder="e.g. Family visit, deck repair" />
-            </ActionForm>
-          </Card>
+        <div className="grid grid-cols-1 gap-6">
           <Card className="flex flex-col gap-3">
             <h2 className="text-xl font-bold">Upcoming blocks</h2>
             {blocks.length === 0 ? (

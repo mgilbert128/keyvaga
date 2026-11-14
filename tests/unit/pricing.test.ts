@@ -39,3 +39,21 @@ describe("quoteStay with weekends, seasons and discounts", () => {
     expect(q6.ok && q6.discountCents).toBe(0);
   });
 });
+
+describe("custom prices for specific nights", () => {
+  const l = {
+    ...base,
+    weekendRateCents: 25_000,
+    seasons: [{ name: "Summer", startDate: d("2027-06-01"), endDate: d("2027-09-01"), nightlyRateCents: 30_000 }],
+    dateRates: [d("2027-07-02"), d("2027-07-03"), d("2027-07-04")].map((date) => ({ date, rateCents: 45_000 })),
+  };
+  it("wins over seasonal, weekend and base rates", () => {
+    expect(rateForNight(l, d("2027-07-03"))).toEqual({ rateCents: 45_000, source: "custom" }); // Saturday in summer
+    expect(rateForNight(l, d("2027-07-05"))).toEqual({ rateCents: 30_000, source: "season" });
+  });
+  it("prices a holiday weekend correctly", () => {
+    // Thu 1 Jul (season) + Fri/Sat/Sun custom
+    const q = quoteStay(l, d("2027-07-01"), d("2027-07-05"));
+    expect(q).toMatchObject({ ok: true, nights: 4, nightsCents: 30_000 + 3 * 45_000, totalCents: 30_000 + 3 * 45_000 + 10_000 });
+  });
+});
