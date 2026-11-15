@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { logout } from "@/app/actions/auth";
 import type { CurrentUser } from "@/lib/auth/dal";
+import { VerifyEmailBanner } from "./VerifyEmailBanner";
 
 export type PortalNavItem = { label: string; href: string; current?: boolean };
 
@@ -22,6 +23,7 @@ export function PortalShell({
 }) {
   return (
     <>
+      {user.emailVerified ? null : <VerifyEmailBanner email={user.email} />}
       <header className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <HomeLogoLink portal={portal} />

@@ -125,6 +125,7 @@ async function changeStatus(user: CurrentUser, id: string, action: OwnerAction):
   if (!to) return { message: "That change isn't available for this listing right now." };
 
   if (action === "submit") {
+    if (!user.emailVerified) return { message: "Please confirm your email address before submitting. Use “Resend link” in the banner at the top of the page." };
     const missing = [
       ...missingForSubmit({ ...listing, photoCount: listing._count.photos }),
       ...missingDocuments(listing.hostingRole, listing.permitRequired, listing.documents, todayIn()),

@@ -188,3 +188,15 @@ export function notifyPasswordReset(email: string, name: string, url: string) {
     }),
   );
 }
+
+export function notifyVerifyEmail(email: string, name: string, url: string) {
+  return safe(() =>
+    sendEmail(email, {
+      subject: "Confirm your email for Keyvaga",
+      heading: `Welcome to Keyvaga, ${first(name)}!`,
+      paragraphs: ["Please confirm this is your email address. You'll need to confirm it before booking a stay, listing a property or offering services. The link works for 48 hours."],
+      button: { label: "Confirm my email", url },
+      footer: "If you didn't create a Keyvaga account, you can ignore this email.",
+    }),
+  );
+}

@@ -21,6 +21,7 @@ export async function reserve(formData: FormData) {
 
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (!user.emailVerified) redirect(`${back}&error=${encodeURIComponent("Please confirm your email address before booking. Check your inbox for our link, or resend it from Trips.")}`);
   if (!stripeConfigured()) redirect(`${back}&error=${encodeURIComponent("Online payment isn't switched on yet.")}`);
 
   const checkIn = parseISODate(checkInS);

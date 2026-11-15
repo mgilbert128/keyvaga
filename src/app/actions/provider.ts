@@ -55,6 +55,7 @@ export async function submitProviderProfile(): Promise<ProviderResult> {
   const user = await requireProvider();
   const profile = await getOrCreateProfile(user);
   if (profile.status !== "DRAFT") return { message: "Your profile has already been submitted." };
+  if (!user.emailVerified) return { message: "Please confirm your email address before submitting. Use “Resend link” in the banner at the top of the page." };
   const m = missing(profile);
   if (m.length) return { message: `Before submitting, add ${m.join(", ")}.` };
   await db.providerProfile.update({ where: { id: profile.id }, data: { status: "PENDING_REVIEW", submittedAt: new Date(), reviewNote: null } });

@@ -22,8 +22,9 @@ const password = process.env.SEED_PASSWORD ?? "keyvaga-demo-123";
 async function upsertUser(email: string, name: string, roles: Role[], passwordHash: string) {
   return db.user.upsert({
     where: { email },
-    update: {},
-    create: { email, name, passwordHash, roles: { create: roles.map((role) => ({ role })) } },
+    // Demo accounts count as email-confirmed so they can book and list right away.
+    update: { emailVerifiedAt: new Date() },
+    create: { email, name, passwordHash, emailVerifiedAt: new Date(), roles: { create: roles.map((role) => ({ role })) } },
   });
 }
 

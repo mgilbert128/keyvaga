@@ -8,6 +8,8 @@ import { defaultLandingFor, rolesForSignup, safeNextPath } from "@/lib/auth/role
 import { isConfiguredAdmin } from "@/lib/auth/admin";
 import type { Role } from "@/generated/prisma/enums";
 import { loginSchema, signupSchema, type FormState } from "@/lib/validation/auth";
+import { clearLimit, clientIp, hit, waitText } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/lib/email-verification";
 
 export async function signup(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = signupSchema.safeParse({
@@ -22,6 +24,8 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
   }
 
   const { name, email, password, intent } = parsed.data;
+  const limit = await hit(`signup:ip:${await clientIp()}`, 5, 3600);
+  if (!limit.ok) return { errors: { form: [`Too many new accounts from this network. Please try again in ${waitText(limit.retryAfterSeconds)}.`] }, values };
   const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
   if (existing) {
     return { errors: { email: ["An account with this email already exists. Try logging in."] }, values };
@@ -38,6 +42,7 @@ export async function signup(_prev: FormState, formData: FormData): Promise<Form
     },
   });
 
+  await sendVerificationEmail(user.id).catch((e) => console.error("verification email failed", e));
   await createSession(user.id);
   redirect(safeNextPath(String(formData.get("next") ?? "")) ?? defaultLandingFor(roles));
 }
@@ -53,12 +58,19 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   }
 
   const { email, password } = parsed.data;
+  // Slow down password guessing: per account and per network.
+  const [byEmail, byIp] = await Promise.all([hit(`login:email:${email}`, 8, 900), hit(`login:ip:${await clientIp()}`, 40, 900)]);
+  if (!byEmail.ok || !byIp.ok) {
+    const wait = waitText(Math.max(byEmail.ok ? 0 : byEmail.retryAfterSeconds, byIp.ok ? 0 : byIp.retryAfterSeconds));
+    return { errors: { form: [`Too many login attempts. Please wait ${wait} and try again, or reset your password.`] }, values };
+  }
   const user = await db.user.findUnique({ where: { email }, include: { roles: true } });
   const ok = user ? await verifyPassword(password, user.passwordHash) : await burnPasswordCheck(password);
   if (!user || !ok) {
     return { errors: { form: ["That email and password don't match an account."] }, values };
   }
 
+  await clearLimit(`login:email:${email}`);
   const roles = user.roles.map((r) => r.role);
   // Grant ADMIN to emails listed in ADMIN_EMAILS (e.g. the founder) on their next login.
   if (isConfiguredAdmin(user.email) && !roles.includes("ADMIN")) {

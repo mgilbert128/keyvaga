@@ -2,10 +2,14 @@ import { getPrivateBlob } from "@/lib/storage";
 
 /**
  * Serves listing photos from a private Vercel Blob store. Listing photos are public
- * content (shown on stay pages), so no login is needed, but only the listings/ folder is served.
+ * content (shown on stay pages), so no login is needed, but only the public folders (listing and provider photos)
+ * are served. Private files (verification documents, job proof photos) live elsewhere and have their own checked routes.
  */
+const PUBLIC_FOLDERS = ["listings", "providers"];
+
 export async function GET(_req: Request, ctx: RouteContext<"/api/photos/[...path]">) {
   const { path } = await ctx.params;
+  if (!PUBLIC_FOLDERS.includes(path[0] ?? "") || path.some((p) => p === ".." || p === "." || p === "")) return new Response("Not found", { status: 404 });
   const result = await getPrivateBlob(path.join("/")).catch(() => null);
   if (!result) return new Response("Not found", { status: 404 });
   const type = result.blob.contentType ?? "application/octet-stream";

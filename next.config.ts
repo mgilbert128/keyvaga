@@ -14,6 +14,22 @@ const nextConfig: NextConfig = {
       ...to("/forgot-password", ["/forgot", "/reset", "/password"]),
     ];
   },
+  // Security headers on every response. (Stripe's payment form is an iframe *inside* our pages, which these allow.)
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://connect.getseam.com https://*.stripe.com" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
+        ],
+      },
+    ];
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {

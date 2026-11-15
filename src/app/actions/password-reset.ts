@@ -1,12 +1,13 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { hashSessionToken } from "@/lib/auth/tokens";
 import { notifyPasswordReset } from "@/lib/notify";
+import { clientIp, hit } from "@/lib/rate-limit";
+import { siteUrl } from "@/lib/site";
 
 export type ResetResult = { ok?: boolean; message?: string } | undefined;
 
@@ -16,15 +17,15 @@ const SAME_ANSWER = "If an account exists for that email, we've sent a link to r
 export async function requestPasswordReset(_prev: ResetResult, fd: FormData): Promise<ResetResult> {
   const email = String(fd.get("email") ?? "").trim().toLowerCase();
   if (!/.+@.+\..+/.test(email)) return { message: "Enter a valid email address." };
+  if (!(await hit(`reset:ip:${await clientIp()}`, 10, 3600)).ok) return { message: "Too many requests from this network. Please try again in an hour." };
   const user = await db.user.findUnique({ where: { email } });
   if (user) {
     const recent = await db.passwordResetToken.count({ where: { userId: user.id, createdAt: { gt: new Date(Date.now() - 3_600_000) } } });
     if (recent < 3) {
       const token = randomBytes(32).toString("base64url");
       await db.passwordResetToken.create({ data: { id: hashSessionToken(token), userId: user.id, expiresAt: new Date(Date.now() + 3_600_000) } });
-      const h = await headers();
-      const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
-      await notifyPasswordReset(user.email, user.name, `${origin}/reset-password?token=${token}`);
+      // Always our own address: never build the link from request headers, which a caller could spoof.
+      await notifyPasswordReset(user.email, user.name, `${siteUrl()}/reset-password?token=${token}`);
     }
   }
   return { ok: true, message: SAME_ANSWER };

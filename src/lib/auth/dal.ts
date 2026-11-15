@@ -10,6 +10,8 @@ export type CurrentUser = {
   name: string;
   email: string;
   roles: Role[];
+  /** Confirmed their email address (needed to book, submit a listing or a provider profile). */
+  emailVerified: boolean;
 };
 
 /**
@@ -21,7 +23,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = await readSession();
   if (!session) return null;
   const { user } = session;
-  return { id: user.id, name: user.name, email: user.email, roles: user.roles.map((r) => r.role) };
+  return { id: user.id, name: user.name, email: user.email, roles: user.roles.map((r) => r.role), emailVerified: Boolean(user.emailVerifiedAt) };
 });
 
 export async function requireUser(nextPath?: string): Promise<CurrentUser> {

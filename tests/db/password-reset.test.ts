@@ -4,7 +4,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 const sent: { to: string; url: string }[] = [];
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "keyvaga.test", "x-forwarded-proto": "https" }) }));
+// A spoofed Host header must not change where the reset link points.
+vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "evil.example", "x-forwarded-host": "evil.example", "x-real-ip": "203.0.113.9" }) }));
+process.env.NEXT_PUBLIC_SITE_URL = "https://keyvaga.test";
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT:${url}`); } }));
 vi.mock("@/lib/notify", () => ({ notifyPasswordReset: async (to: string, _n: string, url: string) => { sent.push({ to, url }); } }));
 
