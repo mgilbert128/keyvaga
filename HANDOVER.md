@@ -174,7 +174,7 @@ Spec phases (section 12 of the brief):
 - Guest ID verification (Stripe Identity is a natural fit) and "Add to your stay" extras (early check-in, local experiences) from the guest design.
 - A pay-with-new-card flow when the automatic balance charge fails (currently 3 automatic attempts, then a warning).
 - Owners responding to reviews; becoming an owner from an existing guest account (today owners sign up with "List my property").
-- Legal pages (/terms, /privacy, /cancellation-policy) and /help are drafted and live, built from the real fee and policy constants. **They need a lawyer's review before launch** (entity name and governing-law state are not filled in; `CONTACT_EMAIL` in `src/components/legal/LegalDoc.tsx` must be a monitored inbox).
+- Legal pages (/terms, /privacy, /cancellation-policy) and /help are drafted and live, built from the real fee and policy constants. **They need a lawyer's review before launch** (governing law is Missouri; add the LLC's legal name once it's registered; `CONTACT_EMAIL` in `src/components/legal/LegalDoc.tsx` must be a monitored inbox).
 
 **Service portal follow-ups:** provider verification documents (license/insurance) reusing the listing-documents pattern; optional paid "featured" tier for providers; maintenance reports from cleaners that become handyman jobs; auto-accept at a regular cleaner's standing price.
 

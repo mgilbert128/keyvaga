@@ -154,7 +154,7 @@ const sections: LegalSection[] = [
     title: "Disputes",
     body: (
       <p>
-        If you have a problem, contact us first at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; most issues can be solved quickly. These terms are governed by the laws of the state where Keyvaga is organized, without regard to conflict-of-law rules, and disputes will be heard in the courts of that state unless the law requires otherwise.
+        If you have a problem, contact us first at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>; most issues can be solved quickly. These terms are governed by the laws of the State of Missouri, without regard to conflict-of-law rules, and disputes will be heard in the state or federal courts located in Missouri unless the law requires otherwise.
       </p>
     ),
   },
