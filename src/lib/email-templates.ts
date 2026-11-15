@@ -22,8 +22,8 @@ export type EmailContent = {
   footer?: string;
 };
 
-const BRAND = "#0f5e52";
-const INK = "#1c2a27";
+const BRAND = "#20566a";
+const INK = "#1d2b2c";
 const MUTED = "#59645f";
 
 function safeUrl(url: string): string {
@@ -43,9 +43,9 @@ export function renderEmail(c: EmailContent): { subject: string; html: string; t
   const button = c.button
     ? `<p style="margin:8px 0 24px"><a href="${escapeHtml(safeUrl(c.button.url))}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px;font-size:16px">${escapeHtml(c.button.label)}</a></p>`
     : "";
-  const html = `<!doctype html><html><body style="margin:0;background:#f8f7f4;font-family:Inter,Helvetica,Arial,sans-serif">
+  const html = `<!doctype html><html><body style="margin:0;background:#f6f4ef;font-family:Inter,Helvetica,Arial,sans-serif">
 <span style="display:none;max-height:0;overflow:hidden">${escapeHtml(c.preview ?? c.heading)}</span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f7f4;padding:24px 12px"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f4ef;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e4e2dc;border-radius:16px;padding:28px">
 <tr><td>
 <p style="margin:0 0 20px;font-size:22px;font-weight:700;letter-spacing:-0.02em"><span style="color:${BRAND}">key</span><span style="color:${INK}">vaga</span></p>

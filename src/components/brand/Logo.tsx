@@ -27,7 +27,7 @@ export function Wordmark({ portal }: { portal?: string }) {
       <LogoMark className="h-7 w-7 text-brand" />
       <span>
         <span className="text-brand">key</span>
-        <span className="text-ink">vaga</span>
+        <span className="text-evergreen">vaga</span>
       </span>
       {portal ? (
         <span className="font-sans text-lg font-semibold text-brand">

@@ -5,6 +5,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card, Chip } from "@/components/ui/Card";
 import { getFeaturedListings } from "@/lib/listings";
 import { FeesSection } from "@/components/marketing/FeesSection";
+import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
+import { getHeroSlides } from "@/lib/hero";
 
 const portals = [
   {
@@ -32,18 +34,10 @@ const portals = [
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col gap-14 pt-8 sm:gap-16 sm:pt-16">
-      <section aria-labelledby="hero-title" className="flex flex-col gap-8">
-        <div className="flex max-w-3xl flex-col gap-5">
-          <h1 id="hero-title" className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
-            Your key to the ultimate vacation getaway
-          </h1>
-          <p className="text-lg text-ink-muted sm:text-xl">
-            Book a stay, list your place, and find trusted local help, all with Keyvaga.
-          </p>
-        </div>
-        <StaySearchForm />
-      </section>
+    <div className="flex flex-col gap-14 pt-0 sm:gap-16 sm:pt-6">
+      <Suspense fallback={<Hero slides={SCENES} />}>
+        <HeroWithPhotos />
+      </Suspense>
 
       <section aria-labelledby="portals-title" className="flex flex-col gap-6">
         <h2 id="portals-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -76,6 +70,41 @@ export default function HomePage() {
         </Suspense>
       </section>
     </div>
+  );
+}
+
+/** Illustrated scenes shown until there are at least two real photos. */
+const SCENES: Slide[] = [
+  { type: "scene", kind: "coast", title: "Coastal escapes", place: "Beach houses and seaside condos", href: "/search" },
+  { type: "scene", kind: "lake", title: "Lakefront getaways", place: "Docks, decks and sunsets", href: "/search" },
+  { type: "scene", kind: "mountain", title: "Mountain retreats", place: "Cabins and chalets", href: "/search" },
+  { type: "scene", kind: "city", title: "City stays", place: "Lofts and apartments downtown", href: "/search" },
+];
+
+async function HeroWithPhotos() {
+  const photos = await getHeroSlides();
+  return <Hero slides={photos.length >= 2 ? photos.map((p) => ({ type: "photo" as const, ...p })) : SCENES} />;
+}
+
+function Hero({ slides }: { slides: Slide[] }) {
+  return (
+    <HeroCarousel slides={slides}>
+      <div className="relative flex min-h-[560px] flex-col justify-end gap-8 px-6 pb-6 pt-24 sm:min-h-[600px] sm:px-10 sm:pt-28">
+        <div className="flex max-w-2xl flex-col gap-4 text-white">
+          <p className="inline-flex items-center gap-2 self-start rounded-full bg-white/15 px-3 py-1 text-sm font-semibold backdrop-blur-sm">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-coral" />
+            Coast · Lake · Mountain · City
+          </p>
+          <h1 id="hero-title" className="text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-sm sm:text-6xl">
+            Your key to the ultimate vacation getaway
+          </h1>
+          <p className="text-lg text-white/90 sm:text-xl">Book a stay, list your place, and find trusted local help, all with Keyvaga.</p>
+        </div>
+        <div className="max-w-5xl text-ink">
+          <StaySearchForm variant="hero" />
+        </div>
+      </div>
+    </HeroCarousel>
   );
 }
 

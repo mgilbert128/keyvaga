@@ -29,13 +29,13 @@ export function SiteHeader() {
 export function SiteFooter() {
   const year = 2026;
   return (
-    <footer className="mt-auto border-t border-line">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ink-muted sm:flex-row sm:items-center sm:justify-between sm:px-8">
+    <footer className="mt-auto bg-evergreen text-ivory">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ivory/85 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p>© {year} Keyvaga. Your key to the ultimate vacation getaway.</p>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-2">
-          <Link href="/search" className="inline-flex min-h-11 items-center px-2 hover:text-ink">Stays</Link>
-          <Link href="/list-your-property" className="inline-flex min-h-11 items-center px-2 hover:text-ink">List your property</Link>
-          <Link href="/signup?intent=PROVIDER" className="inline-flex min-h-11 items-center px-2 hover:text-ink">Offer your services</Link>
+          <Link href="/search" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Stays</Link>
+          <Link href="/list-your-property" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">List your property</Link>
+          <Link href="/signup?intent=PROVIDER" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Offer your services</Link>
         </nav>
       </div>
     </footer>

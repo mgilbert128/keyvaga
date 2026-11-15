@@ -17,7 +17,7 @@ export function PaymentForm(props: Props) {
         clientSecret: props.clientSecret,
         appearance: {
           theme: "stripe",
-          variables: { colorPrimary: "#0f5e52", colorText: "#1c2a27", borderRadius: "10px", fontFamily: "Inter, system-ui, sans-serif", fontSizeBase: "16px" },
+          variables: { colorPrimary: "#20566a", colorText: "#1d2b2c", borderRadius: "10px", fontFamily: "Inter, system-ui, sans-serif", fontSizeBase: "16px" },
         },
       }}
     >

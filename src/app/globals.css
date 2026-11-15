@@ -5,24 +5,34 @@
  * To change the brand color, edit --kv-brand (and its hover/soft variants) here.
  */
 :root {
-  /* Surfaces */
-  --kv-bg: #f8f7f4;
-  --kv-surface: #ffffff;
-  --kv-border: #e4e2dc;
-  --kv-border-strong: #b9b6ae;
+  /*
+   * Palette: coastal blue (main buttons, links), ocean mist (subtle highlights), soft coral (sparingly),
+   * warm ivory (background), deep evergreen (supporting accents).
+   */
+  --kv-coastal: #20566a;
+  --kv-mist: #83b8c7;
+  --kv-coral: #e99583;
+  --kv-ivory: #f6f4ef;
+  --kv-evergreen: #243d38;
 
-  /* Text (charcoal) */
-  --kv-ink: #1c2a27;
-  --kv-ink-muted: #59645f;
+  /* Surfaces */
+  --kv-bg: var(--kv-ivory);
+  --kv-surface: #ffffff;
+  --kv-border: #e2dfd7;
+  --kv-border-strong: #b7b3a9;
+
+  /* Text */
+  --kv-ink: #1d2b2c;
+  --kv-ink-muted: #56625f;
 
   /* Brand: main buttons, wordmark accent, links */
-  --kv-brand: #0f5e52;
-  --kv-brand-hover: #0b4a40;
+  --kv-brand: var(--kv-coastal);
+  --kv-brand-hover: #184352;
   --kv-on-brand: #ffffff;
 
-  /* Secondary: chips, avatars, selected nav */
-  --kv-soft: #e2efeb;
-  --kv-on-soft: #0d5348;
+  /* Secondary: chips, avatars, selected nav (ocean mist tint) */
+  --kv-soft: #e4f0f4;
+  --kv-on-soft: #1a4a5b;
 
   /* Status */
   --kv-warn-soft: #f7e8c4;
@@ -30,9 +40,9 @@
   --kv-danger: #a32020;
 
   /* Placeholder photo tints (until real photos are uploaded) */
-  --kv-tint-sage: #cfe3dd;
-  --kv-tint-sand: #ecddc7;
-  --kv-tint-mist: #d8dde9;
+  --kv-tint-sage: #d5e6e1;
+  --kv-tint-sand: #efe2d3;
+  --kv-tint-mist: #d6e8ee;
 
   /* Shape */
   --kv-radius-card: 1rem;
@@ -57,6 +67,10 @@
   --color-tint-sage: var(--kv-tint-sage);
   --color-tint-sand: var(--kv-tint-sand);
   --color-tint-mist: var(--kv-tint-mist);
+  --color-mist: var(--kv-mist);
+  --color-coral: var(--kv-coral);
+  --color-evergreen: var(--kv-evergreen);
+  --color-ivory: var(--kv-ivory);
 
   --radius-card: var(--kv-radius-card);
   --radius-control: var(--kv-radius-control);
@@ -87,4 +101,13 @@ body {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Homepage hero: slow zoom on the active photo. */
+@keyframes kv-kenburns {
+  from { transform: scale(1.04); }
+  to { transform: scale(1.12); }
+}
+.kv-kenburns {
+  animation: kv-kenburns 12s ease-out both;
 }
