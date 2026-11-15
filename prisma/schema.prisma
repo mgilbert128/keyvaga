@@ -37,6 +37,9 @@ model User {
   providerProfile  ProviderProfile?
   messageTemplates MessageTemplate[]
   passwordResets   PasswordResetToken[]
+  lockAccounts     LockAccount[]
+  locks            Lock[]
+  lockEvents       LockEvent[]
   jobsPosted       Job[]                @relation("JobOwner")
   jobMessages      JobMessage[]
   jobReviewsGiven  JobReview[]          @relation("JobReviewer")
@@ -130,6 +133,9 @@ model Listing {
   reviews             Review[]
   savedBy             SavedListing[]
   messageTemplates    MessageTemplate[]
+  locks               Lock[]
+  /// IANA time zone for check-in/checkout times (door codes switch on and off at local time).
+  timeZone            String             @default("America/Chicago")
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
   houseRules          String             @default("")
@@ -335,6 +341,7 @@ model Booking {
   messages              Message[]
   review                Review?
   autoMessages          AutoMessageLog[]
+  accessCodes           AccessCode[]
   jobs                  Job[]
   /// Guest agreed to the house rules (part of "Before you arrive").
   rulesAcceptedAt       DateTime?
@@ -563,6 +570,7 @@ model Job {
   messages            JobMessage[]
   reviews             JobReview[]
   payments            JobPayment[]
+  accessCodes         AccessCode[]
 
   @@index([status, category])
   @@index([ownerId])
@@ -699,4 +707,99 @@ model PasswordResetToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ---------- Smart locks (via Seam) ----------
+
+/// A lock-brand account the owner connected through Seam (e.g. their Schlage account).
+model LockAccount {
+  id            String   @id @default(cuid())
+  ownerId       String
+  seamAccountId String   @unique
+  provider      String
+  label         String   @default("")
+  createdAt     DateTime @default(now())
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  locks         Lock[]
+
+  @@index([ownerId])
+}
+
+model Lock {
+  id            String       @id @default(cuid())
+  ownerId       String
+  lockAccountId String
+  seamDeviceId  String       @unique
+  name          String
+  provider      String
+  online        Boolean      @default(true)
+  /// Which property this lock opens. Codes are created on every lock assigned to the booked listing.
+  listingId     String?
+  /// Owner-provided fallback code shown to booked guests if their code can't be set or the lock is offline.
+  backupCode    String?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime     @default(now())
+  owner         User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  account       LockAccount  @relation(fields: [lockAccountId], references: [id], onDelete: Cascade)
+  listing       Listing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  accessCodes   AccessCode[]
+  events        LockEvent[]
+
+  @@index([listingId])
+}
+
+enum AccessCodeStatus {
+  SETTING
+  SET
+  FAILED
+  REMOVED
+}
+
+/// A time-limited door code for a guest's stay or a service job window.
+model AccessCode {
+  id         String           @id @default(cuid())
+  lockId     String
+  bookingId  String?
+  jobId      String?
+  seamCodeId String?          @unique
+  code       String?
+  name       String
+  startsAt   DateTime
+  endsAt     DateTime
+  status     AccessCodeStatus @default(SETTING)
+  error      String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  lock       Lock             @relation(fields: [lockId], references: [id], onDelete: Cascade)
+  booking    Booking?         @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  job        Job?             @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([jobId])
+  @@index([lockId, startsAt])
+}
+
+/// Activity log for the Connections page: syncs, codes created/removed, and errors (with retry).
+model LockEvent {
+  id         String    @id @default(cuid())
+  ownerId    String
+  lockId     String?
+  bookingId  String?
+  jobId      String?
+  kind       String
+  message    String
+  retryable  Boolean   @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  lock       Lock?     @relation(fields: [lockId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, createdAt])
+}
+
+/// A pending "connect your lock account" flow (Seam Connect Webview), so we can finish it on return.
+model LockConnectSession {
+  id        String   @id
+  ownerId   String
+  createdAt DateTime @default(now())
 }
