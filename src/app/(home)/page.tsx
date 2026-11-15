@@ -89,7 +89,7 @@ export default function HomePage() {
   );
 }
 
-/** Illustrated scenes shown until there are at least two real photos. */
+/** Illustrated scenes shown only if there are no photos at all. */
 const SCENES: Slide[] = [
   { type: "scene", kind: "coast", title: "Coastal escapes", place: "Beach houses and seaside condos", href: "/search" },
   { type: "scene", kind: "lake", title: "Lakefront getaways", place: "Docks, decks and sunsets", href: "/search" },
@@ -99,7 +99,7 @@ const SCENES: Slide[] = [
 
 async function HeroWithPhotos() {
   const photos = await getHeroSlides();
-  return <Hero slides={photos.length >= 2 ? photos.map((p) => ({ type: "photo" as const, ...p })) : SCENES} />;
+  return <Hero slides={photos.length >= 1 ? photos.map((p) => ({ type: "photo" as const, ...p })) : SCENES} />;
 }
 
 function Hero({ slides }: { slides: Slide[] }) {

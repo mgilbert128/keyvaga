@@ -56,8 +56,8 @@ export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[];
             </div>
           ))}
           {/* Readability: a soft shade behind the menu and headline, and toward the bottom. */}
-          <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-[#0f2a35]/65 via-[#0f2a35]/25 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0f2a35]/45 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-2/3 bg-gradient-to-b from-[#0f2a35]/55 via-[#0f2a35]/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0f2a35]/35 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0f2a35]/40 to-transparent" />
         </div>
 

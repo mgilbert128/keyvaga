@@ -7,7 +7,9 @@ export type HeroSlide = { src: string; alt: string; title: string; place: string
  * Curated hero photography. Add licensed photos to /public/hero and list them here
  * (they show first, before photos from live listings). Keep them ~2400px wide, JPEG/WebP, under 500 KB.
  */
-const CURATED: HeroSlide[] = [];
+const CURATED: HeroSlide[] = [
+  { src: "/hero/beach.webp", alt: "Turquoise water rolling onto a white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search" },
+];
 
 /** Photos for the homepage hero: curated ones, then real photos from published listings (max 2 per listing). */
 export async function getHeroSlides(limit = 6): Promise<HeroSlide[]> {
