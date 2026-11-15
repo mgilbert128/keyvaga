@@ -47,6 +47,8 @@ Demo accounts: `guest@`, `owner@`, `provider@` and `admin@keyvaga.test` (the dem
 | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Manual | Test keys (`sk_test_`, `pk_test_`) until launch. |
 | `STRIPE_WEBHOOK_SECRET` | Manual | Endpoint `/api/stripe/webhook`; events `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `account.updated` (including connected accounts). |
 | `CRON_SECRET` | Manual | Vercel sends `Authorization: Bearer <CRON_SECRET>` to `/api/cron/daily`. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Manual | Email via Resend. keyvaga.com is verified; `EMAIL_FROM=Keyvaga <hello@keyvaga.com>`. |
+| `SEAM_API_KEY` | Manual | Smart locks via Seam. Sandbox keys (`seam_test…`) give virtual locks; use a production workspace key at launch. Without it the Smart locks tab says "Coming soon". |
 | `KEYVAGA_LOCAL_UPLOADS=true` | Dev/test only | Allows local-disk uploads in a production build. |
 
 The founder holds all accounts (GitHub, Vercel, Neon, Stripe). **Ask for invitations; don't accept shared passwords or keys over chat.**
@@ -117,7 +119,8 @@ tests/
 7. **"Today"** is computed in `America/Chicago` (`todayIn()` in `dates.ts`). Make this per-listing when you add time zones.
 8. **`Booking.nightlyCents`** stores the nights total **after** weekly/monthly discounts. `serviceCents` = guest fee.
 9. **Preview banner** (`PreviewBanner.tsx`) shows until `STRIPE_SECRET_KEY` is a live key.
-10. **Demo data in production.** `vercel-build` runs the seed with `KEYVAGA_DEMO=true` and the demo password is public. **Remove that from `package.json` before launch** and delete the demo accounts.
+10. **Redirects match case-insensitively.** Never add a `next.config.ts` redirect whose source differs from its destination only by case (`/Login` → `/login` looped forever and broke login). `tests/unit/redirects.test.ts` guards this.
+11. **Demo data in production.** `vercel-build` runs the seed with `KEYVAGA_DEMO=true` and the demo password is public. **Remove that from `package.json` before launch** and delete the demo accounts.
 
 ## 6. Tests
 
@@ -125,6 +128,7 @@ tests/
 npm test                                                                  # unit (+ skips DB/Stripe suites)
 TEST_DATABASE_URL=postgresql://…/keyvaga_test npm run test:db              # DB constraints & search
 STRIPE_SECRET_KEY=sk_test_… TEST_DATABASE_URL=… npm run test:stripe       # whole money flow in Stripe test mode
+SEAM_INTEGRATION=1 SEAM_API_KEY=seam_test… SEAM_TEST_ACCOUNT=<id> npx vitest run tests/seam   # real Seam sandbox
 npm run lint && npx tsc --noEmit && npm run build
 ```
 
@@ -157,6 +161,7 @@ Spec phases (section 12 of the brief):
 
 6. **Automated guest messages:** owners create message templates (Messages → Automated messages) sent on booking confirmation, X days before check-in, on check-in day, X days before checkout or X days after checkout, for all listings or one, with fill-ins such as `{guest_first_name}`, `{check_in_date}`, `{address}` and `{checkin_instructions}`. Suggested set of five, live preview, on/off. Delivered into the booking's message thread (marked Automated). Confirmation messages send instantly; scheduled ones go out with the daily cron (Vercel Hobby runs crons once a day; move to hourly on Pro for time-of-day sending). Late bookings catch up on missed pre-arrival messages. Automated messages are also emailed to the guest.
 7. **Email (Resend):** booking confirmed (guest + owner), booking cancelled (both, with refund), new message alerts (booking and service-job threads), automated messages, service jobs (new request to providers, quote received, hired, job done), and **Forgot password** (`/forgot-password`, one-time hashed tokens valid 1 hour, max 3/hour, signs out all devices; identical answer whether or not the account exists). Env: `RESEND_API_KEY`, `EMAIL_FROM`, optional `NEXT_PUBLIC_SITE_URL`. **A sending domain must be verified in Resend** before emails reach anyone other than the Resend account owner. Booking confirmation is now idempotent (conditional update), so emails and follow-ups run once even when the return page and webhook race. SMS is not built.
+8. **Smart locks (Seam):** Owner → Smart locks. Owners connect a lock-brand account through a Seam Connect Webview (`startConnect` / `finishPendingConnects` in `src/lib/locks/index.ts`; pending flows are stored in `LockConnectSession` and finished when the owner lands back on the page), assign each lock to a listing, set an optional backup code and the listing's time zone (`Listing.timeZone`). Confirmed bookings get one 6-digit code on every lock of the listing, valid check-in time → checkout time in local time (`src/lib/locks/time.ts`); if a lock rejects our code, the lock picks one. Hired jobs get a 7 AM–9 PM code on the job day. Codes are removed on cancel (booking or job) and when a job is marked complete. Guests see the code on the trip page once check-in details are released; providers on the job page; owners on the booking page. `{door_code}` fill-in for automated messages. Failures become `LockEvent`s with Retry under "Needs attention"; the backup code is shown to the guest meanwhile. The daily cron refreshes locks and fills in missing codes. Seam client: `src/lib/locks/seam.ts` (REST, swap in a fake with `setSeamClient` for tests). Sandbox login for testing the Connect flow: Schlage, `jane@example.com` / `1234`. Seam bills per connected device in production: decide who pays. Not built: Seam webhooks (we poll on page load and daily), changing a booking's dates updates codes (dates can't change today).
 
 ## 8. What's next
 
@@ -171,7 +176,7 @@ Spec phases (section 12 of the brief):
 
 **Service portal follow-ups:** provider verification documents (license/insurance) reusing the listing-documents pattern; optional paid "featured" tier for providers; cleaner checklists with photo proof; maintenance reports from cleaners that become handyman jobs; auto-accept at a regular cleaner's standing price.
 
-**Phase 6, connections** (spec §10, §10a): iCal import and export first (`CalendarBlock.source` already has `ICAL` and `HOSPITABLE`), then Hospitable, PriceLabs (Dynamic Pricing API, needs certification) and smart locks (Seam or RemoteLock), plus the Connections page.
+**Phase 6, connections** (spec §10, §10a): iCal import and export first (`CalendarBlock.source` already has `ICAL` and `HOSPITABLE`), then Hospitable, PriceLabs (Dynamic Pricing API, needs certification). Smart locks are done (Seam).
 
 **Phase 7, polish and launch:**
 - Email and SMS notifications: booking confirmation, owner "new booking", balance reminders, messages.

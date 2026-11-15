@@ -83,6 +83,7 @@ Environment variables on Vercel:
 - `STRIPE_WEBHOOK_SECRET`: signing secret (`whsec_…`) of the webhook endpoint `https://<site>/api/stripe/webhook` with events `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `account.updated`
 - `CRON_SECRET`: any long random string; Vercel sends it to the daily job
 - `RESEND_API_KEY`: Resend API key (`re_…`) for email; without it emails are skipped and logged
+- `SEAM_API_KEY`: Seam API key for smart locks (`seam_test…` for sandbox); without it the Smart locks tab shows "Coming soon"
 - `EMAIL_FROM`: sender once a domain is verified in Resend, e.g. `Keyvaga <hello@yourdomain.com>` (default: Resend's test sender, which only delivers to the Resend account owner)
 - `NEXT_PUBLIC_SITE_URL` (optional): public address used in email links, e.g. `https://keyvaga.com`
 
