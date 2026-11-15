@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { doorCodesFor } from "@/lib/locks";
 import { DoorCodes } from "@/components/locks/DoorCodes";
+import { ChecklistPreview, ChecklistReview, ChecklistWork } from "@/components/jobs/Checklist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -42,12 +43,13 @@ async function Job({ params }: { params: PageProps<"/provider/jobs/[id]">["param
   const profile = await getOrCreateProfile(user);
   const job = await db.job.findUnique({
     where: { id },
-    include: { listing: { select: { title: true, city: true, region: true, addressLine1: true, postalCode: true, bedrooms: true, bathrooms: true, timeZone: true } }, owner: { select: { name: true } }, quotes: true, acceptedQuote: true, reviews: true },
+    include: { listing: { select: { title: true, city: true, region: true, addressLine1: true, postalCode: true, bedrooms: true, bathrooms: true, timeZone: true } }, owner: { select: { name: true } }, quotes: true, acceptedQuote: true, reviews: true, checklist: { orderBy: { position: "asc" } } },
   });
   if (!job || !providerCanSee(profile, job)) notFound();
   const myQuote = job.quotes.find((q) => q.providerId === profile.id);
   const hired = job.acceptedQuote?.providerId === profile.id && job.status !== "OPEN";
   const status = job.status as JobStatus;
+  const photos = hired ? await db.jobPhoto.findMany({ where: { jobId: job.id }, orderBy: { createdAt: "asc" }, select: { id: true, caption: true, createdAt: true } }) : [];
   const doorCodes = hired && job.status === "ASSIGNED" ? await doorCodesFor({ jobId: job.id }) : [];
   const messages = await db.jobMessage.findMany({ where: { jobId: job.id, providerId: profile.id }, orderBy: { createdAt: "asc" }, include: { sender: { select: { id: true, name: true } } } });
   const myReview = job.reviews.find((r) => r.reviewerId === user.id);
@@ -64,7 +66,10 @@ async function Job({ params }: { params: PageProps<"/provider/jobs/[id]">["param
           {categoryNoun(job.category)} · {job.listing.city}, {job.listing.region} · {job.listing.bedrooms} bd / {job.listing.bathrooms.toString()} ba · for {job.owner.name.split(" ")[0]}
           {job.preferredDate ? ` · preferred ${fmt.format(job.preferredDate)}${job.flexibleDate ? " (flexible)" : ""}` : ""}
         </p>
-        <Card><p className="whitespace-pre-line">{job.description}</p></Card>
+        <Card className="flex flex-col gap-4">
+          <p className="whitespace-pre-line">{job.description}</p>
+          {!hired ? <ChecklistPreview items={job.checklist} minPhotos={job.minPhotos} /> : null}
+        </Card>
 
         {hired ? (
           <Card className="flex flex-col gap-2">
@@ -86,6 +91,13 @@ async function Job({ params }: { params: PageProps<"/provider/jobs/[id]">["param
               <TextAreaField label="Message to the owner" id="message" rows={3} maxLength={2000} defaultValue={myQuote?.message} hint="What's included, how long it takes, anything you need from them." />
             </ActionForm>
           </Card>
+        ) : null}
+
+        {hired && status === "ASSIGNED" && (job.checklist.length || job.minPhotos) ? (
+          <Card><ChecklistWork jobId={job.id} items={job.checklist} photos={photos} minPhotos={job.minPhotos} /></Card>
+        ) : null}
+        {hired && status !== "ASSIGNED" && (job.checklist.length || photos.length) ? (
+          <Card><ChecklistReview items={job.checklist} photos={photos} minPhotos={job.minPhotos} /></Card>
         ) : null}
 
         {hired && status === "ASSIGNED" ? (

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ChecklistReview } from "@/components/jobs/Checklist";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
@@ -31,6 +32,8 @@ async function Problems() {
       listing: { select: { title: true, city: true } },
       acceptedQuote: { include: { provider: { include: { user: { select: { email: true } } } } } },
       messages: { orderBy: { createdAt: "asc" }, include: { sender: { select: { name: true } } } },
+      checklist: { orderBy: { position: "asc" } },
+      photos: { orderBy: { createdAt: "asc" }, select: { id: true, caption: true, createdAt: true } },
     },
   });
   return (
@@ -46,6 +49,12 @@ async function Problems() {
             </p>
             <p className="rounded-control bg-warn-soft px-4 py-3 text-on-warn-soft"><strong>Owner says:</strong> {j.disputeNote}</p>
             {j.completionNote ? <p className="rounded-control bg-soft px-4 py-3 text-on-soft"><strong>Provider&apos;s completion note:</strong> {j.completionNote}</p> : null}
+            {j.checklist.length || j.photos.length ? (
+              <details>
+                <summary className="min-h-11 cursor-pointer text-brand underline underline-offset-4">Checklist and photos ({j.photos.length} photo{j.photos.length === 1 ? "" : "s"})</summary>
+                <div className="mt-3"><ChecklistReview items={j.checklist} photos={j.photos} minPhotos={j.minPhotos} /></div>
+              </details>
+            ) : null}
             {j.messages.length ? (
               <details>
                 <summary className="min-h-11 cursor-pointer text-brand underline underline-offset-4">Messages ({j.messages.length})</summary>

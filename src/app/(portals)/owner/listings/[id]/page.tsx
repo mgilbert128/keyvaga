@@ -90,6 +90,8 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
           cleaners={listing.city ? (await findProviders({ category: "cleaning", city: listing.city, region: listing.region })).map((r) => ({ id: r.profile.id, businessName: r.profile.businessName, slug: r.profile.slug })) : []}
           current={listing.regularCleanerId ? await db.providerProfile.findUnique({ where: { id: listing.regularCleanerId }, select: { id: true, businessName: true, slug: true, status: true } }) : null}
           auto={listing.autoRequestCleaning}
+          checklist={listing.cleaningChecklist}
+          minPhotos={listing.cleaningMinPhotos}
         />
 
         <PhotoManager listingId={listing.id} photos={listing.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt }))}>

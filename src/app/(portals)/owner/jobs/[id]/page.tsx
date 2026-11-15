@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ChecklistReview } from "@/components/jobs/Checklist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -49,6 +50,8 @@ async function Job({ params, searchParams }: Pick<PageProps<"/owner/jobs/[id]">,
       acceptedQuote: { include: { provider: { select: { id: true, businessName: true, slug: true } } } },
       payments: true,
       reviews: true,
+      checklist: { orderBy: { position: "asc" } },
+      photos: { orderBy: { createdAt: "asc" }, select: { id: true, caption: true, createdAt: true } },
     },
   });
   let job = await load();
@@ -129,11 +132,15 @@ async function Job({ params, searchParams }: Pick<PageProps<"/owner/jobs/[id]">,
           </Card>
         ) : null}
 
+        {status !== "OPEN" && status !== "CANCELLED" && (job.checklist.length || job.photos.length) ? (
+          <Card><ChecklistReview items={job.checklist} photos={job.photos} minPhotos={job.minPhotos} /></Card>
+        ) : null}
+
         {status === "COMPLETED" ? (
           <Card className="flex flex-col gap-4">
             <h2 className="text-xl font-bold">{provider?.businessName} marked this job as done</h2>
             {job.completionNote ? <p className="whitespace-pre-line rounded-control bg-soft px-4 py-3 text-on-soft">“{job.completionNote}”</p> : null}
-            <p className="text-ink-muted">If everything looks good, release the payment. Otherwise report a problem. Payment is released automatically on {job.releaseAfter ? dt.format(job.releaseAfter) : "the release date"}.</p>
+            <p className="text-ink-muted">{job.checklist.length || job.photos.length ? "Check the checklist and photos above. " : ""}If everything looks good, release the payment. Otherwise report a problem. Payment is released automatically on {job.releaseAfter ? dt.format(job.releaseAfter) : "the release date"}.</p>
             <ActionButton action={releaseAction.bind(null, job.id)} label="Everything's good: release payment" />
             <details className="group">
               <summary className={buttonClass("ghost", "list-none text-danger [&::-webkit-details-marker]:hidden")}>Report a problem</summary>

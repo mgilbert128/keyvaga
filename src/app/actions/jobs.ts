@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { canReviewListings } from "@/lib/listing-policy";
-import { JobError, cancelJob, createJob, markComplete, providerCanSee, releaseJob, reportProblem, resolveDispute, startAcceptQuote, submitQuote } from "@/lib/jobs";
+import { JobError, cancelJob, createJob, markComplete, providerCanSee, releaseJob, reportProblem, resolveDispute, setChecklistItem, startAcceptQuote, submitQuote } from "@/lib/jobs";
+import { deletePrivateDocument } from "@/lib/storage";
+import { checklistFor, parseChecklist } from "@/lib/checklist";
 import { parseISODate } from "@/lib/dates";
 import { dollarsToCents } from "@/lib/pricing";
 import { stripeConfigured } from "@/lib/stripe";
@@ -194,4 +196,45 @@ export async function setRegularCleaner(listingId: string, _prev: JobResult, fd:
   await db.listing.update({ where: { id: listing.id }, data: { regularCleanerId: cleanerId, autoRequestCleaning: Boolean(cleanerId) && auto } });
   revalidatePath(`/owner/listings/${listing.id}`);
   return { ok: true, message: cleanerId ? (auto ? "Saved. New bookings will automatically send your cleaner a turnover request." : "Saved.") : "Regular cleaner removed." };
+}
+
+/** Owner edits a listing's turnover checklist and how many photos cleaners must upload. Applies to cleanings not yet accepted. */
+export async function saveCleaningChecklist(listingId: string, _prev: JobResult, fd: FormData): Promise<JobResult> {
+  const u = await user("OWNER");
+  const listing = await db.listing.findFirst({ where: { id: listingId, ownerId: u.id } });
+  if (!listing) return { message: "Listing not found." };
+  const items = parseChecklist(String(fd.get("checklist") ?? ""));
+  if (!items.length) return { message: "Add at least one checklist item (one per line)." };
+  const minPhotos = Math.round(Number(fd.get("minPhotos") ?? 4));
+  if (!(minPhotos >= 0 && minPhotos <= 20)) return { message: "Photos must be between 0 and 20." };
+  await db.listing.update({ where: { id: listing.id }, data: { cleaningChecklist: items, cleaningMinPhotos: minPhotos } });
+  const open = await db.job.findMany({ where: { listingId: listing.id, category: "cleaning", status: "OPEN" }, select: { id: true } });
+  for (const j of open) {
+    await db.$transaction([
+      db.jobChecklistItem.deleteMany({ where: { jobId: j.id } }),
+      db.jobChecklistItem.createMany({ data: checklistFor({ cleaningChecklist: items }).map((label, position) => ({ jobId: j.id, label, position })) }),
+      db.job.update({ where: { id: j.id }, data: { minPhotos } }),
+    ]);
+  }
+  revalidatePath(`/owner/listings/${listing.id}`);
+  return { ok: true, message: `Checklist saved${open.length ? ` and updated on ${open.length} open cleaning request${open.length === 1 ? "" : "s"}` : ""}.` };
+}
+
+export async function toggleChecklistItem(jobId: string, itemId: string, done: boolean) {
+  const u = await user("PROVIDER");
+  try {
+    await setChecklistItem(u.id, jobId, itemId, done);
+  } catch {
+    // The page shows the current state after refresh.
+  }
+  revalidatePath(`/provider/jobs/${jobId}`);
+}
+
+export async function deleteJobPhoto(photoId: string) {
+  const u = await user("PROVIDER");
+  const photo = await db.jobPhoto.findFirst({ where: { id: photoId, uploaderId: u.id, job: { status: "ASSIGNED" } } });
+  if (!photo) return;
+  await db.jobPhoto.delete({ where: { id: photo.id } });
+  await deletePrivateDocument(photo.fileKey);
+  revalidatePath(`/provider/jobs/${photo.jobId}`);
 }

@@ -6,6 +6,7 @@ import { AUTO_RELEASE_DAYS, isServiceCategory, jobAmounts, nextJobStatus, provid
 import { todayIn } from "@/lib/dates";
 import { notifyHired, notifyJobDone, notifyJobRequest, notifyQuoteReceived } from "@/lib/notify";
 import { issueJobCodes, revokeJobCodes } from "@/lib/locks";
+import { checklistFor, completionBlockers, usesChecklist } from "@/lib/checklist";
 
 export class JobError extends Error {}
 
@@ -21,7 +22,7 @@ export function providerCanSee(p: Profile, j: JobForAccess): boolean {
 }
 
 export async function createJob(ownerId: string, input: { listingId: string; category: string; title: string; description: string; preferredDate: Date | null; flexibleDate: boolean; bookingId?: string | null; providerId?: string | null }) {
-  const listing = await db.listing.findFirst({ where: { id: input.listingId, ownerId }, select: { id: true, city: true, region: true } });
+  const listing = await db.listing.findFirst({ where: { id: input.listingId, ownerId }, select: { id: true, city: true, region: true, cleaningChecklist: true, cleaningMinPhotos: true } });
   if (!listing) throw new JobError("Choose one of your properties.");
   if (!isServiceCategory(input.category)) throw new JobError("Choose what kind of help you need.");
   if (!input.title.trim()) throw new JobError("Give the job a short title.");
@@ -48,6 +49,10 @@ export async function createJob(ownerId: string, input: { listingId: string; cat
       preferredDate: input.preferredDate,
       flexibleDate: input.flexibleDate,
       targetProviderId: input.providerId ?? null,
+      // Cleanings carry the listing's checklist so the cleaner sees it when quoting and works through it on the day.
+      ...(usesChecklist(input.category)
+        ? { minPhotos: listing.cleaningMinPhotos, checklist: { create: checklistFor(listing).map((label, position) => ({ label, position })) } }
+        : {}),
     },
   });
   await notifyJobRequest(job.id);
@@ -178,6 +183,11 @@ async function transition(jobId: string, action: Parameters<typeof nextJobStatus
 export async function markComplete(providerUserId: string, jobId: string, note: string) {
   const job = await loadJob(jobId);
   if (job.acceptedQuote?.provider.userId !== providerUserId) throw new JobError("Job not found.");
+  if (usesChecklist(job.category)) {
+    const [items, photoCount] = await Promise.all([db.jobChecklistItem.findMany({ where: { jobId }, select: { doneAt: true } }), db.jobPhoto.count({ where: { jobId } })]);
+    const blockers = completionBlockers({ items, photoCount, minPhotos: job.minPhotos });
+    if (blockers.length) throw new JobError(`Almost there: ${blockers.join(" and ")}.`);
+  }
   await transition(jobId, "mark_complete", { completedAt: new Date(), completionNote: note.trim().slice(0, 1000) || null, releaseAfter: new Date(Date.now() + AUTO_RELEASE_DAYS * 86_400_000) });
   await revokeJobCodes(jobId).catch((e) => console.error("remove job door codes failed", e));
   await notifyJobDone(jobId);
@@ -305,4 +315,22 @@ export async function cancelJobsForBooking(bookingId: string) {
   const jobs = await db.job.findMany({ where: { bookingId, status: { in: ["OPEN", "ASSIGNED"] } }, select: { id: true, ownerId: true } });
   for (const j of jobs) await cancelJob(j.ownerId, j.id).catch((e) => console.error("cancel job for booking failed", j.id, e));
   return jobs.length;
+}
+
+// ---------- Cleaning checklist ----------
+
+/** Hired provider ticks or unticks a checklist item while the job is in progress. */
+export async function setChecklistItem(providerUserId: string, jobId: string, itemId: string, done: boolean) {
+  const job = await loadJob(jobId);
+  if (job.acceptedQuote?.provider.userId !== providerUserId) throw new JobError("Job not found.");
+  if (job.status !== "ASSIGNED") throw new JobError("This job isn't in progress.");
+  const { count } = await db.jobChecklistItem.updateMany({ where: { id: itemId, jobId }, data: { doneAt: done ? new Date() : null } });
+  if (!count) throw new JobError("Checklist item not found.");
+}
+
+/** Who may see a job's proof photos: the owner, the hired provider, and admins. */
+export async function canSeeJobPhotos(user: { id: string; roles: string[] }, jobId: string) {
+  if (user.roles.includes("ADMIN")) return true;
+  const job = await db.job.findUnique({ where: { id: jobId }, select: { ownerId: true, acceptedQuote: { select: { provider: { select: { userId: true } } } } } });
+  return Boolean(job && (job.ownerId === user.id || job.acceptedQuote?.provider.userId === user.id));
 }
