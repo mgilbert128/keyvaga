@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { doorCodesFor } from "@/lib/locks";
+import { DoorCodes } from "@/components/locks/DoorCodes";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -40,12 +42,13 @@ async function Job({ params }: { params: PageProps<"/provider/jobs/[id]">["param
   const profile = await getOrCreateProfile(user);
   const job = await db.job.findUnique({
     where: { id },
-    include: { listing: { select: { title: true, city: true, region: true, addressLine1: true, postalCode: true, bedrooms: true, bathrooms: true } }, owner: { select: { name: true } }, quotes: true, acceptedQuote: true, reviews: true },
+    include: { listing: { select: { title: true, city: true, region: true, addressLine1: true, postalCode: true, bedrooms: true, bathrooms: true, timeZone: true } }, owner: { select: { name: true } }, quotes: true, acceptedQuote: true, reviews: true },
   });
   if (!job || !providerCanSee(profile, job)) notFound();
   const myQuote = job.quotes.find((q) => q.providerId === profile.id);
   const hired = job.acceptedQuote?.providerId === profile.id && job.status !== "OPEN";
   const status = job.status as JobStatus;
+  const doorCodes = hired && job.status === "ASSIGNED" ? await doorCodesFor({ jobId: job.id }) : [];
   const messages = await db.jobMessage.findMany({ where: { jobId: job.id, providerId: profile.id }, orderBy: { createdAt: "asc" }, include: { sender: { select: { id: true, name: true } } } });
   const myReview = job.reviews.find((r) => r.reviewerId === user.id);
 
@@ -67,6 +70,7 @@ async function Job({ params }: { params: PageProps<"/provider/jobs/[id]">["param
           <Card className="flex flex-col gap-2">
             <h2 className="text-xl font-bold">You&apos;re hired 🎉</h2>
             <p>{job.scheduledDate ? `Scheduled for ${fmt.format(job.scheduledDate)}. ` : ""}Address: <strong>{job.listing.addressLine1}, {job.listing.city}, {job.listing.region} {job.listing.postalCode}</strong></p>
+            <DoorCodes codes={doorCodes} timeZone={job.listing.timeZone} />
             <p className="text-ink-muted">Quote {formatCents(job.quoteCents)} − Keyvaga fee {formatCents(job.providerFeeCents)} = <strong className="text-ink">{formatCents(job.providerPayoutCents)}</strong> to you</p>
           </Card>
         ) : null}

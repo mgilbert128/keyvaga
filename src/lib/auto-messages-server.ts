@@ -4,6 +4,7 @@ import { isDue, renderMessage, type PlaceholderKey, type Trigger } from "@/lib/a
 import { nightsBetween, todayIn } from "@/lib/dates";
 import { siteUrl } from "@/lib/site";
 import { notifyBookingMessage } from "@/lib/notify";
+import { doorCodeText } from "@/lib/locks";
 export { siteUrl };
 
 const dayFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
@@ -19,7 +20,8 @@ type BookingForVars = {
   listing: { title: string; checkInTime: string; checkOutTime: string; addressLine1: string; addressLine2: string; city: string; region: string; postalCode: string; checkInInstructions: string; owner: { name: string } };
 };
 
-export function placeholderValues(b: BookingForVars): Record<PlaceholderKey, string> {
+/** `doorCode`: the guest's smart lock code (empty when no lock is connected). */
+export function placeholderValues(b: BookingForVars, doorCode = ""): Record<PlaceholderKey, string> {
   const l = b.listing;
   return {
     guest_first_name: b.guest.name.split(" ")[0] ?? b.guest.name,
@@ -32,6 +34,7 @@ export function placeholderValues(b: BookingForVars): Record<PlaceholderKey, str
     guests: String(b.guests),
     address: [l.addressLine1, l.addressLine2, `${l.city}, ${l.region} ${l.postalCode}`.trim()].filter(Boolean).join(", "),
     checkin_instructions: l.checkInInstructions || "",
+    door_code: doorCode,
     host_first_name: l.owner.name.split(" ")[0] ?? l.owner.name,
     trip_link: `${siteUrl()}/trips/${b.id}`,
   };
@@ -52,7 +55,7 @@ export async function sendDueAutoMessages(bookingId: string, today = todayIn()) 
     orderBy: { createdAt: "asc" },
   });
   const sent = new Set(b.autoMessages.map((m) => m.templateId));
-  const vars = placeholderValues(b);
+  const vars = placeholderValues(b, await doorCodeText(b.id).catch(() => ""));
   let count = 0;
   for (const t of templates) {
     if (sent.has(t.id) || !isDue(t.trigger as Trigger, t.offsetDays, b, today)) continue;

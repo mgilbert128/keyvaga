@@ -61,6 +61,7 @@ export const PLACEHOLDERS = [
   { key: "guests", help: "Number of guests" },
   { key: "address", help: "Full address (only booked guests receive messages)" },
   { key: "checkin_instructions", help: "From your listing's check-in instructions" },
+  { key: "door_code", help: "Guest's smart lock code (if you connected a lock)" },
   { key: "host_first_name", help: "Your first name" },
   { key: "trip_link", help: "Link to the guest's trip page" },
 ] as const;

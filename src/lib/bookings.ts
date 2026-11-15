@@ -9,6 +9,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
 import { notifyBookingCancelled, notifyBookingConfirmed } from "@/lib/notify";
+import { issueBookingCodes, revokeBookingCodes } from "@/lib/locks";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
@@ -167,6 +168,8 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
           },
         });
         if (count === 0) return "confirmed"; // another request confirmed it a moment ago
+        // Smart locks: create the guest's door code before messages go out, so {door_code} has a value.
+        await issueBookingCodes(booking.id).catch((e) => console.error("door codes failed", e));
         await notifyBookingConfirmed(booking.id);
         // Owner's regular cleaner gets the turnover request automatically (if they turned it on).
         await autoRequestTurnover(booking.id).catch((e) => console.error("auto turnover request failed", e));
@@ -292,6 +295,7 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner") {
   }
   await db.booking.update({ where: { id: b.id }, data: { refundedCents: { increment: outcome.refundCents - remaining } } });
   // No stay, no turnover: cancel any cleaning booked for it.
+  await revokeBookingCodes(b.id).catch((e) => console.error("remove door codes failed", e));
   await cancelJobsForBooking(b.id).catch((e) => console.error("cancel cleaning for booking failed", e));
   await notifyBookingCancelled(b.id, by, outcome.refundCents - remaining);
   return outcome;

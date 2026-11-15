@@ -22,6 +22,8 @@ import { acceptHouseRules, submitReview } from "@/app/actions/guest";
 import { ReviewForm } from "@/components/booking/ReviewForm";
 import { Chip } from "@/components/ui/Card";
 import { buttonClass } from "@/components/ui/Button";
+import { doorCodesFor } from "@/lib/locks";
+import { DoorCodes } from "@/components/locks/DoorCodes";
 
 export const metadata: Metadata = { title: "Your trip", robots: { index: false } };
 const releaseFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
@@ -43,7 +45,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
   const sp = await searchParams;
   await connection(); // may talk to Stripe: only for real requests, never prefetches
   const user = await requirePortal("guest", `/trips/${id}`);
-  let b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, owner: { select: { name: true } } } }, payments: true, review: true } });
+  let b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true } });
   if (!b || b.guestId !== user.id) notFound();
 
   // Coming back from Stripe: confirm the payment right away instead of waiting for the webhook.
@@ -51,7 +53,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
     for (const p of b.payments.filter((p) => p.status === "PENDING" && p.stripeId?.startsWith("pi_"))) {
       await syncPaymentIntent(p.stripeId!).catch((e) => console.error("sync failed", e));
     }
-    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, owner: { select: { name: true } } } }, payments: true, review: true } });
+    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true } });
   }
   if (b.status === "PENDING_PAYMENT") redirect(`/book/${b.id}`);
 
@@ -60,6 +62,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
   const preview = canCancel ? await previewCancellation(b.id, "guest") : null;
   const failedBalance = b.status === "CONFIRMED" && b.balanceStatus === "FAILED";
   const released = isAccessReleased({ status: b.status, checkIn: b.checkIn, checkOut: b.checkOut, releaseDays: b.listing.accessReleaseDays, today });
+  const doorCodes = released ? await doorCodesFor({ bookingId: b.id }) : [];
   const reviewable = canReview({ status: b.status, checkOut: b.checkOut, today, hasReview: Boolean(b.review) });
 
   return (
@@ -108,6 +111,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
                     <br />
                     {b.listing.city}, {b.listing.region} {b.listing.postalCode}
                   </address>
+                  <DoorCodes codes={doorCodes} timeZone={b.listing.timeZone} />
                   {b.listing.checkInInstructions ? (
                     <div className="whitespace-pre-line rounded-control bg-soft px-4 py-3 text-on-soft">{b.listing.checkInInstructions}</div>
                   ) : (

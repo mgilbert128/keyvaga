@@ -5,6 +5,7 @@ import { stripe, idOf } from "@/lib/stripe";
 import { AUTO_RELEASE_DAYS, isServiceCategory, jobAmounts, nextJobStatus, providerServes, type JobStatus } from "@/lib/services";
 import { todayIn } from "@/lib/dates";
 import { notifyHired, notifyJobDone, notifyJobRequest, notifyQuoteReceived } from "@/lib/notify";
+import { issueJobCodes, revokeJobCodes } from "@/lib/locks";
 
 export class JobError extends Error {}
 
@@ -150,6 +151,7 @@ export async function syncJobPayment(piOrId: string | Stripe.PaymentIntent) {
         db.quote.update({ where: { id: job.acceptedQuote.id }, data: { status: "ACCEPTED" } }),
         db.quote.updateMany({ where: { jobId: job.id, id: { not: job.acceptedQuote.id }, status: "SUBMITTED" }, data: { status: "DECLINED" } }),
       ]);
+      await issueJobCodes(job.id).catch((e) => console.error("job door codes failed", e));
       await notifyHired(job.id);
       return "assigned";
     }
@@ -177,6 +179,7 @@ export async function markComplete(providerUserId: string, jobId: string, note: 
   const job = await loadJob(jobId);
   if (job.acceptedQuote?.provider.userId !== providerUserId) throw new JobError("Job not found.");
   await transition(jobId, "mark_complete", { completedAt: new Date(), completionNote: note.trim().slice(0, 1000) || null, releaseAfter: new Date(Date.now() + AUTO_RELEASE_DAYS * 86_400_000) });
+  await revokeJobCodes(jobId).catch((e) => console.error("remove job door codes failed", e));
   await notifyJobDone(jobId);
 }
 
@@ -229,6 +232,7 @@ export async function cancelJob(userId: string, jobId: string) {
     if (p.stripeId) await stripe().paymentIntents.cancel(p.stripeId).catch(() => {});
     await db.jobPayment.update({ where: { id: p.id }, data: { status: "CANCELED" } });
   }
+  await revokeJobCodes(jobId).catch((e) => console.error("remove job door codes failed", e));
   await refundJobCharge(jobId, `Cancelled by ${by}`);
   await db.quote.updateMany({ where: { jobId, status: { in: ["SUBMITTED", "ACCEPTED"] } }, data: { status: "WITHDRAWN" } });
 }

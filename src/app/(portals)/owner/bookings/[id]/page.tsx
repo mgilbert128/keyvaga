@@ -16,6 +16,7 @@ import { CancelBooking } from "@/components/booking/CancelBooking";
 import { formatCents } from "@/lib/money";
 import { todayIn } from "@/lib/dates";
 import { paidSoFar } from "@/lib/bookings";
+import { doorCodesFor } from "@/lib/locks";
 
 export const metadata: Metadata = { title: "Booking", robots: { index: false } };
 
@@ -64,6 +65,7 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
           ) : null}
         </div>
         <Card><BookingSummary b={b} view="owner" /></Card>
+        <DoorCodeLine bookingId={b.id} />
         {canCancel ? (
           <Card className="flex flex-col gap-3">
             <h2 className="text-xl font-bold">Cancel this booking</h2>
@@ -73,5 +75,18 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
         ) : null}
       </div>
     </PortalShell>
+  );
+}
+
+async function DoorCodeLine({ bookingId }: { bookingId: string }) {
+  const codes = await doorCodesFor({ bookingId });
+  if (!codes.length) return null;
+  const label = (s: string) => (s === "SET" ? "ready on lock" : s === "SETTING" ? "scheduled" : "couldn't be added, see Smart locks");
+  return (
+    <p className="rounded-control bg-soft px-4 py-3 text-on-soft">
+      <span className="font-semibold">Guest door code:</span>{" "}
+      {codes.map((c) => `${c.lockName} ${c.code ?? "—"} (${label(c.status)})`).join(" · ")}{" "}
+      <a href="/owner/locks" className="underline underline-offset-4">Smart locks</a>
+    </p>
   );
 }
