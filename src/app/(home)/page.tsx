@@ -9,7 +9,7 @@ import { Card, Chip } from "@/components/ui/Card";
 import { getFeaturedListings } from "@/lib/listings";
 import { FeesSection } from "@/components/marketing/FeesSection";
 import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
-import { getHeroSlides } from "@/lib/hero";
+import { curatedHero, getHeroSlides } from "@/lib/hero";
 
 const portals = [
   {
@@ -38,9 +38,13 @@ const portals = [
 export default function HomePage() {
   return (
     <div className="flex flex-col gap-14 sm:gap-20">
-      <Suspense fallback={<Hero slides={SCENES} />}>
-        <HeroWithPhotos />
-      </Suspense>
+      {curatedHero() ? (
+        <Hero slides={[{ type: "photo", ...curatedHero()! }]} />
+      ) : (
+        <Suspense fallback={<Hero slides={SCENES.slice(0, 1)} />}>
+          <HeroWithPhotos />
+        </Suspense>
+      )}
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 sm:gap-16 sm:px-8">
       <section aria-labelledby="intro-title" className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2fr] md:gap-12">
@@ -98,8 +102,8 @@ const SCENES: Slide[] = [
 ];
 
 async function HeroWithPhotos() {
-  const photos = await getHeroSlides();
-  return <Hero slides={photos.length >= 1 ? photos.map((p) => ({ type: "photo" as const, ...p })) : SCENES} />;
+  const photos = await getHeroSlides(1);
+  return <Hero slides={photos.length >= 1 ? photos.map((p) => ({ type: "photo" as const, ...p })) : SCENES.slice(0, 1)} />;
 }
 
 function Hero({ slides }: { slides: Slide[] }) {

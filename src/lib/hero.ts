@@ -11,8 +11,17 @@ const CURATED: HeroSlide[] = [
   { src: "/hero/beach.webp", alt: "Turquoise water rolling onto a white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search" },
 ];
 
-/** Photos for the homepage hero: curated ones, then real photos from published listings (max 2 per listing). */
-export async function getHeroSlides(limit = 6): Promise<HeroSlide[]> {
+/** The main curated photo, if one is set (no database needed, so it can render instantly). */
+export function curatedHero(): HeroSlide | null {
+  return CURATED[0] ?? null;
+}
+
+/**
+ * The homepage hero shows one main photo: the first curated photo, or, if none is set, a photo from a published listing.
+ * (getHeroSlides can return more for a rotating hero; the homepage asks for one.)
+ */
+export async function getHeroSlides(limit = 1): Promise<HeroSlide[]> {
+  if (CURATED.length >= limit) return CURATED.slice(0, limit);
   const listings = await db.listing.findMany({
     where: { status: "PUBLISHED", photos: { some: {} } },
     orderBy: [{ featured: "desc" }, { publishedAt: "desc" }],
