@@ -141,6 +141,9 @@ model Listing {
   cleaningChecklist   String[]           @default([])
   /// Photos a cleaner must upload before marking a cleaning done.
   cleaningMinPhotos   Int                @default(4)
+  /// Secret for this listing's calendar export URL (/ical/<token>.ics). Created on first use; reset to revoke.
+  icalToken           String?            @unique
+  calendarFeeds       CalendarFeed[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
   houseRules          String             @default("")
@@ -417,14 +420,17 @@ enum BlockSource {
 
 /// Dates the owner (or a synced calendar) has blocked. Same [start, end) convention.
 model CalendarBlock {
-  id        String      @id @default(cuid())
+  id        String        @id @default(cuid())
   listingId String
-  startDate DateTime    @db.Date
-  endDate   DateTime    @db.Date
-  source    BlockSource @default(OWNER)
+  startDate DateTime      @db.Date
+  endDate   DateTime      @db.Date
+  source    BlockSource   @default(OWNER)
   note      String?
-  createdAt DateTime    @default(now())
-  listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  /// Set for blocks imported from a synced calendar (replaced on every sync).
+  feedId    String?
+  createdAt DateTime      @default(now())
+  listing   Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  feed      CalendarFeed? @relation(fields: [feedId], references: [id], onDelete: Cascade)
 
   @@index([listingId, startDate])
 }
@@ -839,4 +845,24 @@ model JobPhoto {
   uploader    User     @relation(fields: [uploaderId], references: [id])
 
   @@index([jobId, createdAt])
+}
+
+// ---------- Calendar sync (iCal) ----------
+
+/// Another calendar (Airbnb, Vrbo, Booking.com, Hospitable, OwnerRez...) whose busy dates block this listing.
+model CalendarFeed {
+  id           String          @id @default(cuid())
+  listingId    String
+  name         String
+  url          String
+  provider     String          @default("other")
+  lastSyncedAt DateTime?
+  lastStatus   String?
+  lastError    String?
+  eventCount   Int             @default(0)
+  createdAt    DateTime        @default(now())
+  listing      Listing         @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  blocks       CalendarBlock[]
+
+  @@unique([listingId, url])
 }

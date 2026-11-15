@@ -10,6 +10,7 @@ import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
 import { notifyBookingCancelled, notifyBookingConfirmed } from "@/lib/notify";
 import { issueBookingCodes, revokeBookingCodes } from "@/lib/locks";
+import { refreshStaleFeeds } from "@/lib/calendar-sync";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
@@ -60,6 +61,8 @@ export async function startBooking(input: { guestId: string; listingId: string; 
   const quote = quoteStay({ ...listing, seasons: listing.seasonalRates, dateRates: listing.dateRates }, input.checkIn, input.checkOut);
   if (!quote.ok) throw new BookingError(quote.reason === "below_min_nights" ? `This stay has a ${quote.minNights}-night minimum.` : "Check-out must be after check-in.");
 
+  // Pick up bookings made on Airbnb/Vrbo/etc. in the last few minutes before taking this one.
+  await refreshStaleFeeds(listing.id, 10).catch((e) => console.error("calendar refresh before booking failed", e));
   const blocks = await db.calendarBlock.findMany({ where: { listingId: listing.id, startDate: { lt: input.checkOut }, endDate: { gt: input.checkIn } } });
   if (rangeHasConflict(input.checkIn, input.checkOut, unavailableNights(blocks.map((b) => ({ start: b.startDate, end: b.endDate })))))
     throw new BookingError("Some of those nights aren't available. Try other dates.");

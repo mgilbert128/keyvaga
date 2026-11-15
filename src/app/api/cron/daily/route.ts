@@ -2,6 +2,7 @@ import { runDailyJobs } from "@/lib/bookings";
 import { runDailyJobTasks } from "@/lib/jobs";
 import { runAutoMessages } from "@/lib/auto-messages-server";
 import { runLockTasks } from "@/lib/locks";
+import { runCalendarSync } from "@/lib/calendar-sync";
 
 /**
  * Runs once a day (configured in vercel.json): releases expired holds, charges balances
@@ -13,7 +14,8 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const result = { bookings: await runDailyJobs(), serviceJobs: await runDailyJobTasks(), autoMessages: await runAutoMessages(), locks: await runLockTasks().catch((e) => ({ error: String(e) })) };
+  const calendars = await runCalendarSync().catch((e) => ({ error: String(e) }));
+  const result = { calendars, bookings: await runDailyJobs(), serviceJobs: await runDailyJobTasks(), autoMessages: await runAutoMessages(), locks: await runLockTasks().catch((e) => ({ error: String(e) })) };
   console.log("daily jobs", JSON.stringify(result));
   return Response.json(result);
 }

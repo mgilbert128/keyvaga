@@ -1,4 +1,7 @@
 import { Suspense } from "react";
+import { CalendarSync } from "@/components/calendar/CalendarSync";
+import { ensureIcalToken } from "@/lib/calendar-sync";
+import { siteUrl } from "@/lib/site";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
@@ -58,6 +61,10 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
     }),
     db.calendarBlock.findMany({ where: { listingId: listing.id, endDate: { gt: today } }, orderBy: { startDate: "asc" } }),
   ]);
+  const [feeds, icalToken] = await Promise.all([
+    db.calendarFeed.findMany({ where: { listingId: listing.id }, orderBy: { createdAt: "asc" } }),
+    ensureIcalToken(listing.id),
+  ]);
   const nightInfo = (d: Date) => {
     const booking = bookings.find((b) => d >= b.checkIn && d < b.checkOut);
     if (booking) return { kind: "booked" as const, label: booking.status === "CONFIRMED" ? booking.guest.name.split(" ")[0]! : "On hold", href: booking.status === "CONFIRMED" ? `/owner/bookings/${booking.id}` : null, start: +d === +booking.checkIn };
@@ -114,7 +121,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
               <ul className="flex flex-col divide-y divide-line">
                 {blocks.map((b) => (
                   <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span>{shortFmt.format(b.startDate)} – {shortFmt.format(addDays(b.endDate, -1))}{b.note ? ` · ${b.note}` : ""}{b.source !== "OWNER" ? ` · from ${b.source.toLowerCase()}` : ""}</span>
+                    <span>{shortFmt.format(b.startDate)} – {shortFmt.format(addDays(b.endDate, -1))}{b.feedId ? ` · booked or blocked on ${b.note ?? "another site"} (synced)` : b.note ? ` · ${b.note}` : ""}</span>
                     {b.source === "OWNER" ? (
                       <form action={unblockDates.bind(null, listing.id, b.id)}><button type="submit" className={buttonClass("ghost", "text-danger")}>Unblock</button></form>
                     ) : null}
@@ -123,6 +130,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
               </ul>
             )}
           </Card>
+          <CalendarSync listingId={listing.id} exportUrl={`${siteUrl()}/ical/${icalToken}.ics`} feeds={feeds} />
         </div>
       </div>
     </PortalShell>
