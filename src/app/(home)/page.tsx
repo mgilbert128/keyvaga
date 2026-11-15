@@ -123,7 +123,7 @@ function Hero({ slides }: { slides: Slide[] }) {
     >
       <div className="relative z-10 flex flex-1 flex-col justify-between gap-10 px-5 pb-4 pt-10 sm:px-10 sm:pt-16">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <h1 id="hero-title" className="max-w-4xl font-brand text-5xl font-bold leading-[0.98] tracking-tight text-white drop-shadow-sm sm:text-7xl lg:text-[84px]">
+          <h1 id="hero-title" className="max-w-4xl font-brand text-4xl font-bold leading-[1.02] tracking-tight text-white drop-shadow-sm sm:text-6xl lg:text-[64px]">
             Your key to the ultimate getaway.
           </h1>
           <div className="flex max-w-xs flex-col gap-4 text-white lg:pt-3">
