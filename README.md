@@ -82,6 +82,9 @@ Environment variables on Vercel:
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key (`pk_test_…`)
 - `STRIPE_WEBHOOK_SECRET`: signing secret (`whsec_…`) of the webhook endpoint `https://<site>/api/stripe/webhook` with events `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `account.updated`
 - `CRON_SECRET`: any long random string; Vercel sends it to the daily job
+- `RESEND_API_KEY`: Resend API key (`re_…`) for email; without it emails are skipped and logged
+- `EMAIL_FROM`: sender once a domain is verified in Resend, e.g. `Keyvaga <hello@yourdomain.com>` (default: Resend's test sender, which only delivers to the Resend account owner)
+- `NEXT_PUBLIC_SITE_URL` (optional): public address used in email links, e.g. `https://keyvaga.com`
 
 Vercel runs `npm run vercel-build`, which applies database migrations, loads the sample data (`KEYVAGA_DEMO=true`) and builds the site. The sample accounts are public on the preview, so **remove `KEYVAGA_DEMO=true prisma db seed` from `vercel-build` before real launch.**
 

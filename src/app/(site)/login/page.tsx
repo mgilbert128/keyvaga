@@ -22,5 +22,10 @@ export default function Page({ searchParams }: PageProps<"/login">) {
 async function FormWithParams({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
   const sp = await searchParams;
   const next = safeNextPath(typeof sp.next === "string" ? sp.next : null) ?? undefined;
-  return <LoginForm next={next} />;
+  return (
+    <>
+      {sp.reset ? <p role="status" className="mb-5 rounded-control bg-soft px-4 py-3 font-medium text-on-soft">Password changed. Log in with your new password.</p> : null}
+      <LoginForm next={next} />
+    </>
+  );
 }

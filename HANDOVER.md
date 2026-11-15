@@ -72,6 +72,7 @@ src/
     jobs.ts                service job engine: create, quote, accept+pay, complete, release/auto-release, problems, refunds, payouts, turnover automation
     providers.ts           provider profiles, ratings/response time, directory search
     auto-messages.ts       automated guest message rules: triggers, send days, catch-up window, fill-ins, suggested templates (pure)
+    email.ts / email-templates.ts  Resend REST sender + escaped branded layout; notify.ts = all notification emails (best-effort, never throw)
     auto-messages-server.ts sends due automated messages (on booking confirmation + daily cron), deduped by AutoMessageLog
     pricing.ts             nightly rates (custom date price > season > weekend > base), weekly/monthly discounts (pure)
     bookings.ts            booking engine: hold → Stripe → confirm, balance charge, cancel/refund, payouts, daily job
@@ -154,7 +155,8 @@ Spec phases (section 12 of the brief):
    - **Admin:** `/admin/providers` (approval queue plus providers by state → city coverage) and `/admin/problems`.
    - **Fees** for service jobs were an open decision in the spec; they're set to 5% + 5% in `src/lib/services.ts` (`JOB_OWNER_FEE_BPS`, `JOB_PROVIDER_FEE_BPS`).
 
-6. **Automated guest messages:** owners create message templates (Messages → Automated messages) sent on booking confirmation, X days before check-in, on check-in day, X days before checkout or X days after checkout, for all listings or one, with fill-ins such as `{guest_first_name}`, `{check_in_date}`, `{address}` and `{checkin_instructions}`. Suggested set of five, live preview, on/off. Delivered into the booking's message thread (marked Automated). Confirmation messages send instantly; scheduled ones go out with the daily cron (Vercel Hobby runs crons once a day; move to hourly on Pro for time-of-day sending). Late bookings catch up on missed pre-arrival messages. **Email/SMS delivery is not built**: add an email provider (e.g. Resend) and send the same rendered text.
+6. **Automated guest messages:** owners create message templates (Messages → Automated messages) sent on booking confirmation, X days before check-in, on check-in day, X days before checkout or X days after checkout, for all listings or one, with fill-ins such as `{guest_first_name}`, `{check_in_date}`, `{address}` and `{checkin_instructions}`. Suggested set of five, live preview, on/off. Delivered into the booking's message thread (marked Automated). Confirmation messages send instantly; scheduled ones go out with the daily cron (Vercel Hobby runs crons once a day; move to hourly on Pro for time-of-day sending). Late bookings catch up on missed pre-arrival messages. Automated messages are also emailed to the guest.
+7. **Email (Resend):** booking confirmed (guest + owner), booking cancelled (both, with refund), new message alerts (booking and service-job threads), automated messages, service jobs (new request to providers, quote received, hired, job done), and **Forgot password** (`/forgot-password`, one-time hashed tokens valid 1 hour, max 3/hour, signs out all devices; identical answer whether or not the account exists). Env: `RESEND_API_KEY`, `EMAIL_FROM`, optional `NEXT_PUBLIC_SITE_URL`. **A sending domain must be verified in Resend** before emails reach anyone other than the Resend account owner. Booking confirmation is now idempotent (conditional update), so emails and follow-ups run once even when the return page and webhook race. SMS is not built.
 
 ## 8. What's next
 

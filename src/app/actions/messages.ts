@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { notifyBookingMessage } from "@/lib/notify";
 
 export type SendResult = { ok?: boolean; message?: string } | undefined;
 
@@ -21,10 +22,11 @@ export async function sendMessage(bookingId: string, _prev: SendResult, fd: Form
   if (!side) return { message: "Conversation not found." };
 
   const now = new Date();
-  await db.$transaction([
+  const [msg] = await db.$transaction([
     db.message.create({ data: { bookingId, senderId: user.id, body } }),
     db.booking.update({ where: { id: bookingId }, data: side === "guest" ? { guestLastReadAt: now } : { ownerLastReadAt: now } }),
   ]);
+  await notifyBookingMessage(msg.id);
   revalidatePath(side === "guest" ? `/messages/${bookingId}` : `/owner/messages/${bookingId}`);
   revalidatePath(side === "guest" ? `/owner/messages/${bookingId}` : `/messages/${bookingId}`);
   return { ok: true };

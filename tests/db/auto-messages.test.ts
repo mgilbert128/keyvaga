@@ -20,7 +20,7 @@ suite("automated guest messages (database)", () => {
   const msgs = (bookingId: string) => db.message.findMany({ where: { bookingId }, orderBy: { createdAt: "asc" } });
 
   beforeAll(async () => {
-    await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany();
+    await db.passwordResetToken.deleteMany(); await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany();
     await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany(); await db.providerPhoto.deleteMany(); await db.providerProfile.deleteMany();
     await db.payment.deleteMany(); await db.booking.deleteMany(); await db.listingPhoto.deleteMany(); await db.listing.deleteMany(); await db.session.deleteMany(); await db.userRole.deleteMany(); await db.user.deleteMany();
     ownerId = (await db.user.create({ data: { email: "o-am@test.example", name: "Jordan Owens", passwordHash: "x" } })).id;

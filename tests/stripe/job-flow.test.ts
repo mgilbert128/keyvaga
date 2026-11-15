@@ -28,7 +28,7 @@ suite("service job flow with Stripe test mode", () => {
   }
 
   beforeAll(async () => {
-    await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany(); await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany();
+    await db.passwordResetToken.deleteMany(); await db.autoMessageLog.deleteMany(); await db.messageTemplate.deleteMany(); await db.message.deleteMany(); await db.jobPayment.deleteMany(); await db.jobReview.deleteMany(); await db.jobMessage.deleteMany(); await db.quote.deleteMany(); await db.job.deleteMany();
     await db.providerPhoto.deleteMany(); await db.providerProfile.deleteMany();
     await db.payment.deleteMany(); await db.booking.deleteMany(); await db.listingPhoto.deleteMany(); await db.listing.deleteMany(); await db.session.deleteMany(); await db.userRole.deleteMany(); await db.user.deleteMany();
     ownerId = (await db.user.create({ data: { email: "o-job@test.example", name: "Owner Job", passwordHash: "x" } })).id;

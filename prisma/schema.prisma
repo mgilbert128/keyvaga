@@ -21,29 +21,30 @@ enum Role {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  email            String            @unique
+  id               String               @id @default(cuid())
+  email            String               @unique
   name             String
   passwordHash     String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   roles            UserRole[]
   sessions         Session[]
-  listings         Listing[]         @relation("ListingOwner")
-  bookings         Booking[]         @relation("BookingGuest")
+  listings         Listing[]            @relation("ListingOwner")
+  bookings         Booking[]            @relation("BookingGuest")
   messages         Message[]
   reviews          Review[]
   saved            SavedListing[]
   providerProfile  ProviderProfile?
   messageTemplates MessageTemplate[]
-  jobsPosted       Job[]             @relation("JobOwner")
+  passwordResets   PasswordResetToken[]
+  jobsPosted       Job[]                @relation("JobOwner")
   jobMessages      JobMessage[]
-  jobReviewsGiven  JobReview[]       @relation("JobReviewer")
+  jobReviewsGiven  JobReview[]          @relation("JobReviewer")
   /// Stripe customer used to save the guest's card for the balance charge.
-  stripeCustomerId String?           @unique
+  stripeCustomerId String?              @unique
   /// Stripe Connect account that receives the owner's payouts.
-  stripeAccountId  String?           @unique
-  payoutsEnabled   Boolean           @default(false)
+  stripeAccountId  String?              @unique
+  payoutsEnabled   Boolean              @default(false)
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -686,4 +687,16 @@ model AutoMessageLog {
   template   MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, templateId])
+}
+
+/// One-time password reset links. Only a SHA-256 hash of the token is stored; links expire after an hour.
+model PasswordResetToken {
+  id        String    @id
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

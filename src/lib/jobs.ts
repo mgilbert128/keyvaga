@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { stripe, idOf } from "@/lib/stripe";
 import { AUTO_RELEASE_DAYS, isServiceCategory, jobAmounts, nextJobStatus, providerServes, type JobStatus } from "@/lib/services";
 import { todayIn } from "@/lib/dates";
+import { notifyHired, notifyJobDone, notifyJobRequest, notifyQuoteReceived } from "@/lib/notify";
 
 export class JobError extends Error {}
 
@@ -35,7 +36,7 @@ export async function createJob(ownerId: string, input: { listingId: string; cat
     if (!p || p.status !== "APPROVED") throw new JobError("That provider isn't available.");
     if (p.userId === ownerId) throw new JobError("You can't hire yourself.");
   }
-  return db.job.create({
+  const job = await db.job.create({
     data: {
       ownerId,
       listingId: listing.id,
@@ -48,6 +49,8 @@ export async function createJob(ownerId: string, input: { listingId: string; cat
       targetProviderId: input.providerId ?? null,
     },
   });
+  await notifyJobRequest(job.id);
+  return job;
 }
 
 /** Jobs a provider should see in their inbox. */
@@ -75,11 +78,13 @@ export async function submitQuote(profile: Profile & { userId: string }, jobId: 
   if (job.ownerId === profile.userId) throw new JobError("You can't quote on your own job.");
   if (!Number.isInteger(input.amountCents) || input.amountCents < 500 || input.amountCents > 5_000_000) throw new JobError("Enter a price between $5 and $50,000.");
   if (input.proposedDate && input.proposedDate < todayIn()) throw new JobError("The date can't be in the past.");
-  return db.quote.upsert({
+  const quote = await db.quote.upsert({
     where: { jobId_providerId: { jobId, providerId: profile.id } },
     create: { jobId, providerId: profile.id, amountCents: input.amountCents, proposedDate: input.proposedDate, message: input.message.trim().slice(0, 2000) },
     update: { amountCents: input.amountCents, proposedDate: input.proposedDate, message: input.message.trim().slice(0, 2000), status: "SUBMITTED" },
   });
+  await notifyQuoteReceived(quote.id);
+  return quote;
 }
 
 async function ensureCustomer(userId: string): Promise<string> {
@@ -145,6 +150,7 @@ export async function syncJobPayment(piOrId: string | Stripe.PaymentIntent) {
         db.quote.update({ where: { id: job.acceptedQuote.id }, data: { status: "ACCEPTED" } }),
         db.quote.updateMany({ where: { jobId: job.id, id: { not: job.acceptedQuote.id }, status: "SUBMITTED" }, data: { status: "DECLINED" } }),
       ]);
+      await notifyHired(job.id);
       return "assigned";
     }
     return job.status.toLowerCase();
@@ -171,6 +177,7 @@ export async function markComplete(providerUserId: string, jobId: string, note: 
   const job = await loadJob(jobId);
   if (job.acceptedQuote?.provider.userId !== providerUserId) throw new JobError("Job not found.");
   await transition(jobId, "mark_complete", { completedAt: new Date(), completionNote: note.trim().slice(0, 1000) || null, releaseAfter: new Date(Date.now() + AUTO_RELEASE_DAYS * 86_400_000) });
+  await notifyJobDone(jobId);
 }
 
 /** Sends the provider's share (quote − 5%) to their Stripe account. Retried by the daily job until it succeeds. */

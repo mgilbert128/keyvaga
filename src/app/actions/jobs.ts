@@ -9,6 +9,7 @@ import { JobError, cancelJob, createJob, markComplete, providerCanSee, releaseJo
 import { parseISODate } from "@/lib/dates";
 import { dollarsToCents } from "@/lib/pricing";
 import { stripeConfigured } from "@/lib/stripe";
+import { notifyJobMessage } from "@/lib/notify";
 
 export type JobResult = { ok?: boolean; message?: string } | undefined;
 
@@ -155,7 +156,8 @@ export async function sendJobMessage(jobId: string, providerId: string, _prev: J
   // Owners can message providers they sent the job to or who quoted.
   const ownerMayMessage = isOwner && (job.targetProviderId === providerId || job.quotes.some((q) => q.providerId === providerId));
   if (!ownerMayMessage && !isProvider) return { message: "Conversation not found." };
-  await db.jobMessage.create({ data: { jobId, providerId, senderId: u.id, body } });
+  const msg = await db.jobMessage.create({ data: { jobId, providerId, senderId: u.id, body } });
+  await notifyJobMessage(msg.id);
   refreshJob(jobId);
   return { ok: true };
 }

@@ -2,6 +2,9 @@ import "server-only";
 import { db } from "@/lib/db";
 import { isDue, renderMessage, type PlaceholderKey, type Trigger } from "@/lib/auto-messages";
 import { nightsBetween, todayIn } from "@/lib/dates";
+import { siteUrl } from "@/lib/site";
+import { notifyBookingMessage } from "@/lib/notify";
+export { siteUrl };
 
 const dayFmt = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 const timeFmt = (hhmm: string) => {
@@ -9,11 +12,6 @@ const timeFmt = (hhmm: string) => {
   return new Date(Date.UTC(2000, 0, 1, h, m)).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
 };
 
-export function siteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  return "https://keyvaga.vercel.app";
-}
 
 type BookingForVars = {
   id: string; checkIn: Date; checkOut: Date; guests: number;
@@ -61,13 +59,15 @@ export async function sendDueAutoMessages(bookingId: string, today = todayIn()) 
     const body = renderMessage(t.body, vars).replace(/\n{3,}/g, "\n\n").trim();
     if (!body) continue;
     try {
-      await db.$transaction(async (tx) => {
+      const messageId = await db.$transaction(async (tx) => {
         // The unique (booking, template) log row makes this safe against double sends.
         const log = await tx.autoMessageLog.create({ data: { bookingId: b.id, templateId: t.id } });
         const msg = await tx.message.create({ data: { bookingId: b.id, senderId: b.listing.ownerId, body: body.slice(0, 4000), automated: true } });
         await tx.autoMessageLog.update({ where: { id: log.id }, data: { messageId: msg.id } });
+        return msg.id;
       });
       count++;
+      await notifyBookingMessage(messageId); // also email it to the guest
     } catch {
       // Already sent by a concurrent run.
     }

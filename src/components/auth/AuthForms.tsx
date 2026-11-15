@@ -25,6 +25,7 @@ export function LoginForm({ next }: { next?: string }) {
       <input type="hidden" name="next" value={next ?? ""} />
       <Field label="Email" id="email" type="email" autoComplete="email" required defaultValue={state?.values?.email} error={state?.errors?.email} />
       <Field label="Password" id="password" type="password" autoComplete="current-password" required error={state?.errors?.password} />
+      <Link href="/forgot-password" className="-mt-2 self-start text-sm font-semibold text-brand underline underline-offset-4">Forgot password?</Link>
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Logging in…" : "Log in"}
       </Button>
