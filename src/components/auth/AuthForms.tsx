@@ -71,6 +71,9 @@ export function SignupForm({ next, intent = "GUEST" }: { next?: string; intent?:
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Creating account…" : "Create account"}
       </Button>
+      <p className="text-center text-sm text-ink-muted">
+        By creating an account you agree to Keyvaga&apos;s <Link href="/terms" className="text-brand underline underline-offset-4">Terms of Service</Link> and <Link href="/privacy" className="text-brand underline underline-offset-4">Privacy Policy</Link>.
+      </p>
       <p className="text-center text-ink-muted">
         Already have an account?{" "}
         <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-brand underline underline-offset-4">

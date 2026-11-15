@@ -58,7 +58,7 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
         <Card className="flex flex-col gap-2 text-sm">
           <h2 className="text-lg font-bold">Cancellation policy: {POLICY_INFO[b.cancellationPolicy].label}</h2>
           <p className="text-ink-muted">{POLICY_INFO[b.cancellationPolicy].summary}</p>
-          <p className="text-ink-muted">By paying you agree to the house rules and Keyvaga&apos;s terms. Your booking is confirmed instantly.</p>
+          <p className="text-ink-muted">By paying you agree to the house rules, Keyvaga&apos;s <a href="/terms" target="_blank" className="text-brand underline underline-offset-4">Terms of Service</a> and the <a href="/cancellation-policy" target="_blank" className="text-brand underline underline-offset-4">Cancellation Policy</a>. Your booking is confirmed instantly.</p>
         </Card>
       </div>
 
