@@ -1,5 +1,8 @@
 import { Suspense } from "react";
-import { StaySearchForm } from "@/components/search/StaySearchForm";
+import Link from "next/link";
+import { HeroSearch } from "@/components/home/HeroSearch";
+import { HomeLogoLink } from "@/components/brand/Logo";
+import { UserMenu, UserMenuFallback, photoLink } from "@/components/layout/UserMenu";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, Chip } from "@/components/ui/Card";
@@ -34,10 +37,22 @@ const portals = [
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col gap-14 pt-0 sm:gap-16 sm:pt-6">
+    <div className="flex flex-col gap-14 sm:gap-20">
       <Suspense fallback={<Hero slides={SCENES} />}>
         <HeroWithPhotos />
       </Suspense>
+
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 sm:gap-16 sm:px-8">
+      <section aria-labelledby="intro-title" className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_2fr] md:gap-12">
+        <p id="intro-title" className="flex items-center gap-4 self-start pt-2 text-sm font-semibold uppercase tracking-[0.14em] text-evergreen">
+          <span aria-hidden="true" className="h-px w-12 bg-evergreen" />
+          Your key to every getaway
+        </p>
+        <p className="text-2xl font-semibold leading-snug tracking-tight sm:text-[32px] sm:leading-[1.25]">
+          <span className="text-ink">Keyvaga connects travelers with owners of coastal homes, lake houses, mountain cabins and city stays.</span>{" "}
+          <span className="text-ink-muted">Book direct with lower fees, check in with ease, and find trusted local help for every stay.</span>
+        </p>
+      </section>
 
       <section aria-labelledby="portals-title" className="flex flex-col gap-6">
         <h2 id="portals-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
@@ -69,6 +84,7 @@ export default function HomePage() {
           <FeaturedStays />
         </Suspense>
       </section>
+      </div>
     </div>
   );
 }
@@ -88,20 +104,31 @@ async function HeroWithPhotos() {
 
 function Hero({ slides }: { slides: Slide[] }) {
   return (
-    <HeroCarousel slides={slides}>
-      <div className="relative flex min-h-[560px] flex-col justify-end gap-8 px-6 pb-6 pt-24 sm:min-h-[600px] sm:px-10 sm:pt-28">
-        <div className="flex max-w-2xl flex-col gap-4 text-white">
-          <p className="inline-flex items-center gap-2 self-start rounded-full bg-white/15 px-3 py-1 text-sm font-semibold backdrop-blur-sm">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-coral" />
-            Coast · Lake · Mountain · City
-          </p>
-          <h1 id="hero-title" className="text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-sm sm:text-6xl">
-            Your key to the ultimate vacation getaway
+    <HeroCarousel
+      slides={slides}
+      logo={<HomeLogoLink />}
+      nav={
+        <>
+          <Link href="/search" className={photoLink.replace("inline-flex", "hidden md:inline-flex")}>Stays</Link>
+          <Link href="/list-your-property" className={photoLink.replace("inline-flex", "hidden md:inline-flex")}>List your property</Link>
+          <Suspense fallback={<UserMenuFallback />}>
+            <UserMenu onPhoto />
+          </Suspense>
+        </>
+      }
+    >
+      <div className="relative z-10 flex flex-1 flex-col justify-between gap-10 px-5 pb-4 pt-10 sm:px-10 sm:pt-16">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <h1 id="hero-title" className="max-w-4xl font-brand text-5xl font-bold leading-[0.98] tracking-tight text-white drop-shadow-sm sm:text-7xl lg:text-[84px]">
+            Your key to the ultimate getaway.
           </h1>
-          <p className="text-lg text-white/90 sm:text-xl">Book a stay, list your place, and find trusted local help, all with Keyvaga.</p>
+          <div className="flex max-w-xs flex-col gap-4 text-white lg:pt-3">
+            <p className="text-base leading-relaxed text-white/90 drop-shadow-sm">Coastal homes, lakefront cabins, mountain retreats and city stays, booked directly with their owners.</p>
+            <Link href="/list-your-property" className="inline-flex min-h-11 items-center gap-2 self-start font-semibold text-white underline decoration-coral decoration-2 underline-offset-[6px] md:hidden">List your property →</Link>
+          </div>
         </div>
-        <div className="max-w-5xl text-ink">
-          <StaySearchForm variant="hero" />
+        <div className="max-w-5xl">
+          <HeroSearch />
         </div>
       </div>
     </HeroCarousel>

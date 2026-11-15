@@ -5,18 +5,21 @@ import { logout } from "@/app/actions/auth";
 import { ButtonLink, Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Card";
 
-const navLink = "inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft";
+const inkLink = "inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft";
+export const photoLink = "inline-flex min-h-11 items-center rounded-full px-3 text-base font-medium text-white hover:bg-white/15";
+const photoPill = "inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 font-semibold text-brand shadow-sm hover:bg-ivory";
 
-/** The part of the header that depends on who is signed in. Rendered inside <Suspense>. */
-export async function UserMenu() {
+/** The part of the header that depends on who is signed in. Rendered inside <Suspense>. `onPhoto`: white, for the homepage hero. */
+export async function UserMenu({ onPhoto = false }: { onPhoto?: boolean } = {}) {
   const user = await getCurrentUser();
+  const navLink = onPhoto ? photoLink : inkLink;
   if (!user) {
     return (
       <>
         <Link href="/login" className={navLink}>
           Log in
         </Link>
-        <ButtonLink href="/signup">Sign up</ButtonLink>
+        {onPhoto ? <Link href="/signup" className={photoPill}>Sign up</Link> : <ButtonLink href="/signup">Sign up</ButtonLink>}
       </>
     );
   }
@@ -31,9 +34,13 @@ export async function UserMenu() {
         </Link>
       ) : null}
       <form action={logout}>
-        <Button type="submit" variant="ghost">
-          Log out
-        </Button>
+        {onPhoto ? (
+          <button type="submit" className={navLink}>Log out</button>
+        ) : (
+          <Button type="submit" variant="ghost">
+            Log out
+          </Button>
+        )}
       </form>
       <Avatar name={user.name} />
     </>
