@@ -15,16 +15,24 @@ const steps = [
 
 export default function ListYourPropertyPage() {
   return (
-    <div className="flex flex-col gap-10 pt-8 sm:pt-16">
-      <div className="flex max-w-2xl flex-col gap-5">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">List your property on Keyvaga</h1>
-        <p className="text-lg text-ink-muted">
-          Run your calendar, pricing, bookings and payouts in one place, and book trusted local cleaners and
-          handymen when you need them, right from your owner portal.
-        </p>
-        <p className="text-lg font-semibold">Free to list. You keep {100 - HOST_FEE_PERCENT}% of every booking.</p>
-        <ButtonLink href="/signup?intent=OWNER" className="self-start">Get started</ButtonLink>
-      </div>
+    <div className="flex flex-col gap-10 pt-2 sm:pt-6">
+      <section aria-labelledby="lyp-title" className="relative isolate -mx-4 overflow-hidden sm:mx-0 sm:rounded-[28px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/hero/condos.webp" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[60%_center]" fetchPriority="high" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-[#0f2a35]/85 via-[#0f2a35]/55 to-[#0f2a35]/10" />
+        <div className="flex min-h-[460px] max-w-2xl flex-col justify-center gap-5 px-6 py-12 text-white sm:min-h-[520px] sm:px-12">
+          <h1 id="lyp-title" className="font-brand text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-sm sm:text-5xl">List your property on Keyvaga</h1>
+          <p className="text-lg text-white/90">
+            Run your calendar, pricing, bookings and payouts in one place, and book trusted local cleaners and
+            handymen when you need them, right from your owner portal.
+          </p>
+          <p className="text-lg font-semibold">
+            <span className="mr-2 inline-block h-2 w-2 rounded-full bg-coral align-middle" aria-hidden="true" />
+            Free to list. You keep {100 - HOST_FEE_PERCENT}% of every booking.
+          </p>
+          <ButtonLink href="/signup?intent=OWNER" className="self-start rounded-full !bg-white px-7 !text-brand hover:!bg-ivory">Get started</ButtonLink>
+        </div>
+      </section>
       <section aria-labelledby="keep-title" className="flex flex-col gap-4">
         <h2 id="keep-title" className="text-2xl font-bold tracking-tight sm:text-3xl">What you&apos;d keep</h2>
         <KeepCalculator />
