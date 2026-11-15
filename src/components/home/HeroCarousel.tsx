@@ -5,7 +5,7 @@ import Link from "next/link";
 import { HeroScene, type SceneKind } from "./HeroScene";
 
 export type Slide =
-  | { type: "photo"; src: string; alt: string; title: string; place: string; href: string | null }
+  | { type: "photo"; src: string; alt: string; title: string; place: string; href: string | null; position?: string }
   | { type: "scene"; kind: SceneKind; title: string; place: string; href: string | null };
 
 const INTERVAL = 7000;
@@ -49,7 +49,7 @@ export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[];
             <div key={n} className={`absolute inset-0 transition-opacity duration-[1400ms] ease-out ${n === i ? "opacity-100" : "opacity-0"}`}>
               {s.type === "photo" ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.src} alt="" className={`h-full w-full object-cover ${n === i && count > 1 ? "kv-kenburns" : ""}`} loading={n === 0 ? "eager" : "lazy"} fetchPriority={n === 0 ? "high" : "auto"} decoding="async" />
+                <img src={s.src} alt="" style={s.position ? { objectPosition: s.position } : undefined} className={`h-full w-full object-cover ${n === i && count > 1 ? "kv-kenburns" : ""}`} loading={n === 0 ? "eager" : "lazy"} fetchPriority={n === 0 ? "high" : "auto"} decoding="async" />
               ) : (
                 <HeroScene kind={s.kind} />
               )}

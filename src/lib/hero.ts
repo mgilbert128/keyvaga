@@ -1,14 +1,15 @@
 import "server-only";
 import { db } from "@/lib/db";
 
-export type HeroSlide = { src: string; alt: string; title: string; place: string; href: string | null };
+/** `position`: CSS object-position, to choose which part of the photo stays in view when it is cropped. */
+export type HeroSlide = { src: string; alt: string; title: string; place: string; href: string | null; position?: string };
 
 /**
  * Curated hero photography. Add licensed photos to /public/hero and list them here
  * (they show first, before photos from live listings). Keep them ~2400px wide, JPEG/WebP, under 500 KB.
  */
 const CURATED: HeroSlide[] = [
-  { src: "/hero/boardwalk.webp", alt: "Wooden boardwalk leading over the dunes to a sunny white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search" },
+  { src: "/hero/boardwalk.webp", alt: "Wooden boardwalk leading over the dunes to a sunny white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search", position: "40% 12%" },
 ];
 
 /** The main curated photo, if one is set (no database needed, so it can render instantly). */
