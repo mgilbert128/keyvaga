@@ -95,3 +95,19 @@ export function quoteStay(listing: PriceInputs, checkIn: Date, checkOut: Date): 
     perNight,
   };
 }
+
+/**
+ * Lowest nightly rate over the next `days` nights starting at `from` (seasonal, weekend and custom
+ * per-date prices included). Shown on cards as "From $X / night" when the guest hasn't picked dates.
+ */
+export function lowestRateCents(listing: PriceInputs, from: Date, days = 365): number {
+  const custom = new Map((listing.dateRates ?? []).map((r) => [+r.date, r.rateCents]));
+  const fast: PriceInputs = { ...listing, dateRates: undefined };
+  let min = Infinity;
+  for (let i = 0; i < days; i++) {
+    const date = addDays(from, i);
+    const rate = custom.get(+date) ?? rateForNight(fast, date).rateCents;
+    if (rate > 0 && rate < min) min = rate;
+  }
+  return Number.isFinite(min) ? min : listing.nightlyRateCents;
+}

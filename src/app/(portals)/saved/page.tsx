@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { guestNav } from "@/components/layout/portal-nav";
 import { ListingCard } from "@/components/listings/ListingCard";
+import { cardSelect, toCard } from "@/lib/listings";
+import { todayIn } from "@/lib/dates";
 import { ButtonLink } from "@/components/ui/Button";
 
 export const metadata: Metadata = { title: "Saved stays" };
@@ -21,10 +23,11 @@ export default function Page() {
 async function Saved() {
   await connection();
   const user = await requirePortal("guest", "/saved");
+  const today = todayIn();
   const saved = await db.savedListing.findMany({
     where: { userId: user.id, listing: { status: "PUBLISHED" } },
     orderBy: { createdAt: "desc" },
-    include: { listing: { select: { id: true, slug: true, title: true, city: true, region: true, maxGuests: true, bedrooms: true, nightlyRateCents: true, photos: { orderBy: { position: "asc" }, take: 1, select: { url: true, alt: true } } } } },
+    include: { listing: { select: cardSelect(today) } },
   });
   return (
     <PortalShell user={user} nav={guestNav("/saved")}>
@@ -37,8 +40,8 @@ async function Saved() {
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {saved.map(({ listing: { photos, ...l } }, i) => (
-              <li key={l.id}><ListingCard listing={{ ...l, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title }} index={i} /></li>
+            {saved.map(({ listing }, i) => (
+              <li key={listing.id}><ListingCard listing={toCard(listing, today)} index={i} /></li>
             ))}
           </ul>
         )}

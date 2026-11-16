@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isAmenityKey } from "@/lib/amenities";
 import { dollarsToCents } from "@/lib/pricing";
+import { formatRegion, formatTown } from "@/lib/place";
 
 const PROPERTY_TYPES = ["HOUSE", "APARTMENT", "CABIN", "CONDO", "VILLA", "OTHER"] as const;
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 16:00.");
@@ -40,8 +41,8 @@ export const listingSchema = z.object({
   propertyType: z.enum(PROPERTY_TYPES, { message: "Choose a property type." }),
   addressLine1: text(120),
   addressLine2: text(120),
-  city: text(80),
-  region: text(80),
+  city: text(80).transform(formatTown),
+  region: text(80).transform(formatRegion),
   postalCode: text(12),
   bedrooms: int("Bedrooms", 0, 50),
   bathrooms: z.coerce

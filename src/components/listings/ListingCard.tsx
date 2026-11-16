@@ -28,9 +28,27 @@ export function ListingCard({ listing, index, query }: { listing: ListingCardDat
           </p>
         ) : null}
       </div>
-      <p className="mt-auto text-xl font-semibold sm:text-2xl">
-        {formatCents(listing.nightlyRateCents)} <span className="text-base font-medium sm:text-lg">/ night</span>
-      </p>
+      {listing.price.kind === "stay" ? (
+        <div className="mt-auto">
+          <p className="text-xl font-semibold sm:text-2xl">
+            {formatCents(listing.price.totalCents)}{" "}
+            <span className="text-base font-medium sm:text-lg">for {listing.price.nights} {listing.price.nights === 1 ? "night" : "nights"}</span>
+          </p>
+          <p className="text-sm text-ink-muted">
+            {formatCents(listing.price.nightlyCents)} avg / night · includes cleaning and fees, before taxes
+          </p>
+        </div>
+      ) : (
+        <div className="mt-auto">
+          <p className="text-xl font-semibold sm:text-2xl">
+            <span className="text-base font-medium sm:text-lg">From </span>
+            {formatCents(listing.price.nightlyCents)} <span className="text-base font-medium sm:text-lg">/ night</span>
+          </p>
+          {listing.price.minNights ? (
+            <p className="text-sm text-ink-muted">{listing.price.minNights}-night minimum stay</p>
+          ) : null}
+        </div>
+      )}
     </article>
   );
 }

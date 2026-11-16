@@ -1,7 +1,9 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { listingVerification } from "@/lib/documents";
-import { todayIn } from "@/lib/dates";
+import { addDays, todayIn } from "@/lib/dates";
+import { lowestRateCents, quoteStay, type PriceInputs } from "@/lib/pricing";
+import { bookingAmounts } from "@/lib/booking-money";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ListingCardData = {
@@ -12,14 +14,25 @@ export type ListingCardData = {
   region: string;
   maxGuests: number;
   bedrooms: number;
+  /** The owner's base rate (kept for reference; cards show `price`). */
   nightlyRateCents: number;
+  /**
+   * What the card shows. Without dates: the lowest nightly rate in the next 12 months ("From $X / night").
+   * With dates: the guest's total for that stay (nights, discounts, cleaning and Keyvaga's guest fee; before taxes).
+   */
+  price: CardPrice;
   coverUrl: string | null;
   coverAlt: string;
   /** Host documents approved by Keyvaga (shows a "Verified" tag). */
   verified?: boolean;
 };
 
-const cardSelect = {
+export type CardPrice =
+  | { kind: "from"; nightlyCents: number; minNights?: number }
+  | { kind: "stay"; nights: number; totalCents: number; nightlyCents: number };
+
+/** Card fields plus everything the pricing engine needs. Custom date prices are loaded from `today` on. */
+export const cardSelect = (today: Date) => ({
   id: true,
   slug: true,
   title: true,
@@ -28,27 +41,52 @@ const cardSelect = {
   maxGuests: true,
   bedrooms: true,
   nightlyRateCents: true,
-  photos: { orderBy: { position: "asc" }, take: 1, select: { url: true, alt: true } },
+  cleaningFeeCents: true,
+  minNights: true,
+  weekendRateCents: true,
+  weeklyDiscountBps: true,
+  monthlyDiscountBps: true,
+  seasonalRates: { select: { name: true, startDate: true, endDate: true, nightlyRateCents: true } },
+  dateRates: { where: { date: { gte: today, lt: addDays(today, 400) } }, select: { date: true, rateCents: true } },
+  photos: { orderBy: { position: "asc" as const }, take: 1, select: { url: true, alt: true } },
   hostingRole: true,
   permitRequired: true,
   documents: { select: { type: true, status: true, expiresAt: true, createdAt: true } },
-} satisfies Prisma.ListingSelect;
+}) satisfies Prisma.ListingSelect;
 
-type CardRow = Prisma.ListingGetPayload<{ select: typeof cardSelect }>;
+type CardRow = Prisma.ListingGetPayload<{ select: ReturnType<typeof cardSelect> }>;
 
-function toCard({ photos, hostingRole, permitRequired, documents, ...l }: CardRow): ListingCardData {
-  const verified = listingVerification({ hostingRole, permitRequired, documents }, todayIn()).host !== null;
-  return { ...l, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified };
+/** Price shown on a card; see ListingCardData.price. Exported for tests. */
+export function cardPrice(l: PriceInputs, today: Date, stay?: { checkIn: Date; checkOut: Date }): CardPrice {
+  if (stay) {
+    const q = quoteStay(l, stay.checkIn, stay.checkOut);
+    if (q.ok) return { kind: "stay", nights: q.nights, totalCents: bookingAmounts(q.totalCents).guestTotalCents, nightlyCents: q.nightlyRateCents };
+    if (q.reason === "below_min_nights") return { kind: "from", nightlyCents: lowestRateCents(l, today), minNights: q.minNights };
+  }
+  return { kind: "from", nightlyCents: lowestRateCents(l, today) };
+}
+
+/** Builds card data from a row loaded with cardSelect(today). Pass the guest's dates to price that stay. */
+export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkOut: Date }): ListingCardData {
+  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, ...l } = row;
+  const verified = listingVerification({ hostingRole, permitRequired, documents }, today).host !== null;
+  const price = cardPrice(
+    { nightlyRateCents: l.nightlyRateCents, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, seasons: seasonalRates, dateRates },
+    today,
+    stay,
+  );
+  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified };
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {
+  const today = todayIn();
   const rows = await db.listing.findMany({
     where: { status: "PUBLISHED" },
-    select: cardSelect,
+    select: cardSelect(today),
     orderBy: [{ featured: "desc" }, { publishedAt: "desc" }, { createdAt: "asc" }],
     take: 6,
   });
-  return rows.map(toCard);
+  return rows.map((r) => toCard(r, today));
 }
 
 export { SORTS, type SearchFilters, type SortKey } from "./listings-types";
@@ -96,12 +134,27 @@ const ORDER: Record<SortKey, Prisma.ListingOrderByWithRelationInput[]> = {
   newest: [{ publishedAt: "desc" }],
 };
 
+/**
+ * Search results. Price filters and price sorting use the price the card shows (the nightly average for
+ * the guest's dates, or the lowest upcoming nightly rate without dates), not the owner's base rate, so
+ * a $450 base / $140 off-season listing matches "under $200" when it really is. That's computed here,
+ * after loading, which is fine at Keyvaga's size (up to 300 candidates).
+ */
 export async function searchListings(f: SearchFilters): Promise<ListingCardData[]> {
+  const today = todayIn();
+  const { minPriceCents, maxPriceCents, ...rest } = f;
+  const byPrice = f.sort === "price_asc" || f.sort === "price_desc";
   const rows = await db.listing.findMany({
-    where: buildSearchWhere(f),
-    select: cardSelect,
-    orderBy: [...ORDER[f.sort ?? "recommended"], { id: "asc" }],
-    take: 60,
+    where: buildSearchWhere(rest),
+    select: cardSelect(today),
+    orderBy: [...ORDER[byPrice ? "recommended" : (f.sort ?? "recommended")], { id: "asc" }],
+    take: 300,
   });
-  return rows.map(toCard);
+  const stay = f.checkIn && f.checkOut && f.checkOut > f.checkIn ? { checkIn: f.checkIn, checkOut: f.checkOut } : undefined;
+  let cards = rows.map((r) => toCard(r, today, stay));
+  const nightly = (c: ListingCardData) => c.price.nightlyCents;
+  if (minPriceCents !== undefined) cards = cards.filter((c) => nightly(c) >= minPriceCents);
+  if (maxPriceCents !== undefined) cards = cards.filter((c) => nightly(c) <= maxPriceCents);
+  if (byPrice) cards = [...cards].sort((a, b) => (f.sort === "price_asc" ? nightly(a) - nightly(b) : nightly(b) - nightly(a)));
+  return cards.slice(0, 60);
 }
