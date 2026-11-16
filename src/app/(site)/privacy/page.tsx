@@ -91,5 +91,5 @@ const sections: LegalSection[] = [
 ];
 
 export default function PrivacyPage() {
-  return <LegalDoc title="Privacy Policy" intro={<p>This policy explains what information Keyvaga collects when you use our site, how we use it, and the choices you have. The short version: we use your information to run your bookings and keep the platform safe, and we never sell it.</p>} sections={sections} />;
+  return <LegalDoc title="Privacy Policy" intro={<p>This policy explains what information Keyvaga LLC (&ldquo;Keyvaga,&rdquo; &ldquo;we&rdquo; or &ldquo;us&rdquo;) collects when you use our site, how we use it, and the choices you have. The short version: we use your information to run your bookings and keep the platform safe, and we never sell it.</p>} sections={sections} />;
 }

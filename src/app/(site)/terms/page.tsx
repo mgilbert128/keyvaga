@@ -169,7 +169,7 @@ export default function TermsPage() {
   return (
     <LegalDoc
       title="Terms of Service"
-      intro={<p>These terms are the agreement between you and Keyvaga when you use keyvaga.com as a guest, owner or service provider. Please read them along with our <Link href="/privacy" className="text-brand underline underline-offset-4">Privacy Policy</Link> and <Link href="/cancellation-policy" className="text-brand underline underline-offset-4">Cancellation Policy</Link>.</p>}
+      intro={<p>These terms are the agreement between you and Keyvaga LLC, a Missouri limited liability company (&ldquo;Keyvaga,&rdquo; &ldquo;we&rdquo; or &ldquo;us&rdquo;), when you use keyvaga.com as a guest, owner or service provider. Please read them along with our <Link href="/privacy" className="text-brand underline underline-offset-4">Privacy Policy</Link> and <Link href="/cancellation-policy" className="text-brand underline underline-offset-4">Cancellation Policy</Link>.</p>}
       sections={sections}
     />
   );

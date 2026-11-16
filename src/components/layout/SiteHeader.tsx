@@ -31,7 +31,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto bg-evergreen text-ivory">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ivory/85 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <p>© {year} Keyvaga. Your key to the ultimate vacation getaway.</p>
+        <p>© {year} Keyvaga LLC. Your key to the ultimate vacation getaway.</p>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-2">
           <Link href="/search" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Stays</Link>
           <Link href="/list-your-property" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">List your property</Link>
