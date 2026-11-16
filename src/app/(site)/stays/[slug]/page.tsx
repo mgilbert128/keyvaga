@@ -25,7 +25,9 @@ import { AvailabilityCalendar } from "@/components/listings/AvailabilityCalendar
 
 export async function generateMetadata({ params }: PageProps<"/stays/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const stay = await getPublishedStay(slug);
+  // A small, time-independent query: getPublishedStay filters date rates by Date.now(), which Next's
+  // prerender rejects inside generateMetadata ("encountered the unstable value Date.now()").
+  const stay = await db.listing.findFirst({ where: { slug, status: "PUBLISHED" }, select: { title: true, city: true, region: true, summary: true } });
   return stay ? { title: `${stay.title} in ${stay.city}, ${stay.region}`, description: stay.summary } : { title: "Stay not found" };
 }
 
