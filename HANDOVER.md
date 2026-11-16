@@ -50,6 +50,7 @@ Demo accounts: `guest@`, `owner@`, `provider@` and `admin@keyvaga.test` (the dem
 | `RESEND_API_KEY`, `EMAIL_FROM` | Manual | Email via Resend. keyvaga.com is verified; `EMAIL_FROM=Keyvaga <hello@keyvaga.com>`. |
 | `ANTHROPIC_API_KEY` | Manual | Turns on the AI help chat (Anthropic API key). Set a monthly spend limit in the Anthropic Console. |
 | `SEAM_API_KEY` | Manual | Smart locks via Seam. Sandbox keys (`seam_test…`) give virtual locks; use a production workspace key at launch. Without it the Smart locks tab says "Coming soon". |
+| `SENTRY_DSN` | Manual | Error monitoring (`src/lib/monitoring.ts`, dependency-free, Sentry envelope API). Reports uncaught server errors (`src/instrumentation.ts` → `onRequestError`), every server `console.error` that includes an Error, browser crashes (`app/global-error.tsx` → `/api/client-error`) and failed tasks in the daily cron. Capped at 30 events/minute per instance. Without it nothing is sent. |
 | `KEYVAGA_LOCAL_UPLOADS=true` | Dev/test only | Allows local-disk uploads in a production build. |
 
 The founder holds all accounts (GitHub, Vercel, Neon, Stripe). **Ask for invitations; don't accept shared passwords or keys over chat.**
@@ -188,7 +189,7 @@ Spec phases (section 12 of the brief):
 **Phase 7, polish and launch:**
 - Email and SMS notifications: booking confirmation, owner "new booking", balance reminders, messages.
 - Admin tools: disputes, refunds, reports, audit log.
-- Security headers / CSP, monitoring.
+- Security headers / CSP, uptime monitoring (error monitoring is in: `SENTRY_DSN`).
 - Accessibility audit.
 - The **developer review of payments, security and privacy** required by the spec.
 - Switching Stripe to live mode.

@@ -4,6 +4,7 @@ import { runAutoMessages } from "@/lib/auto-messages-server";
 import { runLockTasks } from "@/lib/locks";
 import { runCalendarSync } from "@/lib/calendar-sync";
 import { sweepRateLimits } from "@/lib/rate-limit";
+import { reportJobFailures } from "@/lib/monitoring";
 
 /**
  * Runs once a day (configured in vercel.json): releases expired holds, charges balances
@@ -19,5 +20,6 @@ export async function GET(request: Request) {
   const calendars = await runCalendarSync().catch((e) => ({ error: String(e) }));
   const result = { calendars, bookings: await runDailyJobs(), serviceJobs: await runDailyJobTasks(), autoMessages: await runAutoMessages(), locks: await runLockTasks().catch((e) => ({ error: String(e) })) };
   console.log("daily jobs", JSON.stringify(result));
+  await reportJobFailures("daily jobs", result);
   return Response.json(result);
 }
