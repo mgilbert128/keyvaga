@@ -7,7 +7,7 @@ import { ListingCard } from "@/components/listings/ListingCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, Chip } from "@/components/ui/Card";
 import { getFeaturedListings } from "@/lib/listings";
-import { FeesSection } from "@/components/marketing/FeesSection";
+import { FeesSection, OwnerValueSection } from "@/components/marketing/FeesSection";
 import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
 import { curatedHero, getHeroSlides } from "@/lib/hero";
 
@@ -71,6 +71,10 @@ export default function HomePage() {
         </Suspense>
       </section>
 
+      <FeesSection />
+
+      <OwnerValueSection />
+
       <section aria-labelledby="portals-title" className="flex flex-col gap-6">
         <h2 id="portals-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
           Three portals, one account
@@ -90,8 +94,6 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-
-      <FeesSection />
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { GUEST_FEE_PERCENT, HOST_FEE_PERCENT } from "@/lib/earnings";
 import { KeepCalculator } from "./KeepCalculator";
 
-/** Homepage "Simple, fair fees" section with the owner calculator. */
+/** Homepage "Simple, fair fees" section. */
 export function FeesSection() {
   return (
     <section aria-labelledby="fees-title" className="flex flex-col gap-6">
@@ -23,7 +23,18 @@ export function FeesSection() {
           <p className="text-ink-muted">Keyvaga keeps just {HOST_FEE_PERCENT}% of each booking. Listing your property is free. <Link href="/list-your-property" className="font-semibold text-brand underline underline-offset-4">List your property</Link></p>
         </Card>
       </div>
-      <h3 id="keep-title" className="text-xl font-bold sm:text-2xl">What you&apos;d keep</h3>
+    </section>
+  );
+}
+
+/** Homepage owner section: what an owner would keep, with the calculator. */
+export function OwnerValueSection() {
+  return (
+    <section aria-labelledby="keep-title" className="flex flex-col gap-6">
+      <div className="flex max-w-3xl flex-col gap-2">
+        <h2 id="keep-title" className="text-2xl font-bold tracking-tight sm:text-3xl">What you&apos;d keep as an owner</h2>
+        <p className="text-lg text-ink-muted">Plug in your rate and booked nights to see your monthly and yearly take-home.</p>
+      </div>
       <KeepCalculator />
     </section>
   );
