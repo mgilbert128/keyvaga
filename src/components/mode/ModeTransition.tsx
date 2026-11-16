@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { HouseScene, SuitcaseScene } from "./KeyScenes";
 
@@ -34,9 +34,16 @@ type Run = { id: number; mode: Mode; href: string; speed: "full" | "quick"; star
  * (hosting and traveling pages use different layouts). Short, skippable, and skipped entirely
  * for people who prefer reduced motion.
  */
+/** Reads the current path. Kept in its own Suspense boundary so it doesn't block prerendering of every page. */
+function PathWatcher({ onPath }: { onPath: (p: string) => void }) {
+  const pathname = usePathname();
+  useEffect(() => onPath(pathname), [pathname, onPath]);
+  return null;
+}
+
 export function ModeTransitionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
+  const [pathname, setPathname] = useState("");
   const [run, setRun] = useState<Run | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const nextId = useRef(1);
@@ -101,6 +108,9 @@ export function ModeTransitionProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={play}>
       {children}
+      <Suspense fallback={null}>
+        <PathWatcher onPath={setPathname} />
+      </Suspense>
       {run ? (
         <div
           key={run.id}
