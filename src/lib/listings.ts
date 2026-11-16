@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { listingVerification } from "@/lib/documents";
 import { addDays, todayIn } from "@/lib/dates";
@@ -80,6 +81,7 @@ export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkO
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {
+  await connection(); // prices depend on today's date, so this can't be baked in at build time
   const today = todayIn();
   const rows = await db.listing.findMany({
     where: { status: "PUBLISHED" },
@@ -149,6 +151,7 @@ const ORDER: Record<SortKey, Prisma.ListingOrderByWithRelationInput[]> = {
  * after loading, which is fine at Keyvaga's size (up to 300 candidates).
  */
 export async function searchListings(f: SearchFilters): Promise<ListingCardData[]> {
+  await connection();
   const today = todayIn();
   const { minPriceCents, maxPriceCents, ...rest } = f;
   const byPrice = f.sort === "price_asc" || f.sort === "price_desc";
