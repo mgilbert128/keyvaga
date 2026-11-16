@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { AssistantWidget } from "@/components/assistant/AssistantWidget";
+import { assistantConfigured } from "@/lib/assistant/client";
 import { ModeTransitionProvider } from "@/components/mode/ModeTransition";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
@@ -28,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <PreviewBanner />
         <ModeTransitionProvider>{children}</ModeTransitionProvider>
+        {assistantConfigured() ? <AssistantWidget /> : null}
       </body>
     </html>
   );
