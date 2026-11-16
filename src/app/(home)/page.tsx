@@ -58,6 +58,15 @@ export default function HomePage() {
         </p>
       </section>
 
+      <section aria-labelledby="featured-title" className="flex flex-col gap-6">
+        <h2 id="featured-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Featured stays
+        </h2>
+        <Suspense fallback={<FeaturedSkeleton />}>
+          <FeaturedStays />
+        </Suspense>
+      </section>
+
       <section aria-labelledby="portals-title" className="flex flex-col gap-6">
         <h2 id="portals-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
           Three portals, one account
@@ -79,15 +88,6 @@ export default function HomePage() {
       </section>
 
       <FeesSection />
-
-      <section aria-labelledby="featured-title" className="flex flex-col gap-6">
-        <h2 id="featured-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Featured stays
-        </h2>
-        <Suspense fallback={<FeaturedSkeleton />}>
-          <FeaturedStays />
-        </Suspense>
-      </section>
       </div>
     </div>
   );
