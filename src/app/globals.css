@@ -113,11 +113,11 @@ body {
 }
 
 /*
- * Hosting / Traveling switch animation (~1.2s; ~0.5s once people have seen it).
+ * Hosting / Traveling switch animation (~1.5s; ~1s once people have seen it).
  * The key slides into the keyhole, turns, then the door swings open / the suitcase lid lifts.
  */
-.kv-mode-overlay { --kv-in: 420ms; --kv-turn: 260ms; --kv-open: 300ms; }
-.kv-mode-overlay[data-speed="quick"] { --kv-in: 0ms; --kv-turn: 180ms; --kv-open: 200ms; }
+.kv-mode-overlay { --kv-in: 520ms; --kv-turn: 380ms; --kv-open: 380ms; }
+.kv-mode-overlay[data-speed="quick"] { --kv-in: 0ms; --kv-turn: 320ms; --kv-open: 320ms; }
 
 .kv-key {
   transform-box: view-box;
@@ -167,6 +167,6 @@ body {
 @keyframes kv-glow-on { to { opacity: 1; } }
 
 .kv-mode-enter { animation: kv-overlay-in 160ms ease-out both; }
-.kv-mode-exit { animation: kv-overlay-out 280ms ease-in both; }
+.kv-mode-exit { animation: kv-overlay-out 250ms ease-in both; }
 @keyframes kv-overlay-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes kv-overlay-out { to { opacity: 0; transform: scale(1.06); } }

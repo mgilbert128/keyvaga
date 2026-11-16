@@ -56,7 +56,7 @@ export function ModeTransitionProvider({ children }: { children: ReactNode }) {
   const finish = useCallback(() => {
     clear();
     setRun((r) => (r ? { ...r, exiting: true } : r));
-    timers.current.push(setTimeout(() => setRun(null), 280));
+    timers.current.push(setTimeout(() => setRun(null), 250));
   }, []);
 
   const play = useCallback<Play>(
@@ -78,7 +78,7 @@ export function ModeTransitionProvider({ children }: { children: ReactNode }) {
       router.prefetch(href);
       setRun({ id, mode, href, speed, startedAt: Date.now(), exiting: false });
       // Start loading the new page while the key turns; the overlay lifts once it's there.
-      timers.current.push(setTimeout(() => void go(), speed === "full" ? 620 : 220));
+      timers.current.push(setTimeout(() => void go(), speed === "full" ? 800 : 300));
       // Never leave the overlay up if navigation is slow or fails.
       timers.current.push(setTimeout(finish, 4500));
     },
@@ -90,7 +90,8 @@ export function ModeTransitionProvider({ children }: { children: ReactNode }) {
     if (!run || run.exiting) return;
     const target = run.href.split("?")[0]!;
     if (pathname !== target && !pathname.startsWith(`${target}/`)) return;
-    const minMs = run.speed === "full" ? 1050 : 480;
+    // Hold until the door/lid has finished opening (plus a beat), then fade out (~0.25s).
+    const minMs = run.speed === "full" ? 1300 : 750;
     const wait = Math.max(0, minMs - (Date.now() - run.startedAt));
     const t = setTimeout(finish, wait);
     return () => clearTimeout(t);
