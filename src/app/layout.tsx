@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ModeTransitionProvider } from "@/components/mode/ModeTransition";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { PreviewBanner } from "@/components/layout/PreviewBanner";
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to content
         </a>
         <PreviewBanner />
-        {children}
+        <ModeTransitionProvider>{children}</ModeTransitionProvider>
       </body>
     </html>
   );

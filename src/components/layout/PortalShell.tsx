@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { logout } from "@/app/actions/auth";
 import type { CurrentUser } from "@/lib/auth/dal";
 import { VerifyEmailBanner } from "./VerifyEmailBanner";
+import { ModeSwitch } from "@/components/mode/ModeSwitch";
 
 export type PortalNavItem = { label: string; href: string; current?: boolean };
 
@@ -27,7 +28,8 @@ export function PortalShell({
       <header className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <HomeLogoLink portal={portal} />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {portal === "Admin" ? null : <ModeSwitch current={portal === "Owner" ? "hosting" : portal ? null : "traveling"} isHost={user.roles.includes("OWNER")} />}
             {user.roles.includes("ADMIN") && portal !== "Admin" ? (
               <Link href="/admin" className="inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft">
                 Admin

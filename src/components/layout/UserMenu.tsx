@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { defaultLandingFor } from "@/lib/auth/roles";
 import { logout } from "@/app/actions/auth";
 import { ButtonLink, Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Card";
+import { ModeSwitch } from "@/components/mode/ModeSwitch";
 
 const inkLink = "inline-flex min-h-11 items-center rounded-control px-3 text-base text-ink hover:bg-soft";
 export const photoLink = "inline-flex min-h-11 items-center rounded-full px-3 text-base font-medium text-white hover:bg-white/15";
@@ -25,9 +25,12 @@ export async function UserMenu({ onPhoto = false }: { onPhoto?: boolean } = {}) 
   }
   return (
     <>
-      <Link href={defaultLandingFor(user.roles)} className={navLink}>
-        My portal
-      </Link>
+      <ModeSwitch current={null} isHost={user.roles.includes("OWNER")} onPhoto={onPhoto} />
+      {user.roles.includes("PROVIDER") ? (
+        <Link href="/provider" className={navLink}>
+          Services
+        </Link>
+      ) : null}
       {user.roles.includes("ADMIN") ? (
         <Link href="/admin" className={navLink}>
           Admin
