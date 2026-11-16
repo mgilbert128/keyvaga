@@ -10,9 +10,14 @@ export type Slide =
 
 const INTERVAL = 7000;
 
+/** Concave corner filler so the logo tab looks cut out of the photo. */
+function Corner({ className }: { className: string }) {
+  return <span aria-hidden="true" className={`pointer-events-none absolute h-7 w-7 bg-[radial-gradient(circle_at_100%_100%,transparent_27.5px,var(--kv-ivory)_28px)] sm:h-9 sm:w-9 sm:bg-[radial-gradient(circle_at_100%_100%,transparent_35.5px,var(--kv-ivory)_36px)] ${className}`} />;
+}
+
 /**
- * Homepage hero: rotating photos (crossfade, slow zoom) inside a large rounded card, with the logo in a wave-edged
- * tab cut out of the top-left corner, the menu on the photo, and whatever `children` you pass (headline, search) on top.
+ * Homepage hero: rotating photos (crossfade, slow zoom) inside a large rounded card, with the logo in a tab cut
+ * out of the top-left corner, the menu on the photo, and whatever `children` you pass (headline, search) on top.
  * Pauses on hover/focus and in hidden tabs; doesn't rotate for people who prefer reduced motion.
  */
 export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[]; logo: ReactNode; nav: ReactNode; children: ReactNode }) {
@@ -56,19 +61,16 @@ export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[];
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0f2a35]/40 to-transparent" />
         </div>
 
-        {/* Logo tab cut out of the top-left corner, with a wave-shaped edge (echoes the swoosh in the logo). */}
-        <div className="absolute left-0 top-0 z-10 h-[96px] w-[250px] sm:h-[120px] sm:w-[330px]">
-          <svg viewBox="0 0 330 120" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-0 h-full w-full">
-            <path
-              fill="var(--kv-ivory)"
-              d="M0 0H330C306 0 298 8 294 24C289 46 276 82 248 86C218 90 204 78 176 82C146 86 130 104 96 104C66 104 50 92 28 96C14 98 6 106 0 116Z"
-            />
-          </svg>
-          <div className="relative pl-4 pt-3.5 sm:pl-7 sm:pt-5">{logo}</div>
+        {/* Logo tab cut out of the top-left corner. */}
+        <div className="absolute left-0 top-0 z-10 rounded-br-[28px] bg-ivory py-3 pl-3 pr-5 sm:rounded-br-[36px] sm:py-5 sm:pl-6 sm:pr-9">
+          {logo}
+          <Corner className="left-full top-0" />
+          <Corner className="left-0 top-full" />
         </div>
 
-        {/* On phones the menu sits on its own row, just below where the wave edge dips, so they never overlap. */}
-        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-[84px] sm:min-h-[88px] sm:px-8 sm:pt-4">
+        {/* On phones, a signed-in menu (with the Traveling/Hosting switch) is too wide to sit beside the logo tab,
+            so it drops to its own row below the tab instead of overlapping it. */}
+        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-3 max-sm:has-[[role=group]]:pt-[80px] sm:min-h-[88px] sm:px-8 sm:pt-4">
           <nav aria-label="Main" className="flex flex-wrap items-center justify-end gap-1">{nav}</nav>
         </header>
 
