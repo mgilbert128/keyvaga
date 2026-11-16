@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deletePhoto, movePhoto } from "@/app/actions/listings";
 import { buttonClass } from "@/components/ui/Button";
+import { PhotoRearrange } from "./PhotoRearrange";
 
 type Photo = { id: string; url: string; alt: string };
 
@@ -32,6 +33,7 @@ export function PhotoManager({ listingId, photos, children }: { listingId: strin
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [rearranging, setRearranging] = useState(false);
   const [, startTransition] = useTransition();
 
   async function onFiles(files: FileList | null) {
@@ -73,23 +75,39 @@ export function PhotoManager({ listingId, photos, children }: { listingId: strin
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <label className={buttonClass("primary", busy ? "pointer-events-none opacity-60" : "cursor-pointer")}>
+        <label className={buttonClass("primary", busy || rearranging ? "pointer-events-none opacity-60" : "cursor-pointer")}>
           <input
             ref={input}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
             multiple
             className="sr-only"
-            disabled={busy}
+            disabled={busy || rearranging}
             onChange={(e) => onFiles(e.target.files)}
           />
           {busy ? "Uploading…" : "Add photos"}
         </label>
+        {photos.length > 1 && !rearranging ? (
+          <button type="button" onClick={() => setRearranging(true)} disabled={busy} className={buttonClass("secondary")}>
+            Rearrange photos
+          </button>
+        ) : null}
         <p aria-live="polite" className="text-sm text-ink-muted">{status}</p>
       </div>
       {error ? <p role="alert" className="text-sm font-medium text-danger">{error}</p> : null}
 
-      {photos.length === 0 ? (
+      {rearranging ? (
+        <PhotoRearrange
+          listingId={listingId}
+          photos={photos}
+          onCancel={() => setRearranging(false)}
+          onDone={() => {
+            setRearranging(false);
+            setStatus("New photo order saved.");
+            startTransition(() => router.refresh());
+          }}
+        />
+      ) : photos.length === 0 ? (
         <p className="rounded-control border border-dashed border-line-strong p-6 text-center text-ink-muted">No photos yet.</p>
       ) : (
         <ol className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -104,16 +122,6 @@ export function PhotoManager({ listingId, photos, children }: { listingId: strin
                 {i > 0 ? (
                   <form action={movePhoto.bind(null, listingId, p.id, "cover")}>
                     <button type="submit" className={buttonClass("ghost", "px-3 text-sm")}>Make cover</button>
-                  </form>
-                ) : null}
-                {i > 0 ? (
-                  <form action={movePhoto.bind(null, listingId, p.id, "up")}>
-                    <button type="submit" className={buttonClass("ghost", "px-3 text-sm")} aria-label={`Move photo ${i + 1} earlier`}>← Earlier</button>
-                  </form>
-                ) : null}
-                {i < photos.length - 1 ? (
-                  <form action={movePhoto.bind(null, listingId, p.id, "down")}>
-                    <button type="submit" className={buttonClass("ghost", "px-3 text-sm")} aria-label={`Move photo ${i + 1} later`}>Later →</button>
                   </form>
                 ) : null}
                 <form

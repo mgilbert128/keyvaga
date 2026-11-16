@@ -186,6 +186,29 @@ export async function movePhoto(listingId: string, photoId: string, direction: "
   revalidatePath(`/stays/${listing.slug}`);
 }
 
+/**
+ * Saves a whole new photo order from the "Rearrange photos" screen. `orderedIds` must be exactly this
+ * listing's photos (none missing, none extra); otherwise nothing changes, e.g. if a photo was added
+ * or deleted in another tab meanwhile.
+ */
+export async function reorderPhotos(listingId: string, orderedIds: string[]): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireOwner();
+  const listing = await loadOwned(user, listingId);
+  if (!Array.isArray(orderedIds) || orderedIds.some((id) => typeof id !== "string")) return { ok: false, error: "Something went wrong. Refresh the page and try again." };
+  const saved = await db.$transaction(async (tx) => {
+    const photos = await tx.listingPhoto.findMany({ where: { listingId }, select: { id: true, position: true } });
+    const current = new Set(photos.map((p) => p.id));
+    if (orderedIds.length !== photos.length || new Set(orderedIds).size !== orderedIds.length || !orderedIds.every((id) => current.has(id))) return false;
+    const pos = new Map(photos.map((p) => [p.id, p.position]));
+    for (const [i, id] of orderedIds.entries()) if (pos.get(id) !== i) await tx.listingPhoto.update({ where: { id }, data: { position: i } });
+    return true;
+  });
+  if (!saved) return { ok: false, error: "Your photos changed since you started. Refresh the page and try again." };
+  revalidatePath(`/owner/listings/${listingId}`);
+  revalidatePath(`/stays/${listing.slug}`);
+  return { ok: true };
+}
+
 // ---------- Video ----------
 
 export type VideoResult = { ok: true } | { ok: false; error: string };
