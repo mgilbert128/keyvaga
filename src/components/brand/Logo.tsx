@@ -30,10 +30,10 @@ export function KeyvagaLogo({ className = "h-8 w-auto" }: { className?: string }
 }
 
 /** The site logo, with an optional portal name beside it ("· Owner"). */
-export function Wordmark({ portal }: { portal?: string }) {
+export function Wordmark({ portal, logoClassName = "h-8 w-auto" }: { portal?: string; logoClassName?: string }) {
   return (
     <span className="inline-flex items-center gap-2">
-      <KeyvagaLogo className="h-8 w-auto" />
+      <KeyvagaLogo className={logoClassName} />
       {portal ? (
         <span className="font-sans text-lg font-semibold text-brand">
           <span aria-hidden="true">· </span>
@@ -44,10 +44,11 @@ export function Wordmark({ portal }: { portal?: string }) {
   );
 }
 
-export function HomeLogoLink({ portal, href = "/" }: { portal?: string; href?: string }) {
+/** Logo linking home. `logoClassName` sets its size (the homepage hero uses a larger logo). */
+export function HomeLogoLink({ portal, href = "/", logoClassName }: { portal?: string; href?: string; logoClassName?: string }) {
   return (
     <Link href={href} className="inline-flex min-h-11 items-center rounded-control" aria-label={portal ? `Keyvaga ${portal} home` : "Keyvaga home"}>
-      <Wordmark portal={portal} />
+      <Wordmark portal={portal} logoClassName={logoClassName} />
     </Link>
   );
 }
