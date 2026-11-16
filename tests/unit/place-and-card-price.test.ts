@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRegion, formatTown } from "@/lib/place";
+import { destinationTerms, formatRegion, formatTown } from "@/lib/place";
 import { lowestRateCents } from "@/lib/pricing";
 
 describe("formatTown / formatRegion", () => {
@@ -34,5 +34,19 @@ describe("lowestRateCents", () => {
   it("ignores seasons outside the window and falls back to base", () => {
     const seasons = [{ name: "Old", startDate: d("2025-01-01"), endDate: d("2025-03-01"), nightlyRateCents: 9000 }];
     expect(lowestRateCents({ ...base, seasons }, d("2026-11-16"))).toBe(45000);
+  });
+});
+
+describe("destinationTerms", () => {
+  it("splits town and state, with or without a comma or full state name", () => {
+    const gs = [{ kind: "word", text: "gulf" }, { kind: "word", text: "shores" }, { kind: "state", code: "AL", name: "Alabama" }];
+    expect(destinationTerms("gulf shores, al")).toEqual(gs);
+    expect(destinationTerms("Gulf Shores AL")).toEqual(gs);
+    expect(destinationTerms("gulf shores alabama")).toEqual(gs);
+  });
+  it("handles multi-word states, filler words and a lone short word", () => {
+    expect(destinationTerms("new york")).toEqual([{ kind: "state", code: "NY", name: "New York" }]);
+    expect(destinationTerms("lake of the ozarks")).toEqual([{ kind: "word", text: "lake" }, { kind: "word", text: "ozarks" }]);
+    expect(destinationTerms("al")).toEqual([{ kind: "word", text: "al" }]);
   });
 });

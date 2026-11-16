@@ -4,6 +4,7 @@ import { listingVerification } from "@/lib/documents";
 import { addDays, todayIn } from "@/lib/dates";
 import { lowestRateCents, quoteStay, type PriceInputs } from "@/lib/pricing";
 import { bookingAmounts } from "@/lib/booking-money";
+import { destinationTerms } from "@/lib/place";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ListingCardData = {
@@ -102,13 +103,20 @@ export function buildSearchWhere(f: SearchFilters): Prisma.ListingWhereInput {
   if (f.types?.length) and.push({ propertyType: { in: f.types } });
   if (f.amenities?.length) and.push({ amenities: { hasEvery: f.amenities } });
   if (f.where) {
-    and.push({
-      OR: [
-        { city: { contains: f.where, mode: "insensitive" } },
-        { region: { contains: f.where, mode: "insensitive" } },
-        { title: { contains: f.where, mode: "insensitive" } },
-      ],
-    });
+    // Every word must match somewhere ("gulf shores, al" → "gulf" AND "shores" AND state AL).
+    for (const t of destinationTerms(f.where)) {
+      and.push(
+        t.kind === "state"
+          ? { OR: [{ region: { equals: t.code, mode: "insensitive" } }, { region: { equals: t.name, mode: "insensitive" } }] }
+          : {
+              OR: [
+                { city: { contains: t.text, mode: "insensitive" } },
+                { region: { contains: t.text, mode: "insensitive" } },
+                { title: { contains: t.text, mode: "insensitive" } },
+              ],
+            },
+      );
+    }
   }
   if (f.checkIn && f.checkOut && f.checkOut > f.checkIn) {
     const { checkIn, checkOut } = f;
