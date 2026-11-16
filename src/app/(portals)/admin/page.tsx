@@ -14,6 +14,8 @@ import { playableUrl } from "@/lib/storage";
 import { DocumentReview } from "@/components/admin/DocumentReview";
 import { documentsApproved, expiresSoon, isExpired, DOC_INFO } from "@/lib/documents";
 import { todayIn } from "@/lib/dates";
+import { TestErrorButton } from "@/components/admin/TestErrorButton";
+import { monitoringEnabled } from "@/lib/monitoring";
 
 export const metadata: Metadata = { title: "Listing reviews" };
 
@@ -115,6 +117,16 @@ async function Reviews() {
             </li>
           ))}
         </ul>
+
+        <section className="flex flex-col gap-3 rounded-card border border-line bg-surface p-6 sm:p-8">
+          <h2 className="text-2xl font-bold">Error monitoring</h2>
+          <p className="text-ink-muted">
+            {monitoringEnabled()
+              ? "On. Crashes, failed payments and failed daily tasks are reported to Sentry, which emails you."
+              : "Off. Add SENTRY_DSN in Vercel and redeploy to turn it on."}
+          </p>
+          <TestErrorButton />
+        </section>
       </div>
     </PortalShell>
   );
