@@ -11,8 +11,8 @@ export type Slide =
 const INTERVAL = 7000;
 
 /**
- * Homepage hero: rotating photos (crossfade, slow zoom) inside a large rounded card, with the logo in a tab on a rounded
- * white badge in the top-left corner, the menu on the photo, and whatever `children` you pass (headline, search) on top.
+ * Homepage hero: rotating photos (crossfade, slow zoom) inside a large rounded card, with the logo in a wave-edged
+ * tab cut out of the top-left corner, the menu on the photo, and whatever `children` you pass (headline, search) on top.
  * Pauses on hover/focus and in hidden tabs; doesn't rotate for people who prefer reduced motion.
  */
 export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[]; logo: ReactNode; nav: ReactNode; children: ReactNode }) {
@@ -56,13 +56,19 @@ export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[];
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#0f2a35]/40 to-transparent" />
         </div>
 
-        {/* Logo on a simple rounded white badge, floating just inside the top-left corner of the photo. */}
-        <div className="absolute left-3 top-3 z-10 rounded-2xl bg-white px-4 py-2.5 shadow-lg shadow-black/10 ring-1 ring-black/5 sm:left-5 sm:top-5 sm:rounded-[22px] sm:px-6 sm:py-3.5">
-          {logo}
+        {/* Logo tab cut out of the top-left corner, with a wave-shaped edge (echoes the swoosh in the logo). */}
+        <div className="absolute left-0 top-0 z-10 h-[96px] w-[250px] sm:h-[120px] sm:w-[330px]">
+          <svg viewBox="0 0 330 120" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-0 h-full w-full">
+            <path
+              fill="var(--kv-ivory)"
+              d="M0 0H330C306 0 298 8 294 24C289 46 276 82 248 86C218 90 204 78 176 82C146 86 130 104 96 104C66 104 50 92 28 96C14 98 6 106 0 116Z"
+            />
+          </svg>
+          <div className="relative pl-4 pt-3.5 sm:pl-7 sm:pt-5">{logo}</div>
         </div>
 
-        {/* On phones the menu sits on its own row below the logo badge, so they never overlap. */}
-        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-[80px] sm:min-h-[96px] sm:px-8 sm:pt-5">
+        {/* On phones the menu sits on its own row, just below where the wave edge dips, so they never overlap. */}
+        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-[84px] sm:min-h-[88px] sm:px-8 sm:pt-4">
           <nav aria-label="Main" className="flex flex-wrap items-center justify-end gap-1">{nav}</nav>
         </header>
 
