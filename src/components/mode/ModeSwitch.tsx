@@ -15,7 +15,7 @@ const OPTIONS: { mode: Mode; label: string; href: string }[] = [
 export function ModeSwitch({ current, isHost, onPhoto = false }: { current: Mode | null; isHost: boolean; onPhoto?: boolean }) {
   const play = useModeTransition();
   return (
-    <div role="group" aria-label="Switch between traveling and hosting" className={`inline-flex rounded-full p-1 ${onPhoto ? "bg-white/20 backdrop-blur-sm" : "bg-soft"}`}>
+    <div role="group" aria-label="Switch between traveling and hosting" className={`inline-flex rounded-full p-1 ${onPhoto ? "bg-[#0f2a35]/75 shadow-md ring-1 ring-white/30 backdrop-blur-md" : "bg-soft"}`}>
       {OPTIONS.map((o) => {
         const active = current === o.mode;
         return (
