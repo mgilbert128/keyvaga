@@ -52,10 +52,14 @@ export default function HomePage() {
           <span aria-hidden="true" className="h-px w-12 bg-evergreen" />
           Your key to every getaway
         </p>
-        <p className="text-2xl font-semibold leading-snug tracking-tight sm:text-[32px] sm:leading-[1.25]">
-          <span className="text-ink">Keyvaga connects travelers with owners of coastal homes, lake houses, mountain cabins and city stays.</span>{" "}
-          <span className="text-ink-muted">Book direct with lower fees, check in with ease, and find trusted local help for every stay.</span>
-        </p>
+        <div className="flex max-w-3xl flex-col gap-4 sm:gap-5">
+          <p className="text-2xl font-semibold leading-snug tracking-tight text-ink sm:text-[30px] sm:leading-[1.3]">
+            Keyvaga connects travelers with owners of coastal homes, lake houses, mountain cabins, and city stays.
+          </p>
+          <p className="text-lg leading-relaxed text-ink-muted sm:text-xl">
+            Book direct with lower fees, easy check-in, and trusted local help.
+          </p>
+        </div>
       </section>
 
       <section aria-labelledby="featured-title" className="flex flex-col gap-6">
