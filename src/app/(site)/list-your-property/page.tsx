@@ -28,7 +28,7 @@ export default function ListYourPropertyPage() {
           </p>
           <p className="text-lg font-semibold">
             <span className="mr-2 inline-block h-2 w-2 rounded-full bg-coral align-middle" aria-hidden="true" />
-            Free to list. You keep {100 - HOST_FEE_PERCENT}% of every booking.
+            Free to list. Keep {100 - HOST_FEE_PERCENT}% of your booking revenue (nightly rent and cleaning fees).
           </p>
           <ButtonLink href="/signup?intent=OWNER" className="self-start rounded-full !bg-white px-7 !text-brand hover:!bg-ivory">Get started</ButtonLink>
         </div>
