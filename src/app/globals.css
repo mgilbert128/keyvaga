@@ -160,6 +160,25 @@ body {
   to { transform: rotate(-24deg) translateY(-14px); }
 }
 
+/* Rolling suitcase: the pull handle starts tucked into the case, then pops up; the case tilts back onto its wheels. */
+.kv-handle {
+  transform: translateY(26px);
+  animation: kv-handle-up var(--kv-open) cubic-bezier(0.3, 0, 0.3, 1.4) calc(var(--kv-in) + var(--kv-turn)) both;
+}
+@keyframes kv-handle-up {
+  from { transform: translateY(26px); }
+  to { transform: translateY(0); }
+}
+.kv-tilt {
+  transform-box: view-box;
+  transform-origin: 154px 204px;
+  animation: kv-tilt-back var(--kv-open) ease-out calc(var(--kv-in) + var(--kv-turn) + 120ms) both;
+}
+@keyframes kv-tilt-back {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(10deg); }
+}
+
 .kv-glow {
   opacity: 0;
   animation: kv-glow-on var(--kv-open) ease-out calc(var(--kv-in) + var(--kv-turn)) forwards;

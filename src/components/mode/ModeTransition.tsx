@@ -121,7 +121,7 @@ export function ModeTransitionProvider({ children }: { children: ReactNode }) {
           onClick={skip}
           className={`kv-mode-overlay fixed inset-0 z-[100] flex cursor-pointer flex-col items-center justify-center gap-4 bg-ivory ${run.exiting ? "kv-mode-exit" : "kv-mode-enter"}`}
         >
-          <div className="h-48 w-52 sm:h-56 sm:w-60">{run.mode === "hosting" ? <HouseScene /> : <SuitcaseScene />}</div>
+          <div className="h-64 w-72 sm:h-80 sm:w-[22rem]">{run.mode === "hosting" ? <HouseScene /> : <SuitcaseScene />}</div>
           <p className="font-brand text-xl font-bold text-evergreen">{run.mode === "hosting" ? "Switching to hosting" : "Switching to traveling"}</p>
           <span className="text-sm text-ink-muted">Tap to skip</span>
         </div>

@@ -39,26 +39,52 @@ export function HouseScene() {
 }
 
 export function SuitcaseScene() {
+  // An upright rolling carry-on: telescoping handle, wheels, ridges and travel stickers. The key unlocks the
+  // front lock, then the pull handle pops up and the case tilts back onto its wheels, ready to roll.
   return (
     <svg viewBox="0 0 240 220" className="h-full w-full overflow-visible" aria-hidden="true">
-      <ellipse cx="120" cy="196" rx="86" ry="8" fill="var(--kv-evergreen)" opacity="0.12" />
-      {/* Light spilling out as the lid lifts. */}
-      <ellipse cx="120" cy="108" rx="70" ry="14" fill="#ffe7c2" className="kv-glow" />
-      <rect x="44" y="108" width="152" height="82" rx="14" fill="var(--kv-evergreen)" />
-      <rect x="84" y="108" width="8" height="82" fill="var(--kv-ivory)" opacity="0.25" />
-      <rect x="148" y="108" width="8" height="82" fill="var(--kv-ivory)" opacity="0.25" />
-      <rect x="60" y="186" width="14" height="10" rx="3" fill="var(--kv-evergreen)" />
-      <rect x="166" y="186" width="14" height="10" rx="3" fill="var(--kv-evergreen)" />
-      <g className="kv-lid">
-        <path d="M100 66 v-12 a8 8 0 0 1 8 -8 h24 a8 8 0 0 1 8 8 v12" fill="none" stroke="var(--kv-evergreen)" strokeWidth="8" strokeLinecap="round" />
-        <rect x="44" y="66" width="152" height="44" rx="14" fill="var(--kv-coastal)" />
-        <rect x="84" y="66" width="8" height="44" fill="var(--kv-ivory)" opacity="0.25" />
-        <rect x="148" y="66" width="8" height="44" fill="var(--kv-ivory)" opacity="0.25" />
-        <rect x="106" y="96" width="28" height="24" rx="4" fill="var(--kv-ivory)" />
-        <circle cx="120" cy="105" r="4" fill="var(--kv-coastal)" />
-        <path d="M118 107 h4 l1 8 h-6 z" fill="var(--kv-coastal)" />
+      <ellipse cx="120" cy="204" rx="70" ry="7" fill="var(--kv-evergreen)" opacity="0.12" />
+      {/* Motion lines, shown as it starts to roll. */}
+      <g className="kv-glow" stroke="var(--kv-coral)" strokeWidth="5" strokeLinecap="round">
+        <line x1="30" y1="120" x2="54" y2="120" />
+        <line x1="20" y1="142" x2="52" y2="142" />
+        <line x1="34" y1="164" x2="54" y2="164" />
       </g>
-      <g transform="translate(120 109)">
+      <g className="kv-tilt">
+        {/* Telescoping pull handle (drawn behind the case so it slides up out of it). */}
+        <g className="kv-handle">
+          <rect x="100" y="22" width="40" height="12" rx="6" fill="var(--kv-evergreen)" />
+          <rect x="104" y="30" width="6" height="46" rx="2" fill="#8a9aa0" />
+          <rect x="130" y="30" width="6" height="46" rx="2" fill="#8a9aa0" />
+        </g>
+        {/* Wheels */}
+        <circle cx="86" cy="196" r="8" fill="var(--kv-evergreen)" />
+        <circle cx="154" cy="196" r="8" fill="var(--kv-evergreen)" />
+        <circle cx="86" cy="196" r="3" fill="#8a9aa0" />
+        <circle cx="154" cy="196" r="3" fill="#8a9aa0" />
+        {/* Case */}
+        <rect x="66" y="66" width="108" height="126" rx="16" fill="var(--kv-coastal)" />
+        {/* Zipper seam and carry handle on the side */}
+        <rect x="66" y="66" width="108" height="126" rx="16" fill="none" stroke="var(--kv-evergreen)" strokeOpacity="0.35" strokeWidth="3" />
+        {/* Vertical ridges */}
+        <rect x="84" y="80" width="6" height="98" rx="3" fill="var(--kv-ivory)" opacity="0.28" />
+        <rect x="150" y="80" width="6" height="98" rx="3" fill="var(--kv-ivory)" opacity="0.28" />
+        {/* Corner guards */}
+        <path d="M66 86 v-4 a16 16 0 0 1 16 -16 h4" fill="none" stroke="var(--kv-evergreen)" strokeWidth="6" strokeLinecap="round" />
+        <path d="M174 86 v-4 a16 16 0 0 0 -16 -16 h-4" fill="none" stroke="var(--kv-evergreen)" strokeWidth="6" strokeLinecap="round" />
+        <path d="M66 172 v4 a16 16 0 0 0 16 16 h4" fill="none" stroke="var(--kv-evergreen)" strokeWidth="6" strokeLinecap="round" />
+        <path d="M174 172 v4 a16 16 0 0 1 -16 16 h-4" fill="none" stroke="var(--kv-evergreen)" strokeWidth="6" strokeLinecap="round" />
+        {/* Travel stickers */}
+        <circle cx="100" cy="168" r="10" fill="var(--kv-coral)" />
+        <path d="M95 168 l3.5 3.5 l6.5 -7" fill="none" stroke="var(--kv-ivory)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="128" y="158" width="26" height="16" rx="3" fill="#ffe7c2" transform="rotate(-10 141 166)" />
+        <path d="M133 168 q4 -6 8 0 t8 0" fill="none" stroke="var(--kv-coastal)" strokeWidth="2" strokeLinecap="round" transform="rotate(-10 141 166)" />
+        {/* Lock plate with keyhole */}
+        <rect x="106" y="110" width="28" height="26" rx="5" fill="var(--kv-ivory)" />
+        <circle cx="120" cy="120" r="4" fill="var(--kv-coastal)" />
+        <path d="M118 122 h4 l1 8 h-6 z" fill="var(--kv-coastal)" />
+      </g>
+      <g transform="translate(120 124)">
         <Key />
       </g>
     </svg>
