@@ -326,6 +326,15 @@ model Booking {
   totalCents            Int
   hostFeeCents          Int                @default(0)
   hostPayoutCents       Int                @default(0)
+  /// Lodging taxes at booking time (cents), on nights + cleaning. Included in totalCents.
+  /// keyvagaTaxCents: Keyvaga files and keeps it on the platform; ownerTaxCents: passed to the owner, who files it.
+  taxCents              Int                @default(0)
+  keyvagaTaxCents       Int                @default(0)
+  ownerTaxCents         Int                @default(0)
+  /// [{ name, ratePpm, cents, filedBy, state, city }] snapshot of the rates applied.
+  taxLines              Json?
+  /// Tax kept after a cancellation (part of the retained money); null while not cancelled.
+  taxRetainedCents      Int?
   currency              String             @default("USD") @db.Char(3)
   cancellationPolicy    CancellationPolicy @default(MODERATE)
   /// Payment plan: dueNowCents at booking; balanceCents charged on balanceDueDate (null = paid in full).
@@ -893,4 +902,30 @@ model RateLimit {
   key     String   @id
   count   Int
   resetAt DateTime
+}
+
+
+enum TaxFiler {
+  KEYVAGA
+  OWNER
+}
+
+/// Lodging tax rates, entered by an admin. A rate applies to listings in `state` (2-letter code) and,
+/// when `city` is set, only to listings in that town. Several rates can stack (state + county + city).
+model TaxRate {
+  id        String   @id @default(cuid())
+  state     String
+  /// Empty = the whole state.
+  city      String   @default("")
+  /// Shown on receipts and the tax report, e.g. "Baldwin County lodging tax".
+  name      String
+  /// Percent in parts per million: 4.5% = 45000.
+  ratePpm   Int
+  filedBy   TaxFiler @default(KEYVAGA)
+  notes     String   @default("")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([state, active])
 }

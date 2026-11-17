@@ -7,7 +7,7 @@ const d = (s: string) => parseISODate(s)!;
 describe("fees: 5% guest + 5% host", () => {
   it("matches the $1,000 example", () => {
     expect(bookingAmounts(100_000)).toEqual({
-      subtotalCents: 100_000, guestFeeCents: 5_000, guestTotalCents: 105_000,
+      subtotalCents: 100_000, guestFeeCents: 5_000, taxCents: 0, keyvagaTaxCents: 0, ownerTaxCents: 0, guestTotalCents: 105_000,
       hostFeeCents: 5_000, hostPayoutCents: 95_000, platformCents: 10_000,
     });
   });
@@ -54,7 +54,7 @@ describe("cancellation policies", () => {
 
   it("moderate, 60 days out, only deposit paid: full refund of the deposit, balance cancelled", () => {
     const o = cancellationOutcome({ by: "guest", policy: "MODERATE", amounts, paidCents: 31_500, checkIn, today: d("2026-12-31") });
-    expect(o).toEqual({ retainedCents: 0, refundCents: 31_500, cancelBalance: true, hostPayoutCents: 0 });
+    expect(o).toEqual({ retainedCents: 0, refundCents: 31_500, cancelBalance: true, hostPayoutCents: 0, taxRetainedCents: 0 });
   });
   it("moderate, 20 days out, fully paid: half back; owner gets their share of the half kept", () => {
     const o = cancellationOutcome({ by: "guest", policy: "MODERATE", amounts, paidCents: 105_000, checkIn, today: d("2027-02-09") });

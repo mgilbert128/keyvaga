@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/dal";
 import { getCheckoutSecret } from "@/lib/bookings";
 import { formatCents } from "@/lib/money";
+import { formatRate, parseTaxLines } from "@/lib/tax-calc";
 import { POLICY_INFO } from "@/lib/booking-money";
 import { Card } from "@/components/ui/Card";
 import { PaymentForm } from "@/components/booking/PaymentForm";
@@ -77,6 +78,7 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
             <div className="flex justify-between"><dt>{nights} night{nights === 1 ? "" : "s"}</dt><dd>{formatCents(b.nightlyCents)}</dd></div>
             {b.cleaningCents ? <div className="flex justify-between"><dt>Cleaning fee</dt><dd>{formatCents(b.cleaningCents)}</dd></div> : null}
             <div className="flex justify-between"><dt>Keyvaga service fee</dt><dd>{formatCents(b.serviceCents)}</dd></div>
+            {parseTaxLines(b.taxLines).map((t) => <div key={t.name} className="flex justify-between"><dt>{t.name} ({formatRate(t.ratePpm)})</dt><dd>{formatCents(t.cents)}</dd></div>)}
             <div className="flex justify-between border-t border-line pt-2 text-lg font-bold"><dt>Total (USD)</dt><dd>{formatCents(b.totalCents)}</dd></div>
           </dl>
           <dl className="flex flex-col gap-2 rounded-control bg-soft px-4 py-3 text-sm text-on-soft">

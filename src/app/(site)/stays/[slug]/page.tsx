@@ -15,6 +15,8 @@ import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
 import { parseISODate, rangeHasConflict, todayIn, toISODate, addDays } from "@/lib/dates";
 import { quoteStay } from "@/lib/pricing";
+import { taxesFor } from "@/lib/tax";
+import { formatRate } from "@/lib/tax-calc";
 import { bookingAmounts, paymentSchedule, POLICY_INFO } from "@/lib/booking-money";
 import { reserve } from "@/app/actions/bookings";
 import { Card, Chip, Avatar } from "@/components/ui/Card";
@@ -76,7 +78,8 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   }
   if (!quoteError && guests && guests > stay.maxGuests) quoteError = `This place sleeps up to ${stay.maxGuests}.`;
   const reserveError = str(sp.error)?.slice(0, 200);
-  const amounts = quote?.ok && !quoteError ? bookingAmounts(quote.totalCents) : null;
+  const taxes = quote?.ok && !quoteError ? await taxesFor(stay, quote.totalCents) : null;
+  const amounts = quote?.ok && !quoteError ? bookingAmounts(quote.totalCents, taxes ?? undefined) : null;
   const schedule = amounts && checkIn ? paymentSchedule(amounts.guestTotalCents, checkIn, today) : null;
   const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -250,6 +253,9 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                       <div className="flex justify-between gap-4"><dt>Cleaning fee</dt><dd>{formatCents(quote.cleaningCents)}</dd></div>
                     ) : null}
                     <div className="flex justify-between gap-4"><dt>Keyvaga service fee</dt><dd>{formatCents(amounts.guestFeeCents)}</dd></div>
+                    {taxes?.lines.map((t) => (
+                      <div key={t.name} className="flex justify-between gap-4"><dt>{t.name} ({formatRate(t.ratePpm)})</dt><dd>{formatCents(t.cents)}</dd></div>
+                    ))}
                     <div className="flex justify-between gap-4 border-t border-line pt-2 text-lg font-bold">
                       <dt>Total (USD)</dt><dd>{formatCents(amounts.guestTotalCents)}</dd>
                     </div>

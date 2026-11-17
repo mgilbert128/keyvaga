@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/money";
+import { formatRate, parseTaxLines } from "@/lib/tax-calc";
 
 const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -6,11 +7,14 @@ type B = {
   checkIn: Date; checkOut: Date; guests: number; nightlyCents: number; cleaningCents: number; serviceCents: number; totalCents: number;
   dueNowCents: number; balanceCents: number; balanceDueDate: Date | null; balanceStatus: string; refundedCents: number; status: string;
   hostFeeCents: number; hostPayoutCents: number; payoutDueCents: number; payoutStatus: string;
+  ownerTaxCents?: number; taxLines?: unknown;
 };
 
 /** Price, payment schedule and refunds for a booking. `view` controls guest vs owner wording. */
 export function BookingSummary({ b, view }: { b: B; view: "guest" | "owner" }) {
   const nights = Math.round((b.checkOut.getTime() - b.checkIn.getTime()) / 86_400_000);
+  const taxLines = parseTaxLines(b.taxLines);
+  const ownerTaxLines = taxLines.filter((t) => t.filedBy === "OWNER");
   const balanceLabel: Record<string, string> = { SCHEDULED: "Scheduled", PAID: "Paid", FAILED: "Payment failed", CANCELLED: "Cancelled", NONE: "" };
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -23,11 +27,13 @@ export function BookingSummary({ b, view }: { b: B; view: "guest" | "owner" }) {
         {view === "guest" ? (
           <>
             <div className="flex justify-between"><dt>Keyvaga service fee</dt><dd>{formatCents(b.serviceCents)}</dd></div>
+            {taxLines.map((t) => <div key={t.name} className="flex justify-between"><dt>{t.name} ({formatRate(t.ratePpm)})</dt><dd>{formatCents(t.cents)}</dd></div>)}
             <div className="flex justify-between border-t border-line pt-2 font-bold"><dt>Total</dt><dd>{formatCents(b.totalCents)}</dd></div>
           </>
         ) : (
           <>
             <div className="flex justify-between"><dt>Keyvaga host fee (5%)</dt><dd>−{formatCents(b.hostFeeCents)}</dd></div>
+            {ownerTaxLines.map((t) => <div key={t.name} className="flex justify-between"><dt>{t.name}: you file this</dt><dd>+{formatCents(t.cents)}</dd></div>)}
             <div className="flex justify-between border-t border-line pt-2 font-bold"><dt>Your payout</dt><dd>{formatCents(b.status === "CANCELLED" ? b.payoutDueCents : b.hostPayoutCents)}</dd></div>
           </>
         )}

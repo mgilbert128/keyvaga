@@ -195,3 +195,17 @@ Spec phases (section 12 of the brief):
 - Switching Stripe to live mode.
 
 **Open business decisions still listed in the spec:** launch region, how service providers are vetted, final accent color, calendar source of truth, lock brands, and when door codes are released.
+
+
+## Lodging taxes (added 2026-11-17)
+
+- Admin enters rates at `/admin/taxes` (`TaxRate`: state, optional town, name, rate in parts per million, who files).
+  A listing gets every active rate for its state that is state-wide or matches its town (`ratesForPlace`, `src/lib/tax-calc.ts`).
+- Taxes are charged on the booking subtotal (nights after discounts + cleaning). Keyvaga's 5% fees never apply to taxes.
+- `bookingAmounts(subtotal, { keyvagaTaxCents, ownerTaxCents })`: guest total includes all taxes; **Keyvaga-filed** tax stays
+  on the platform (never transferred); **owner-filed** tax is added to `hostPayoutCents` and paid out with the stay.
+- Each booking stores a snapshot (`taxCents`, `keyvagaTaxCents`, `ownerTaxCents`, `taxLines`), so rate changes only affect new bookings.
+  Cancellations keep tax in proportion to retained money (`taxRetainedCents`); refunded tax isn't owed.
+- Monthly report on `/admin/taxes` (by check-in month) with CSV at `/admin/taxes/report.csv?month=YYYY-MM`.
+- Rates and who files each tax must be confirmed by a CPA. Avalara (AvaTax) was quoted at $18k setup + monthly; revisit
+  when Keyvaga operates in many jurisdictions (swap `taxRatesFor` for an AvaTax call).

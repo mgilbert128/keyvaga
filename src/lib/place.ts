@@ -69,3 +69,10 @@ export function destinationTerms(input: string): DestinationTerm[] {
   }
   return terms;
 }
+
+/** Two-letter state code for a listing's state field ("al", "AL", "Alabama" → "AL"); null if it isn't a US state. */
+export function stateCode(region: string): string | null {
+  const v = region.trim();
+  if (/^\p{L}{2}$/u.test(v)) return US_STATES[v.toUpperCase()] ? v.toUpperCase() : null;
+  return NAME_TO_CODE.get(v.toLowerCase().replace(/\s+/g, " ")) ?? null;
+}

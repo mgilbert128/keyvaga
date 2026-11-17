@@ -21,24 +21,36 @@ export type BookingAmounts = {
   /** Nights + cleaning: the owner's price for the stay. */
   subtotalCents: number;
   guestFeeCents: number;
-  /** What the guest pays in total. */
+  /** Lodging taxes (on the subtotal); taxCents = keyvagaTaxCents + ownerTaxCents. */
+  taxCents: number;
+  /** Taxes Keyvaga files: kept on the platform for remittance, never paid out. */
+  keyvagaTaxCents: number;
+  /** Taxes the owner files: added to the owner's payout. */
+  ownerTaxCents: number;
+  /** What the guest pays in total (subtotal + service fee + taxes). */
   guestTotalCents: number;
   hostFeeCents: number;
-  /** What the owner receives if the stay goes ahead. */
+  /** What the owner receives if the stay goes ahead (subtotal − host fee + owner-filed taxes). */
   hostPayoutCents: number;
-  /** Keyvaga's gross revenue before Stripe costs. */
+  /** Keyvaga's fee revenue before Stripe costs (taxes excluded). */
   platformCents: number;
 };
 
-export function bookingAmounts(subtotalCents: number): BookingAmounts {
+/** Taxes are optional (no rates for the area = no tax). The 5% fees never apply to taxes. */
+export function bookingAmounts(subtotalCents: number, taxes: { keyvagaTaxCents: number; ownerTaxCents: number } = { keyvagaTaxCents: 0, ownerTaxCents: 0 }): BookingAmounts {
   const guestFeeCents = pct(subtotalCents, GUEST_FEE_BPS);
   const hostFeeCents = pct(subtotalCents, HOST_FEE_BPS);
+  const { keyvagaTaxCents, ownerTaxCents } = taxes;
+  const taxCents = keyvagaTaxCents + ownerTaxCents;
   return {
     subtotalCents,
     guestFeeCents,
-    guestTotalCents: subtotalCents + guestFeeCents,
+    taxCents,
+    keyvagaTaxCents,
+    ownerTaxCents,
+    guestTotalCents: subtotalCents + guestFeeCents + taxCents,
     hostFeeCents,
-    hostPayoutCents: subtotalCents - hostFeeCents,
+    hostPayoutCents: subtotalCents - hostFeeCents + ownerTaxCents,
     platformCents: guestFeeCents + hostFeeCents,
   };
 }
@@ -94,8 +106,10 @@ export type CancellationOutcome = {
   refundCents: number;
   /** Any scheduled balance charge is cancelled; we never charge more because of a cancellation. */
   cancelBalance: boolean;
-  /** What the owner still receives from the retained money (after their 5%). */
+  /** What the owner still receives from the retained money (after their 5%, plus their share of owner-filed taxes). */
   hostPayoutCents: number;
+  /** Taxes inside the retained money (still owed to the tax offices); the rest of the tax is refunded. */
+  taxRetainedCents: number;
 };
 
 /**
@@ -119,9 +133,12 @@ export function cancellationOutcome(args: {
   const retainedCents = Math.min(paidCents, allowedToKeep);
   const refundCents = paidCents - retainedCents;
   // Owner's share of the retained money: the subtotal portion of it, minus the host fee.
-  const subtotalPart = amounts.guestTotalCents === 0 ? 0 : Math.round((retainedCents * amounts.subtotalCents) / amounts.guestTotalCents);
-  const hostPayoutCents = subtotalPart - pct(subtotalPart, HOST_FEE_BPS);
-  return { retainedCents, refundCents, cancelBalance: true, hostPayoutCents };
+  const share = (part: number) => (amounts.guestTotalCents === 0 ? 0 : Math.round((retainedCents * part) / amounts.guestTotalCents));
+  const subtotalPart = share(amounts.subtotalCents);
+  const ownerTaxPart = share(amounts.ownerTaxCents);
+  const keyvagaTaxPart = share(amounts.keyvagaTaxCents);
+  const hostPayoutCents = subtotalPart - pct(subtotalPart, HOST_FEE_BPS) + ownerTaxPart;
+  return { retainedCents, refundCents, cancelBalance: true, hostPayoutCents, taxRetainedCents: ownerTaxPart + keyvagaTaxPart };
 }
 
 /**

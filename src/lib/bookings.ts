@@ -5,6 +5,7 @@ import { stripe, idOf } from "@/lib/stripe";
 import { HOLD_MINUTES, bookingAmounts, cancellationOutcome, paymentSchedule, splitPayoutAcrossCharges } from "@/lib/booking-money";
 import { addDays, rangeHasConflict, todayIn, toISODate, unavailableNights } from "@/lib/dates";
 import { quoteStay } from "@/lib/pricing";
+import { taxesFor } from "@/lib/tax";
 import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
@@ -67,7 +68,8 @@ export async function startBooking(input: { guestId: string; listingId: string; 
   if (rangeHasConflict(input.checkIn, input.checkOut, unavailableNights(blocks.map((b) => ({ start: b.startDate, end: b.endDate })))))
     throw new BookingError("Some of those nights aren't available. Try other dates.");
 
-  const amounts = bookingAmounts(quote.totalCents);
+  const taxes = await taxesFor(listing, quote.totalCents);
+  const amounts = bookingAmounts(quote.totalCents, taxes);
   const schedule = paymentSchedule(amounts.guestTotalCents, input.checkIn, today);
 
   await expireStaleHolds(listing.id);
@@ -88,6 +90,10 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         totalCents: amounts.guestTotalCents,
         hostFeeCents: amounts.hostFeeCents,
         hostPayoutCents: amounts.hostPayoutCents,
+        taxCents: amounts.taxCents,
+        keyvagaTaxCents: amounts.keyvagaTaxCents,
+        ownerTaxCents: amounts.ownerTaxCents,
+        taxLines: taxes.lines.length ? (taxes.lines as unknown as Prisma.InputJsonValue) : undefined,
         cancellationPolicy: listing.cancellationPolicy,
         dueNowCents: schedule.dueNowCents,
         balanceCents: schedule.kind === "split" ? schedule.balanceCents : 0,
@@ -265,7 +271,8 @@ export async function previewCancellation(bookingId: string, by: "guest" | "owne
   const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId } });
   const { paidCents } = await paidSoFar(bookingId);
   const subtotal = b.nightlyCents + b.cleaningCents;
-  return cancellationOutcome({ by, policy: b.cancellationPolicy, amounts: bookingAmounts(subtotal), paidCents, checkIn: b.checkIn, today: todayIn() });
+  const amounts = bookingAmounts(subtotal, { keyvagaTaxCents: b.keyvagaTaxCents, ownerTaxCents: b.ownerTaxCents });
+  return cancellationOutcome({ by, policy: b.cancellationPolicy, amounts, paidCents, checkIn: b.checkIn, today: todayIn() });
 }
 
 /** Cancels a confirmed booking, refunds per the policy (or in full if the owner cancels) and frees the dates. */
@@ -286,6 +293,7 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner") {
       balanceStatus: b.balanceStatus === "SCHEDULED" || b.balanceStatus === "FAILED" ? "CANCELLED" : b.balanceStatus,
       payoutDueCents: outcome.hostPayoutCents,
       payoutStatus: outcome.hostPayoutCents > 0 ? "PENDING" : "NONE",
+      taxRetainedCents: outcome.taxRetainedCents,
     },
   });
 
