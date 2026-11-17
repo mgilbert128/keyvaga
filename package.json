@@ -12,7 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && KEYVAGA_DEMO=true prisma db seed && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "test:stripe": "STRIPE_INTEGRATION=1 NODE_USE_ENV_PROXY=1 vitest run tests/stripe"
   },
   "dependencies": {

@@ -61,7 +61,7 @@ The founder holds all accounts (GitHub, Vercel, Neon, Stripe). **Ask for invitat
 prisma/
   schema.prisma            data model (comments explain each field)
   migrations/              includes HAND-WRITTEN SQL at the bottom of several files (see below)
-  seed.ts                  demo data; runs on every Vercel build while KEYVAGA_DEMO=true
+  seed.ts                  demo data; local only (removed from vercel-build on 2026-11-17)
 src/
   proxy.ts                 (Next 16's "middleware") fast redirect to /login for portals; NOT the security gate
   app/
@@ -122,7 +122,7 @@ tests/
 8. **`Booking.nightlyCents`** stores the nights total **after** weekly/monthly discounts. `serviceCents` = guest fee.
 9. **Preview banner** (`PreviewBanner.tsx`) shows until `STRIPE_SECRET_KEY` is a live key.
 10. **Redirects match case-insensitively.** Never add a `next.config.ts` redirect whose source differs from its destination only by case (`/Login` → `/login` looped forever and broke login). `tests/unit/redirects.test.ts` guards this.
-11. **Demo data in production.** `vercel-build` runs the seed with `KEYVAGA_DEMO=true` and the demo password is public. **Remove that from `package.json` before launch** and delete the demo accounts.
+11. **Demo data in production.** The seed no longer runs on deploy (removed from `vercel-build` 2026-11-17) and the three demo listings were paused by migration. Still to do before launch: delete the demo accounts (`guest@`, `owner@`, `provider@keyvaga.test`, public password), their listings and the sample provider.
 
 ## 6. Tests
 
