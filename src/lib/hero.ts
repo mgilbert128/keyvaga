@@ -9,6 +9,7 @@ export type HeroSlide = { src: string; alt: string; title: string; place: string
  * (they show first, before photos from live listings). Keep them ~2400px wide, JPEG/WebP, under 500 KB.
  */
 const CURATED: HeroSlide[] = [
+  { src: "/hero/hammock-balcony.webp", alt: "Colorful hammock on a sunny oceanfront balcony with palm trees and white railings", title: "Coastal escapes", place: "Oceanfront balconies and white-sand beaches", href: "/search", position: "35% center" },
   { src: "/hero/boardwalk.webp", alt: "Wooden boardwalk leading over the dunes to a sunny white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search" },
 ];
 
