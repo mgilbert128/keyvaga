@@ -128,12 +128,12 @@ function Hero({ slides }: { slides: Slide[] }) {
       }
     >
       <div className="relative z-10 flex flex-1 flex-col justify-between gap-10 px-5 pb-4 pt-10 sm:px-10 sm:pt-16">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex max-w-3xl flex-col gap-5">
           <h1 id="hero-title" className="max-w-4xl font-brand text-4xl font-bold leading-[1.02] tracking-tight text-white drop-shadow-sm sm:text-6xl lg:text-[64px]">
             Your key to the ultimate getaway.
           </h1>
-          <div className="flex max-w-xs flex-col gap-4 text-white lg:pt-3">
-            <p className="text-base leading-relaxed text-white/90 drop-shadow-sm">Coastal homes, lakefront cabins, mountain retreats and city stays, booked directly with their owners.</p>
+          <div className="flex max-w-xl flex-col gap-4 text-white">
+            <p className="text-lg leading-relaxed text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)] sm:text-xl">Coastal homes, lakefront cabins, mountain retreats and city stays, booked directly with their owners.</p>
             <Link href="/list-your-property" className="inline-flex min-h-11 items-center gap-2 self-start font-semibold text-white underline decoration-coral decoration-2 underline-offset-[6px] md:hidden">List your property →</Link>
           </div>
         </div>
