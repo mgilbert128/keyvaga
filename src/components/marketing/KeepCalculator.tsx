@@ -55,11 +55,14 @@ export function KeepCalculator() {
           <p className="text-lg font-semibold">{money(e.keepYearCents)} a year</p>
         </div>
         <dl className="flex flex-col gap-1.5 border-t border-on-soft/20 pt-3 text-sm">
-          <div className="flex justify-between gap-4"><dt>Bookings</dt><dd>{money(e.grossMonthCents)} / month</dd></div>
-          <div className="flex justify-between gap-4"><dt>Keyvaga host fee ({HOST_FEE_PERCENT}%)</dt><dd>−{money(e.keyvagaFeeMonthCents)}</dd></div>
+          <div className="flex justify-between gap-4"><dt>Nightly rent</dt><dd>{money(e.rentMonthCents)} / month</dd></div>
+          <div className="flex justify-between gap-4"><dt>Cleaning fees</dt><dd>{money(e.cleaningMonthCents)} / month</dd></div>
+          <div className="flex justify-between gap-4 font-semibold"><dt>Booking revenue</dt><dd>{money(e.grossMonthCents)} / month</dd></div>
+          <div className="flex justify-between gap-4"><dt>Keyvaga host fee ({HOST_FEE_PERCENT}% of rent + cleaning)</dt><dd>−{money(e.keyvagaFeeMonthCents)}</dd></div>
           <div className="flex justify-between gap-4"><dt>Listing or monthly fees</dt><dd>$0</dd></div>
-          <div className="flex justify-between gap-4"><dt>Guests pay per {num(stay) || 1}-night stay, all-in</dt><dd>{money(e.guestPaysPerStayCents)}</dd></div>
+          <div className="flex justify-between gap-4"><dt>Guests pay per {num(stay) || 1}-night stay, before taxes</dt><dd>{money(e.guestPaysPerStayCents)}</dd></div>
         </dl>
+        <p className="text-xs">Keyvaga&apos;s {HOST_FEE_PERCENT}% host fee applies to your nightly rent and cleaning fees. Lodging taxes are never part of it.</p>
         {e.extraVsOtherYearCents !== null ? (
           <p className="rounded-control bg-surface px-4 py-3 text-ink">
             {e.extraVsOtherYearCents > 0 ? (

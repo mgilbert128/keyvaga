@@ -19,8 +19,8 @@ export function FeesSection() {
         </Card>
         <Card className="flex flex-col gap-2">
           <p className="text-5xl font-bold tracking-tight text-brand">{100 - HOST_FEE_PERCENT}%</p>
-          <h3 className="text-xl font-bold">Owners keep</h3>
-          <p className="text-ink-muted">Keyvaga keeps just {HOST_FEE_PERCENT}% of each booking. Listing your property is free. <Link href="/list-your-property" className="font-semibold text-brand underline underline-offset-4">List your property</Link></p>
+          <h3 className="text-xl font-bold">Keep {100 - HOST_FEE_PERCENT}% of your booking revenue</h3>
+          <p className="text-ink-muted">Keyvaga&apos;s {HOST_FEE_PERCENT}% host fee applies to your nightly rent and cleaning fees, never to taxes. Listing your property is free. <Link href="/list-your-property" className="font-semibold text-brand underline underline-offset-4">List your property</Link></p>
         </Card>
       </div>
     </section>

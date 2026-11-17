@@ -15,6 +15,11 @@ export type EarningsInput = {
 
 export type EarningsEstimate = {
   staysPerMonth: number;
+  /** Nightly rent per month (nights x rate). */
+  rentMonthCents: number;
+  /** Cleaning fees per month (stays x cleaning fee). */
+  cleaningMonthCents: number;
+  /** Rent + cleaning: what Keyvaga's host fee is charged on (taxes are never included). */
   grossMonthCents: number;
   keyvagaFeeMonthCents: number;
   keepMonthCents: number;
@@ -29,7 +34,9 @@ export function estimateEarnings(i: EarningsInput): EarningsEstimate {
   const nights = Math.max(0, Math.min(31, i.nightsPerMonth));
   const stayLen = Math.max(1, i.avgStayNights);
   const staysPerMonth = nights === 0 ? 0 : nights / stayLen;
-  const grossMonthCents = Math.round(nights * i.nightlyRateCents + staysPerMonth * i.cleaningFeeCents);
+  const rentMonthCents = Math.round(nights * i.nightlyRateCents);
+  const cleaningMonthCents = Math.round(staysPerMonth * i.cleaningFeeCents);
+  const grossMonthCents = rentMonthCents + cleaningMonthCents;
   const keyvagaFeeMonthCents = Math.round((grossMonthCents * HOST_FEE_BPS) / 10_000);
   const keepMonthCents = grossMonthCents - keyvagaFeeMonthCents;
   const perStaySubtotal = stayLen * i.nightlyRateCents + i.cleaningFeeCents;
@@ -37,5 +44,5 @@ export function estimateEarnings(i: EarningsInput): EarningsEstimate {
   const other = i.otherPlatformFeePercent;
   const extraVsOtherYearCents =
     other === null || other === undefined || !Number.isFinite(other) ? null : Math.round(grossMonthCents * 12 * ((Math.min(Math.max(other, 0), 100) - HOST_FEE_PERCENT) / 100));
-  return { staysPerMonth, grossMonthCents, keyvagaFeeMonthCents, keepMonthCents, keepYearCents: keepMonthCents * 12, guestPaysPerStayCents, extraVsOtherYearCents };
+  return { staysPerMonth, rentMonthCents, cleaningMonthCents, grossMonthCents, keyvagaFeeMonthCents, keepMonthCents, keepYearCents: keepMonthCents * 12, guestPaysPerStayCents, extraVsOtherYearCents };
 }
