@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
+import { canUseHospitable } from "@/lib/hospitable";
 import { ownerOverview } from "@/lib/owner-stats";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
@@ -103,6 +104,16 @@ async function Overview() {
           </div>
           <ButtonLink href="/owner/calendar" variant="secondary">Open calendar</ButtonLink>
         </Card>
+
+        {canUseHospitable(user) ? (
+          <Card className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold sm:text-2xl">Hospitable</h2>
+              <p className="text-ink-muted">Import or link your Hospitable properties and keep prices and availability in sync.</p>
+            </div>
+            <ButtonLink href="/owner/hospitable" variant="secondary">Open Hospitable</ButtonLink>
+          </Card>
+        ) : null}
       </div>
     </PortalShell>
   );

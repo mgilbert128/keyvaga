@@ -146,6 +146,10 @@ model Listing {
   cleaningMinPhotos   Int                @default(4)
   /// Secret for this listing's calendar export URL (/ical/<token>.ics). Created on first use; reset to revoke.
   icalToken           String?            @unique
+  /// Linked Hospitable property (owner's own account via personal access token, for now).
+  hospitablePropertyId String?           @unique
+  hospitableSyncedAt   DateTime?
+  hospitableSyncError  String?
   calendarFeeds       CalendarFeed[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
@@ -336,6 +340,8 @@ model Booking {
   /// Tax kept after a cancellation (part of the retained money); null while not cancelled.
   taxRetainedCents      Int?
   paymentRequests       PaymentRequest[]
+  /// When Keyvaga blocked these dates on the linked Hospitable calendar (so other channels close).
+  hospitableBlockedAt   DateTime?
   currency              String             @default("USD") @db.Char(3)
   cancellationPolicy    CancellationPolicy @default(MODERATE)
   /// Payment plan: dueNowCents at booking; balanceCents charged on balanceDueDate (null = paid in full).

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { after, connection } from "next/server";
 import { refreshStaleFeeds } from "@/lib/calendar-sync";
+import { refreshHospitableIfStale } from "@/lib/hospitable";
 import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -55,6 +56,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
 
   // Keep Airbnb/Vrbo-synced dates fresh for the next visitor (runs after this response is sent).
   after(() => refreshStaleFeeds(stay.id, 60).catch(() => {}));
+  after(() => refreshHospitableIfStale(stay.id, 60).catch(() => {}));
   const today = todayIn();
   const [unavailable, reviewData, viewer] = await Promise.all([getUnavailableNights(stay.id, today), getStayReviews(stay.id), getCurrentUser()]);
   const verification = listingVerification(stay, today);

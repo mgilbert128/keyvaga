@@ -13,6 +13,7 @@ import { sendDueAutoMessages } from "@/lib/auto-messages-server";
 import { notifyBookingCancelled, notifyBookingConfirmed } from "@/lib/notify";
 import { issueBookingCodes, revokeBookingCodes } from "@/lib/locks";
 import { refreshStaleFeeds } from "@/lib/calendar-sync";
+import { pushBookingToHospitable, refreshHospitableIfStale, releaseBookingInHospitable } from "@/lib/hospitable";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
@@ -65,6 +66,7 @@ export async function startBooking(input: { guestId: string; listingId: string; 
 
   // Pick up bookings made on Airbnb/Vrbo/etc. in the last few minutes before taking this one.
   await refreshStaleFeeds(listing.id, 10).catch((e) => console.error("calendar refresh before booking failed", e));
+  await refreshHospitableIfStale(listing.id, 10).catch((e) => console.error("hospitable refresh before booking failed", e));
   const blocks = await db.calendarBlock.findMany({ where: { listingId: listing.id, startDate: { lt: input.checkOut }, endDate: { gt: input.checkIn } } });
   if (rangeHasConflict(input.checkIn, input.checkOut, unavailableNights(blocks.map((b) => ({ start: b.startDate, end: b.endDate })))))
     throw new BookingError("Some of those nights aren't available. Try other dates.");
@@ -181,6 +183,8 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
         // Smart locks: create the guest's door code before messages go out, so {door_code} has a value.
         await issueBookingCodes(booking.id).catch((e) => console.error("door codes failed", e));
         await notifyBookingConfirmed(booking.id);
+        // Linked Hospitable property: block these nights there so Airbnb, Vrbo and the rest close too.
+        await pushBookingToHospitable(booking.id).catch((e) => console.error("hospitable block failed", e));
         // Owner's regular cleaner gets the turnover request automatically (if they turned it on).
         await autoRequestTurnover(booking.id).catch((e) => console.error("auto turnover request failed", e));
         // "Thanks for booking" and any messages already due (late bookings) go out right away.
@@ -311,6 +315,7 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner") {
   await cancelJobsForBooking(b.id).catch((e) => console.error("cancel cleaning for booking failed", e));
   // Extra payments for this stay: cancel open requests, refund paid ones in full.
   await settleRequestsForCancelledBooking(b.id).catch((e) => console.error("settle payment requests failed", e));
+  await releaseBookingInHospitable(b.id).catch((e) => console.error("hospitable release failed", e));
   await notifyBookingCancelled(b.id, by, outcome.refundCents - remaining);
   return outcome;
 }

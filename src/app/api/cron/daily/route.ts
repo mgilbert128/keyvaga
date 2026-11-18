@@ -3,6 +3,7 @@ import { runDailyJobTasks } from "@/lib/jobs";
 import { runAutoMessages } from "@/lib/auto-messages-server";
 import { runLockTasks } from "@/lib/locks";
 import { runCalendarSync } from "@/lib/calendar-sync";
+import { runHospitableSync } from "@/lib/hospitable";
 import { sweepRateLimits } from "@/lib/rate-limit";
 import { reportJobFailures } from "@/lib/monitoring";
 
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
   }
   await sweepRateLimits().catch(() => {});
   const calendars = await runCalendarSync().catch((e) => ({ error: String(e) }));
-  const result = { calendars, bookings: await runDailyJobs(), serviceJobs: await runDailyJobTasks(), autoMessages: await runAutoMessages(), locks: await runLockTasks().catch((e) => ({ error: String(e) })) };
+  const hospitable = await runHospitableSync().catch((e) => ({ error: `error: ${String(e)}` }));
+  const result = { calendars, hospitable, bookings: await runDailyJobs(), serviceJobs: await runDailyJobTasks(), autoMessages: await runAutoMessages(), locks: await runLockTasks().catch((e) => ({ error: String(e) })) };
   console.log("daily jobs", JSON.stringify(result));
   await reportJobFailures("daily jobs", result);
   return Response.json(result);

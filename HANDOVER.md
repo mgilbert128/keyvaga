@@ -219,3 +219,16 @@ Spec phases (section 12 of the brief):
 - Guest pays at `/trips/[id]/requests/[requestId]` (own PaymentIntent, metadata `paymentRequestId`; webhook routes to `syncRequestPayment`).
 - Payout: transfer of `ownerPayoutCents` once the stay has started (immediately if already started; daily cron `payOutDueRequests`).
 - Owners can cancel only unpaid requests. Booking cancellation cancels open requests and fully refunds paid, not-yet-paid-out ones.
+
+
+## Hospitable (own account, added 2026-11-18)
+
+- Hospitable deferred partner (Public API vendor) approval to Q1 2027. Meanwhile Keyvaga uses the founder's own account
+  via a personal access token, which Hospitable allows without approval.
+- Env: `HOSPITABLE_PAT` (token from Hospitable → Apps → API access, read + write) and `HOSPITABLE_OWNER_EMAIL`
+  (the Keyvaga owner account the token belongs to). Only that owner sees `/owner/hospitable`.
+- `src/lib/hospitable.ts`: import (draft listing + photos copied to Blob + base rate = median of next 60 days), link existing,
+  sync in (365 days: prices → DateRate, unavailable days → CalendarBlock source HOSPITABLE), sync out (confirmed booking →
+  PUT calendar available:false for its nights; cancellation reopens them). Pure mapping in `src/lib/hospitable-map.ts` (tested).
+- Sync runs daily (cron), hourly on listing views, and before every booking (10 min). Failed pushes are retried daily.
+- For the partner version later: swap the PAT for per-host OAuth tokens and keep the same functions.
