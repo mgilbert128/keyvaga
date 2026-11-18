@@ -44,7 +44,6 @@ export function OwnershipSection({
           <input type="checkbox" name="permitRequired" defaultChecked={listing.permitRequired} className="h-5 w-5 accent-[var(--kv-brand)]" />
           <span>My city or county requires a short-term rental license or permit</span>
         </label>
-        <Field label="Permit number (shown on your listing once approved)" id="permitNumber" maxLength={60} defaultValue={listing.permitNumber} />
       </ActionForm>
 
       {required.length ? (

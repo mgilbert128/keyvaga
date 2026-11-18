@@ -26,8 +26,7 @@ export async function saveHostingDetails(listingId: string, _prev: DocResult, fd
   const managerCompany = String(fd.get("managerCompany") ?? "").trim().slice(0, 120);
   if (role === "MANAGER" && !managerCompany) return { message: "Enter your management company's name." };
   const permitRequired = fd.get("permitRequired") === "on";
-  const permitNumber = String(fd.get("permitNumber") ?? "").trim().slice(0, 60);
-  await db.listing.update({ where: { id: listing.id }, data: { hostingRole: role, managerCompany: role === "MANAGER" ? managerCompany : "", permitRequired, permitNumber: permitRequired ? permitNumber : "" } });
+  await db.listing.update({ where: { id: listing.id }, data: { hostingRole: role, managerCompany: role === "MANAGER" ? managerCompany : "", permitRequired } });
   revalidatePath(`/owner/listings/${listing.id}`);
   revalidatePath(`/stays/${listing.slug}`);
   return { ok: true, message: "Saved." };

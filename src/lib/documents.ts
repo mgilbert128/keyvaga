@@ -17,7 +17,7 @@ export const DOC_INFO: Record<DocType, { label: string; help: string; needsNumbe
   RENTAL_PERMIT: {
     label: "Short-term rental license or permit",
     help: "The license or permit your city or county issued for this property.",
-    needsNumber: true,
+    needsNumber: false,
     needsExpiry: true,
   },
   MANAGEMENT_LICENSE: {
@@ -99,6 +99,6 @@ export type Verification = { host: "owner" | "manager" | null; permit: boolean }
 export function listingVerification(l: { hostingRole: HostingRole | null; permitRequired: boolean; permitNumber?: string; documents: DocLike[] }, today: Date): Verification {
   const host = documentsApproved(l.hostingRole, l.permitRequired, l.documents, today) ? (l.hostingRole === "MANAGER" ? "manager" : "owner") : null;
   const permitDoc = currentDoc(l.documents, "RENTAL_PERMIT");
-  const permit = Boolean(l.permitRequired && (l.permitNumber ?? "x") && permitDoc?.status === "APPROVED" && !isExpired(permitDoc, today));
+  const permit = Boolean(l.permitRequired && permitDoc?.status === "APPROVED" && !isExpired(permitDoc, today));
   return { host, permit };
 }
