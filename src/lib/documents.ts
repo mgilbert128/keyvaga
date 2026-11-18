@@ -37,7 +37,8 @@ export const DOC_INFO: Record<DocType, { label: string; help: string; needsNumbe
 /** Which documents a listing needs before it can be submitted. */
 export function requiredDocuments(role: HostingRole | null | undefined, permitRequired: boolean): DocType[] {
   if (!role) return [];
-  const docs: DocType[] = role === "OWNER" ? ["OWNERSHIP_PROOF"] : ["MANAGEMENT_LICENSE", "MANAGEMENT_AGREEMENT"];
+  // Managers only need their agreement with the owner (a management license is no longer required).
+  const docs: DocType[] = role === "OWNER" ? ["OWNERSHIP_PROOF"] : ["MANAGEMENT_AGREEMENT"];
   if (permitRequired) docs.push("RENTAL_PERMIT");
   return docs;
 }

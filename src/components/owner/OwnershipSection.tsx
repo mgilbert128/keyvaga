@@ -31,7 +31,7 @@ export function OwnershipSection({
           <legend className="mb-2 font-semibold">Who are you to this property?</legend>
           {[
             { v: "OWNER", t: "I own this property", d: "You'll upload proof of ownership." },
-            { v: "MANAGER", t: "I manage it for the owner", d: "You'll upload your management license and your agreement with the owner." },
+            { v: "MANAGER", t: "I manage it for the owner", d: "You'll upload your agreement with the owner (or their written authorization)." },
           ].map((o) => (
             <label key={o.v} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border border-line px-4 py-3 has-[:checked]:border-brand has-[:checked]:bg-soft">
               <input type="radio" name="hostingRole" value={o.v} defaultChecked={listing.hostingRole === o.v} className="mt-1 h-5 w-5 accent-[var(--kv-brand)]" required />

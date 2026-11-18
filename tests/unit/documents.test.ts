@@ -10,8 +10,8 @@ describe("required documents", () => {
   it("depends on owner vs manager and the permit setting", () => {
     expect(requiredDocuments("OWNER", false)).toEqual(["OWNERSHIP_PROOF"]);
     expect(requiredDocuments("OWNER", true)).toEqual(["OWNERSHIP_PROOF", "RENTAL_PERMIT"]);
-    expect(requiredDocuments("MANAGER", false)).toEqual(["MANAGEMENT_LICENSE", "MANAGEMENT_AGREEMENT"]);
-    expect(requiredDocuments("MANAGER", true)).toEqual(["MANAGEMENT_LICENSE", "MANAGEMENT_AGREEMENT", "RENTAL_PERMIT"]);
+    expect(requiredDocuments("MANAGER", false)).toEqual(["MANAGEMENT_AGREEMENT"]);
+    expect(requiredDocuments("MANAGER", true)).toEqual(["MANAGEMENT_AGREEMENT", "RENTAL_PERMIT"]);
     expect(requiredDocuments(null, true)).toEqual([]);
   });
 });
@@ -31,7 +31,7 @@ describe("missing and approved", () => {
     expect(currentDoc(docs, "OWNERSHIP_PROOF")?.status).toBe("PENDING");
   });
   it("is approved only when every required document is approved and in date", () => {
-    expect(documentsApproved("MANAGER", false, [doc("MANAGEMENT_LICENSE", "APPROVED"), doc("MANAGEMENT_AGREEMENT", "PENDING")], today)).toBe(false);
+    expect(documentsApproved("MANAGER", false, [doc("MANAGEMENT_AGREEMENT", "PENDING")], today)).toBe(false);
     expect(documentsApproved("MANAGER", false, [doc("MANAGEMENT_LICENSE", "APPROVED"), doc("MANAGEMENT_AGREEMENT", "APPROVED")], today)).toBe(true);
     expect(documentsApproved("OWNER", false, [], today)).toBe(false);
     expect(documentsApproved(null, false, [], today)).toBe(false);

@@ -13,7 +13,7 @@ const sections: LegalSection[] = [
         <ul>
           <li>Account details: name, email address, password (stored only as a secure hash), and your role (guest, owner, service provider).</li>
           <li>Bookings and jobs: dates, number of guests, messages, reviews, checklists and job photos.</li>
-          <li>Owners: listing details, address, photos and videos, house rules, check-in instructions, payout details (entered with Stripe), and verification documents such as a deed, rental permit or management license.</li>
+          <li>Owners: listing details, address, photos and videos, house rules, check-in instructions, payout details (entered with Stripe), and verification documents such as a deed, rental permit or management agreement.</li>
           <li>Service providers: business profile, service area, photos, and payout details (entered with Stripe).</li>
         </ul>
         <p><strong>Collected automatically:</strong> basic technical information such as your IP address, browser type, pages visited and the time of visits, plus a session cookie that keeps you logged in.</p>
