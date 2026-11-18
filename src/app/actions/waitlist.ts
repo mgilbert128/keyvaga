@@ -35,7 +35,8 @@ export async function joinWaitlist(_prev: WaitlistState, fd: FormData): Promise<
   if (!(await db.ownerWaitlist.findFirst({ where: { email }, select: { id: true } }))) await db.ownerWaitlist.create({ data: entry });
   const admins = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean);
   await Promise.all([
-    sendEmail(admins, {
+    // One email per admin: some Microsoft 365 setups drop a single message sent to two mailboxes on one account.
+    ...admins.map((admin) => sendEmail(admin, {
       subject: `Owner waitlist: ${name} (${count} ${count === 1 ? "property" : "properties"})`,
       heading: "New owner on the waitlist",
       paragraphs: [`${name}${entry.company ? ` from ${entry.company}` : ""} wants to list on Keyvaga.`],
@@ -48,7 +49,7 @@ export async function joinWaitlist(_prev: WaitlistState, fd: FormData): Promise<
         ...(entry.notes ? [{ label: "Notes", value: entry.notes }] : []),
       ],
       button: { label: "Open the waitlist", url: `${siteUrl()}/admin/waitlist` },
-    }, { replyTo: email }).catch(() => false),
+    }, { replyTo: email }).catch(() => false)),
     sendEmail(email, {
       subject: "You're on the Keyvaga owner waitlist",
       heading: `Thanks, ${name.split(" ")[0]}!`,
