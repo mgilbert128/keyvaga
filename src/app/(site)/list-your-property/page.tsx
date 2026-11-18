@@ -3,6 +3,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { KeepCalculator } from "@/components/marketing/KeepCalculator";
 import { HOST_FEE_PERCENT } from "@/lib/earnings";
+import { WaitlistForm } from "@/components/marketing/WaitlistForm";
+import { softLaunch } from "@/lib/launch";
 
 export const metadata: Metadata = { title: "List your property" };
 
@@ -14,6 +16,7 @@ const steps = [
 ];
 
 export default function ListYourPropertyPage() {
+  const waitlist = softLaunch();
   return (
     <div className="flex flex-col gap-10 pt-2 sm:pt-6">
       <section aria-labelledby="lyp-title" className="relative isolate -mx-4 overflow-hidden sm:mx-0 sm:rounded-[28px]">
@@ -30,13 +33,29 @@ export default function ListYourPropertyPage() {
             <span className="mr-2 inline-block h-2 w-2 rounded-full bg-coral align-middle" aria-hidden="true" />
             Free to list. Keep {100 - HOST_FEE_PERCENT}% of your booking revenue (nightly rent and cleaning fees).
           </p>
-          <ButtonLink href="/signup?intent=OWNER" className="self-start rounded-full !bg-white px-7 !text-brand hover:!bg-ivory">Get started</ButtonLink>
+          <ButtonLink href={waitlist ? "#waitlist" : "/signup?intent=OWNER"} className="self-start rounded-full !bg-white px-7 !text-brand hover:!bg-ivory">
+            {waitlist ? "Join the waitlist" : "Get started"}
+          </ButtonLink>
         </div>
       </section>
       <section aria-labelledby="keep-title" className="flex flex-col gap-4">
         <h2 id="keep-title" className="text-2xl font-bold tracking-tight sm:text-3xl">What you&apos;d keep</h2>
         <KeepCalculator />
       </section>
+      {waitlist ? (
+        <section id="waitlist" aria-labelledby="waitlist-title" className="scroll-mt-24">
+          <Card className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <h2 id="waitlist-title" className="text-2xl font-bold tracking-tight sm:text-3xl">Join the owner waitlist</h2>
+              <p className="text-ink-muted">
+                We&apos;re opening Keyvaga to new owners in small groups. Leave your details and we&apos;ll email you as
+                soon as you can set up your listings. No account or payment needed.
+              </p>
+            </div>
+            <WaitlistForm />
+          </Card>
+        </section>
+      ) : null}
       <ol className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {steps.map((s, i) => (
           <li key={s.title}>

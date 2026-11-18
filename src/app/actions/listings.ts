@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth/dal";
 import { canEditListing, canReviewListings, missingForSubmit, nextStatus, type AdminAction, type OwnerAction } from "@/lib/listing-policy";
+import { canCreateListings } from "@/lib/launch";
 import { listingFormToObject, listingSchema, type ListingFormState } from "@/lib/validation/listing";
 import { slugify } from "@/lib/slug";
 import { documentsApproved, missingDocuments } from "@/lib/documents";
@@ -42,6 +43,7 @@ const createSchema = z.object({
 
 export async function createListing(_prev: ListingFormState, formData: FormData): Promise<ListingFormState> {
   const user = await requireOwner();
+  if (!(await canCreateListings(user))) return { errors: { title: ["New listings open soon. Join the owner waitlist on the List your property page."] } };
   const parsed = createSchema.safeParse({ title: formData.get("title"), propertyType: formData.get("propertyType") });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 

@@ -979,3 +979,21 @@ model PaymentRequest {
   @@index([bookingId])
   @@index([status, paidOutAt])
 }
+
+/// Owners who asked to list before Keyvaga opens to new owners (soft launch).
+model OwnerWaitlist {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  phone         String   @default("")
+  company       String   @default("")
+  propertyCount Int      @default(1)
+  locations     String   @default("")
+  software      String   @default("")
+  notes         String   @default("")
+  contactedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([email])
+}

@@ -43,7 +43,7 @@ export default function IntegrationsPage() {
         <p className="text-sm text-ink-muted">Direct Hospitable connection coming soon. Today you can connect Hospitable calendars with iCal links.</p>
         <div className="flex flex-wrap gap-3">
           <a href="https://hospitable.com" target="_blank" rel="noopener" className={buttonClass("secondary")}>Learn about Hospitable</a>
-          <ButtonLink href="/signup?intent=OWNER">List your property</ButtonLink>
+          <ButtonLink href="/list-your-property">List your property</ButtonLink>
         </div>
       </Card>
 
