@@ -27,7 +27,7 @@ export default function IntegrationsPage() {
         <p className="self-start rounded-full bg-soft px-3 py-1 text-sm font-semibold text-on-soft">Recommended property management system</p>
         <h2 className="text-3xl font-bold tracking-tight">Hospitable</h2>
         <p className="max-w-3xl text-lg text-ink-muted">
-          Hospitable is the all-in-one software many Keyvaga hosts already use to run their rentals: one inbox for every channel, automated guest
+          Hospitable is the all-in-one software many vacation rental hosts use to run their rentals: one inbox for every channel, automated guest
           messages, cleaning tasks and smart-lock codes. Keyvaga&apos;s founder runs her own properties on it.
         </p>
         <ul className="grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
