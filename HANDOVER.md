@@ -209,3 +209,13 @@ Spec phases (section 12 of the brief):
 - Monthly report on `/admin/taxes` (by check-in month) with CSV at `/admin/taxes/report.csv?month=YYYY-MM`.
 - Rates and who files each tax must be confirmed by a CPA. Avalara (AvaTax) was quoted at $18k setup + monthly; revisit
   when Keyvaga operates in many jurisdictions (swap `taxRatesFor` for an AvaTax call).
+
+
+## Payment requests (added 2026-11-17)
+
+- Owners ask a booked guest for extra money from the booking page (`PaymentRequest`, `src/lib/payment-requests.ts`).
+  Allowed on CONFIRMED/COMPLETED bookings up to 14 days after checkout, $5–$5,000, optional lodging tax.
+- Fees: host fee only, 5% with a $1 minimum (`paymentRequestAmounts`), so it always covers Stripe's card fee. Guest pays amount + tax.
+- Guest pays at `/trips/[id]/requests/[requestId]` (own PaymentIntent, metadata `paymentRequestId`; webhook routes to `syncRequestPayment`).
+- Payout: transfer of `ownerPayoutCents` once the stay has started (immediately if already started; daily cron `payOutDueRequests`).
+- Owners can cancel only unpaid requests. Booking cancellation cancels open requests and fully refunds paid, not-yet-paid-out ones.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookingAmounts, cancellationOutcome, paymentSchedule, refundShareBps, splitPayoutAcrossCharges } from "@/lib/booking-money";
+import { bookingAmounts, cancellationOutcome, paymentSchedule, refundShareBps, splitPayoutAcrossCharges, paymentRequestAmounts } from "@/lib/booking-money";
 import { parseISODate } from "@/lib/dates";
 
 const d = (s: string) => parseISODate(s)!;
@@ -87,5 +87,22 @@ describe("splitting a payout across charges", () => {
     expect(splitPayoutAcrossCharges(0, [{ id: "dep", amountCents: 31_500 }])).toEqual([]);
     const parts = splitPayoutAcrossCharges(1_001, [{ id: "a", amountCents: 333 }, { id: "b", amountCents: 777 }]);
     expect(parts.reduce((s, p) => s + p.amountCents, 0)).toBe(1_001);
+  });
+});
+
+describe("payment requests: host fee only, at least $1", () => {
+  it("guest pays exactly the amount; owner pays 5%", () => {
+    expect(paymentRequestAmounts(10_000)).toMatchObject({ totalCents: 10_000, hostFeeCents: 500, ownerPayoutCents: 9_500 });
+  });
+  it("small requests pay the $1 minimum fee", () => {
+    expect(paymentRequestAmounts(1_000)).toMatchObject({ totalCents: 1_000, hostFeeCents: 100, ownerPayoutCents: 900 });
+  });
+  it("the fee always covers card processing (2.9% + 30c)", () => {
+    for (const amount of [500, 1_000, 1_500, 2_500, 10_000, 500_000]) {
+      expect(paymentRequestAmounts(amount).hostFeeCents).toBeGreaterThanOrEqual(Math.round(amount * 0.029) + 30);
+    }
+  });
+  it("adds tax on top; owner-filed tax goes to the owner", () => {
+    expect(paymentRequestAmounts(10_000, { keyvagaTaxCents: 400, ownerTaxCents: 300 })).toMatchObject({ totalCents: 10_700, taxCents: 700, ownerPayoutCents: 9_800 });
   });
 });

@@ -200,3 +200,38 @@ export function notifyVerifyEmail(email: string, name: string, url: string) {
     }),
   );
 }
+
+export function notifyPaymentRequested(requestId: string) {
+  return safe(async () => {
+    const r = await db.paymentRequest.findUniqueOrThrow({ where: { id: requestId }, include: { booking: { include: { guest: true, listing: { include: { owner: true } } } } } });
+    const b = r.booking;
+    await sendEmail(b.guest.email, {
+      subject: `Payment request from ${first(b.listing.owner.name)}: ${r.description}`,
+      heading: `${first(b.listing.owner.name)} sent you a payment request`,
+      paragraphs: [`For your stay at ${b.listing.title} (${day.format(b.checkIn)} – ${day.format(b.checkOut)}). You can pay or decline it from your trip page. Nothing is charged unless you approve it.`],
+      details: [
+        { label: "For", value: r.description },
+        { label: "Amount", value: formatCents(r.totalCents) },
+      ],
+      button: { label: "Review request", url: `${siteUrl()}/trips/${b.id}#payment-requests` },
+    });
+  });
+}
+
+export function notifyPaymentRequestPaid(requestId: string) {
+  return safe(async () => {
+    const r = await db.paymentRequest.findUniqueOrThrow({ where: { id: requestId }, include: { booking: { include: { guest: true, listing: { include: { owner: true } } } } } });
+    const b = r.booking;
+    await sendEmail(b.listing.owner.email, {
+      subject: `${first(b.guest.name)} paid your request: ${r.description}`,
+      heading: "Payment request paid",
+      paragraphs: [`${b.guest.name} paid your request for ${b.listing.title}. Your share is paid out once the stay has started.`],
+      details: [
+        { label: "For", value: r.description },
+        { label: "Guest paid", value: formatCents(r.totalCents) },
+        { label: "Your payout", value: formatCents(r.ownerPayoutCents) },
+      ],
+      button: { label: "View booking", url: `${siteUrl()}/owner/bookings/${b.id}` },
+    });
+  });
+}

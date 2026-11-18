@@ -335,6 +335,7 @@ model Booking {
   taxLines              Json?
   /// Tax kept after a cancellation (part of the retained money); null while not cancelled.
   taxRetainedCents      Int?
+  paymentRequests       PaymentRequest[]
   currency              String             @default("USD") @db.Char(3)
   cancellationPolicy    CancellationPolicy @default(MODERATE)
   /// Payment plan: dueNowCents at booking; balanceCents charged on balanceDueDate (null = paid in full).
@@ -928,4 +929,45 @@ model TaxRate {
   updatedAt DateTime @updatedAt
 
   @@index([state, active])
+}
+
+
+enum PaymentRequestStatus {
+  REQUESTED
+  PAID
+  DECLINED
+  CANCELLED
+  REFUNDED
+}
+
+/// Extra money an owner asks a guest to pay for a booking (parking pass, beach gear...). The guest approves
+/// and pays; Keyvaga holds it and pays the owner (amount − host fee + owner-filed tax) once the stay has started.
+model PaymentRequest {
+  id                    String               @id @default(cuid())
+  bookingId             String
+  description           String
+  /// Amount the owner asked for, before tax.
+  amountCents           Int
+  taxCents              Int                  @default(0)
+  keyvagaTaxCents       Int                  @default(0)
+  ownerTaxCents         Int                  @default(0)
+  taxLines              Json?
+  /// What the guest pays: amount + tax.
+  totalCents            Int
+  /// 5% of the amount, at least $1.
+  hostFeeCents          Int
+  ownerPayoutCents      Int
+  status                PaymentRequestStatus @default(REQUESTED)
+  stripePaymentIntentId String?              @unique
+  stripeChargeId        String?
+  paidAt                DateTime?
+  stripeTransferId      String?
+  paidOutAt             DateTime?
+  refundedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  booking               Booking              @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([status, paidOutAt])
 }

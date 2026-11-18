@@ -6,6 +6,7 @@ import { HOLD_MINUTES, bookingAmounts, cancellationOutcome, paymentSchedule, spl
 import { addDays, rangeHasConflict, todayIn, toISODate, unavailableNights } from "@/lib/dates";
 import { quoteStay } from "@/lib/pricing";
 import { taxesFor } from "@/lib/tax";
+import { payOutDueRequests, settleRequestsForCancelledBooking } from "@/lib/payment-requests";
 import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
@@ -308,6 +309,8 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner") {
   // No stay, no turnover: cancel any cleaning booked for it.
   await revokeBookingCodes(b.id).catch((e) => console.error("remove door codes failed", e));
   await cancelJobsForBooking(b.id).catch((e) => console.error("cancel cleaning for booking failed", e));
+  // Extra payments for this stay: cancel open requests, refund paid ones in full.
+  await settleRequestsForCancelledBooking(b.id).catch((e) => console.error("settle payment requests failed", e));
   await notifyBookingCancelled(b.id, by, outcome.refundCents - remaining);
   return outcome;
 }
@@ -360,5 +363,6 @@ export async function runDailyJobs() {
   const duePayouts = await db.booking.findMany({ where: { payoutStatus: "PENDING", checkIn: { lte: today } }, select: { id: true } });
   const payouts: Record<string, string> = {};
   for (const { id } of duePayouts) payouts[id] = String(await payOutBooking(id).catch((e) => `error: ${e.message}`));
-  return { expired, balances, payouts };
+  const requestPayouts = await payOutDueRequests().catch((e) => ({ all: `error: ${e instanceof Error ? e.message : e}` }));
+  return { expired, balances, payouts, requestPayouts };
 }

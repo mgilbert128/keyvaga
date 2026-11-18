@@ -158,3 +158,22 @@ export function splitPayoutAcrossCharges(payoutCents: number, charges: { id: str
   });
   return out;
 }
+
+/** Payment requests: $5–$5,000. Host fee is 5% of the amount, at least $1, so it always covers card processing. */
+export const REQUEST_MIN_CENTS = 500;
+export const REQUEST_MAX_CENTS = 500_000;
+export const REQUEST_MIN_FEE_CENTS = 100;
+
+export function paymentRequestAmounts(amountCents: number, taxes: { keyvagaTaxCents: number; ownerTaxCents: number } = { keyvagaTaxCents: 0, ownerTaxCents: 0 }) {
+  const hostFeeCents = Math.max(REQUEST_MIN_FEE_CENTS, pct(amountCents, HOST_FEE_BPS));
+  const taxCents = taxes.keyvagaTaxCents + taxes.ownerTaxCents;
+  return {
+    amountCents,
+    taxCents,
+    keyvagaTaxCents: taxes.keyvagaTaxCents,
+    ownerTaxCents: taxes.ownerTaxCents,
+    totalCents: amountCents + taxCents,
+    hostFeeCents,
+    ownerPayoutCents: amountCents - hostFeeCents + taxes.ownerTaxCents,
+  };
+}

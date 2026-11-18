@@ -1,3 +1,6 @@
+import { PaymentRequestList } from "@/components/booking/PaymentRequestList";
+import { RequestPaymentForm } from "@/components/booking/RequestPaymentForm";
+import { requestPaymentAction } from "@/app/actions/payment-requests";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,7 +17,7 @@ import { BookingStatusChip } from "@/components/booking/BookingStatus";
 import { BookingSummary } from "@/components/booking/BookingSummary";
 import { CancelBooking } from "@/components/booking/CancelBooking";
 import { formatCents } from "@/lib/money";
-import { todayIn } from "@/lib/dates";
+import { addDays, todayIn } from "@/lib/dates";
 import { paidSoFar } from "@/lib/bookings";
 import { doorCodesFor } from "@/lib/locks";
 
@@ -32,7 +35,7 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
   const { id } = await params;
   await connection();
   const user = await requirePortal("owner", `/owner/bookings/${id}`);
-  const b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
+  const b = await db.booking.findUnique({ where: { id }, include: { paymentRequests: { orderBy: { createdAt: "desc" } }, listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
   if (!b || b.listing.ownerId !== user.id || b.status === "PENDING_PAYMENT") notFound();
   const today = todayIn();
   const canCancel = b.status === "CONFIRMED" && b.checkOut > today;
@@ -66,6 +69,18 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
         </div>
         <Card><BookingSummary b={b} view="owner" /></Card>
         <DoorCodeLine bookingId={b.id} />
+        {(b.status === "CONFIRMED" || b.status === "COMPLETED") && today <= addDays(b.checkOut, 14) ? (
+          <Card className="flex flex-col gap-4" id="payment-requests">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-bold">Request a payment</h2>
+              <p className="text-ink-muted">Ask {b.guest.name.split(" ")[0]} to pay for extras like a parking pass or beach gear. They approve and pay from their trip page; you get it minus Keyvaga&apos;s 5% fee (at least $1) once the stay starts.</p>
+            </div>
+            <PaymentRequestList requests={b.paymentRequests} view="owner" bookingId={b.id} />
+            <RequestPaymentForm action={requestPaymentAction.bind(null, b.id)} />
+          </Card>
+        ) : b.paymentRequests.length ? (
+          <Card className="flex flex-col gap-4"><h2 className="text-xl font-bold">Payment requests</h2><PaymentRequestList requests={b.paymentRequests} view="owner" bookingId={b.id} /></Card>
+        ) : null}
         {canCancel ? (
           <Card className="flex flex-col gap-3">
             <h2 className="text-xl font-bold">Cancel this booking</h2>

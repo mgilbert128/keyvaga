@@ -1,3 +1,5 @@
+import { PaymentRequestList } from "@/components/booking/PaymentRequestList";
+import { syncRequestPayment } from "@/lib/payment-requests";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -45,7 +47,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
   const sp = await searchParams;
   await connection(); // may talk to Stripe: only for real requests, never prefetches
   const user = await requirePortal("guest", `/trips/${id}`);
-  let b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true } });
+  let b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
   if (!b || b.guestId !== user.id) notFound();
 
   // Coming back from Stripe: confirm the payment right away instead of waiting for the webhook.
@@ -53,9 +55,15 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
     for (const p of b.payments.filter((p) => p.status === "PENDING" && p.stripeId?.startsWith("pi_"))) {
       await syncPaymentIntent(p.stripeId!).catch((e) => console.error("sync failed", e));
     }
-    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true } });
+    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
   }
   if (b.status === "PENDING_PAYMENT") redirect(`/book/${b.id}`);
+  // Coming back from paying a payment request: confirm it right away.
+  const paidRequest = typeof sp.requestPaid === "string" ? b.paymentRequests.find((r) => r.id === sp.requestPaid && r.status === "REQUESTED" && r.stripePaymentIntentId) : undefined;
+  if (paidRequest) {
+    await syncRequestPayment(paidRequest.stripePaymentIntentId!).catch((e) => console.error("request sync failed", e));
+    b.paymentRequests = await db.paymentRequest.findMany({ where: { bookingId: b.id }, orderBy: { createdAt: "desc" } });
+  }
 
   const today = todayIn();
   const canCancel = b.status === "CONFIRMED" && b.checkOut > today;
@@ -97,6 +105,13 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
           <ButtonLink href={`/messages/${b.id}`} variant="secondary">Message host</ButtonLink>
         </div>
         <Card><BookingSummary b={b} view="guest" /></Card>
+        {b.paymentRequests.length ? (
+          <Card className="flex flex-col gap-4" id="payment-requests">
+            <h2 className="text-xl font-bold">Payment requests from your host</h2>
+            <p className="text-ink-muted">Extras your host has asked you to pay for. Nothing is charged unless you approve it.</p>
+            <PaymentRequestList requests={b.paymentRequests} view="guest" bookingId={b.id} />
+          </Card>
+        ) : null}
 
         {b.status === "CONFIRMED" && b.checkOut > today ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
