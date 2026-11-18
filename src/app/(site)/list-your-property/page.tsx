@@ -6,7 +6,14 @@ import { HOST_FEE_PERCENT } from "@/lib/earnings";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { softLaunch } from "@/lib/launch";
 
-export const metadata: Metadata = { title: "List your property" };
+export const metadata: Metadata = {
+  title: "List your property",
+  description: "Free to list. Keep 95% of your booking revenue, with calendar, bookings and payouts in one place.",
+  openGraph: {
+    title: "List your property on Keyvaga",
+    description: "Free to list. Keep 95% of your booking revenue, with calendar, bookings and payouts in one place.",
+  },
+};
 
 const steps = [
   { title: "Create your account", body: "Sign up as an owner. You can book stays with the same login." },

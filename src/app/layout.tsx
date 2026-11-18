@@ -12,6 +12,10 @@ const outfit = Outfit({ variable: "--font-outfit", subsets: ["latin"], weight: [
 export const metadata: Metadata = {
   title: { default: "Keyvaga: your key to the ultimate vacation getaway", template: "%s · Keyvaga" },
   description: "Book a stay, list your place, and find trusted local help, all with Keyvaga.",
+  // Share previews (Facebook, texts, LinkedIn): the opengraph-image.jpg files next to each page supply the picture.
+  metadataBase: new URL("https://www.keyvaga.com"),
+  openGraph: { siteName: "Keyvaga", type: "website", locale: "en_US" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
