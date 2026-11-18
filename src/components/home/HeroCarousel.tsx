@@ -69,9 +69,8 @@ export function HeroCarousel({ slides, logo, nav, children }: { slides: Slide[];
           <Corner className="left-0 top-full" />
         </div>
 
-        {/* On phones, a signed-in menu (with the Traveling/Hosting switch) is too wide to sit beside the logo tab,
-            so it drops to its own row below the tab instead of overlapping it. */}
-        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-3 max-sm:has-[[role=group]]:pt-[80px] sm:min-h-[88px] sm:px-8 sm:pt-4">
+        {/* On phones the menu sits on its own row below the (larger) logo tab, so they never overlap. */}
+        <header className="relative z-10 flex min-h-[68px] items-center justify-end gap-2 px-3 pt-[80px] sm:min-h-[92px] sm:px-8 sm:pt-5">
           <nav aria-label="Main" className="flex flex-wrap items-center justify-end gap-1">{nav}</nav>
         </header>
 

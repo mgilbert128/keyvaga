@@ -116,7 +116,7 @@ function Hero({ slides }: { slides: Slide[] }) {
   return (
     <HeroCarousel
       slides={slides}
-      logo={<HomeLogoLink />}
+      logo={<HomeLogoLink logoClassName="h-9 w-auto sm:h-11" />}
       nav={
         <>
           <Link href="/search" className={photoLink.replace("inline-flex", "hidden md:inline-flex")}>Stays</Link>
