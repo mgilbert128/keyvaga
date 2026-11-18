@@ -15,7 +15,7 @@ import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
 import { parseISODate, rangeHasConflict, todayIn, toISODate, addDays } from "@/lib/dates";
-import { quoteStay } from "@/lib/pricing";
+import { lowestRateCents, quoteStay } from "@/lib/pricing";
 import { taxesFor } from "@/lib/tax";
 import { formatRate } from "@/lib/tax-calc";
 import { bookingAmounts, paymentSchedule, POLICY_INFO } from "@/lib/booking-money";
@@ -197,7 +197,12 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
         <aside aria-labelledby="book" className="lg:sticky lg:top-6 lg:self-start">
           <Card className="flex flex-col gap-5">
             <h2 id="book" className="text-2xl font-semibold">
-              {formatCents(stay.nightlyRateCents)} <span className="text-lg font-medium">/ night</span>
+              {/* Prices can change by date (e.g. synced from Hospitable), so show the average for the chosen dates, else the lowest. */}
+              {quote?.ok && !quoteError ? (
+                <>{formatCents(Math.round(quote.nightsCents / quote.nights))} <span className="text-lg font-medium">avg / night</span></>
+              ) : (
+                <><span className="text-lg font-medium">From</span> {formatCents(lowestRateCents({ ...stay, seasons: stay.seasonalRates, dateRates: stay.dateRates }, today))} <span className="text-lg font-medium">/ night</span></>
+              )}
             </h2>
             {stay.instantBook ? <Chip className="self-start">Instant book</Chip> : null}
             <form method="get" className="flex flex-col gap-4">
