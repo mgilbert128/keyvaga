@@ -7,6 +7,8 @@ import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { StatusChip } from "@/components/owner/StatusChip";
 import { StatusActions } from "@/components/owner/StatusActions";
+import { DeleteListing } from "@/components/owner/DeleteListing";
+import { deleteListing } from "@/app/actions/listings";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
@@ -136,6 +138,8 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             guidebook: listing.guidebook,
           }}
         />
+
+        <DeleteListing action={deleteListing.bind(null, listing.id)} title={listing.title} />
       </div>
     </PortalShell>
   );

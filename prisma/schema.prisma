@@ -147,6 +147,8 @@ model Listing {
   /// Secret for this listing's calendar export URL (/ical/<token>.ics). Created on first use; reset to revoke.
   icalToken           String?            @unique
   /// Linked Hospitable property (owner's own account via personal access token, for now).
+  /// Deleted by the owner (e.g. property sold) but kept because bookings reference it. Hidden everywhere.
+  deletedAt            DateTime?
   hospitablePropertyId String?           @unique
   hospitableSyncedAt   DateTime?
   hospitableSyncError  String?

@@ -28,7 +28,7 @@ async function Edit({ params }: { params: PageProps<"/owner/messages/automated/[
   const template = id === "new" ? null : await db.messageTemplate.findFirst({ where: { id, ownerId: user.id } });
   if (id !== "new" && !template) notFound();
   const [listings, sample] = await Promise.all([
-    db.listing.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "asc" }, select: { id: true, title: true } }),
+    db.listing.findMany({ where: { ownerId: user.id, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, title: true } }),
     previewSample(user.id),
   ]);
   return (

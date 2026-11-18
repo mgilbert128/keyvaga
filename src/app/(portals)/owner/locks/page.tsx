@@ -36,7 +36,7 @@ async function Locks({ searchParams }: { searchParams: PageProps<"/owner/locks">
 
   const [accounts, listings, events, upcoming] = await Promise.all([
     db.lockAccount.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "asc" }, include: { locks: { orderBy: { name: "asc" } } } }),
-    db.listing.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "asc" }, select: { id: true, title: true, timeZone: true, checkInTime: true, checkOutTime: true, locks: { select: { id: true } } } }),
+    db.listing.findMany({ where: { ownerId: user.id, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, title: true, timeZone: true, checkInTime: true, checkOutTime: true, locks: { select: { id: true } } } }),
     db.lockEvent.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "desc" }, take: 25 }),
     db.accessCode.findMany({
       where: { lock: { ownerId: user.id }, status: { not: "REMOVED" }, endsAt: { gt: new Date() } },

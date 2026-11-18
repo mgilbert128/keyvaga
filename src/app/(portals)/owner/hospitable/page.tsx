@@ -41,7 +41,7 @@ async function HospitablePage({ searchParams }: { searchParams: PageProps<"/owne
       if (!(e instanceof HospitableError)) console.error("hospitable overview failed", e);
     }
   }
-  const unlinked = allowed ? await db.listing.findMany({ where: { ownerId: user.id, hospitablePropertyId: null }, select: { id: true, title: true }, orderBy: { title: "asc" } }) : [];
+  const unlinked = allowed ? await db.listing.findMany({ where: { ownerId: user.id, hospitablePropertyId: null, deletedAt: null }, select: { id: true, title: true }, orderBy: { title: "asc" } }) : [];
 
   return (
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/hospitable")}>

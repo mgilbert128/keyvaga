@@ -22,7 +22,7 @@ async function requireOwner(): Promise<CurrentUser> {
 
 async function loadOwned(user: CurrentUser, id: string) {
   const listing = await db.listing.findUnique({ where: { id }, include: { _count: { select: { photos: true } }, documents: true } });
-  if (!listing || !canEditListing(user, listing)) throw new Error("Listing not found");
+  if (!listing || listing.deletedAt || !canEditListing(user, listing)) throw new Error("Listing not found");
   return listing;
 }
 
@@ -151,6 +151,50 @@ async function changeStatus(user: CurrentUser, id: string, action: OwnerAction):
     unpause: "Live again.",
   };
   return { ok: true, message: messages[action] };
+}
+
+// ---------- Delete ----------
+
+export type DeleteListingState = { message: string } | null;
+
+/**
+ * Deletes a listing (e.g. the property was sold). Blocked while it has upcoming bookings.
+ * Never booked: removed for good, with its photos. Booked before: hidden everywhere and unlinked from
+ * calendars, but kept so past bookings, payouts, taxes and reviews still have their listing.
+ */
+export async function deleteListing(id: string, _prev: DeleteListingState, formData: FormData): Promise<DeleteListingState> {
+  const user = await requireOwner();
+  const listing = await loadOwned(user, id);
+  if (String(formData.get("confirm") ?? "").trim().toUpperCase() !== "DELETE") return { message: "Type DELETE to confirm." };
+  const today = todayIn();
+  const upcoming = await db.booking.count({ where: { listingId: id, status: { in: ["CONFIRMED", "PENDING_PAYMENT"] }, checkOut: { gt: today } } });
+  if (upcoming) {
+    return { message: `This listing has ${upcoming} upcoming ${upcoming === 1 ? "booking" : "bookings"}. Cancel ${upcoming === 1 ? "it" : "them"} (guests are refunded) or wait until the stays are over, then delete.` };
+  }
+  const [bookings, jobs] = await Promise.all([db.booking.count({ where: { listingId: id } }), db.job.count({ where: { listingId: id } })]);
+  let removed = false;
+  if (bookings === 0 && jobs === 0) {
+    const photos = await db.listingPhoto.findMany({ where: { listingId: id }, select: { storageKey: true } });
+    try {
+      await db.listing.delete({ where: { id } });
+      removed = true;
+      await Promise.all(photos.map((p) => deleteImage(p.storageKey).catch(() => {})));
+      if (listing.videoKey) await deleteStored(listing.videoKey, listing.videoAccess).catch(() => {});
+    } catch (e) {
+      console.error("hard delete failed, archiving instead", e);
+    }
+  }
+  if (!removed) {
+    await db.$transaction([
+      db.calendarFeed.deleteMany({ where: { listingId: id } }),
+      db.calendarBlock.deleteMany({ where: { listingId: id, source: { not: "OWNER" } } }),
+      db.listing.update({ where: { id }, data: { deletedAt: new Date(), status: "PAUSED", featured: false, icalToken: null, hospitablePropertyId: null, hospitableSyncedAt: null, hospitableSyncError: null } }),
+    ]);
+  }
+  revalidatePath("/owner/listings");
+  revalidatePath(`/stays/${listing.slug}`);
+  revalidatePath("/");
+  redirect(`/owner/listings?deleted=${encodeURIComponent(listing.title.slice(0, 80))}`);
 }
 
 // ---------- Photos ----------

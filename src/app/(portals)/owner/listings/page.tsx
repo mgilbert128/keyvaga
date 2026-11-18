@@ -23,7 +23,7 @@ export default function Page() {
 async function Listings() {
   const user = await requirePortal("owner", "/owner/listings");
   const listings = await db.listing.findMany({
-    where: { ownerId: user.id },
+    where: { ownerId: user.id, deletedAt: null },
     orderBy: { createdAt: "desc" },
     include: { photos: { orderBy: { position: "asc" }, take: 1 } },
   });

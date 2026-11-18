@@ -19,7 +19,7 @@ export async function ownerOverview(ownerId: string) {
   const daysInMonth = nightsBetween(monthStart, monthEnd);
 
   const [listings, monthBookings, upcoming, pendingPayouts, owner, blocks] = await Promise.all([
-    db.listing.findMany({ where: { ownerId }, select: { id: true, title: true, status: true, reviewNote: true, hostingRole: true, permitRequired: true, documents: true } }),
+    db.listing.findMany({ where: { ownerId, deletedAt: null }, select: { id: true, title: true, status: true, reviewNote: true, hostingRole: true, permitRequired: true, documents: true } }),
     db.booking.findMany({
       where: { listing: { ownerId }, checkIn: { lt: monthEnd }, checkOut: { gt: monthStart }, OR: [{ status: "CONFIRMED" }, { status: "CANCELLED", payoutDueCents: { gt: 0 } }] },
       select: { checkIn: true, checkOut: true, status: true, hostPayoutCents: true, payoutDueCents: true },

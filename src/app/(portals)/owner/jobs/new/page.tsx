@@ -29,7 +29,7 @@ async function NewJob({ searchParams }: { searchParams: PageProps<"/owner/jobs/n
   await connection();
   const user = await requirePortal("owner", "/owner/jobs/new");
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
-  const listings = await db.listing.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "asc" }, select: { id: true, title: true } });
+  const listings = await db.listing.findMany({ where: { ownerId: user.id, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, title: true } });
   const provider = str("provider") ? await db.providerProfile.findFirst({ where: { id: str("provider"), status: "APPROVED" }, select: { id: true, businessName: true, categories: true } }) : null;
   const category = isServiceCategory(str("category")) ? str("category") : isServiceCategory(str("need")) ? str("need") : provider?.categories[0] ?? "cleaning";
   const date = parseISODate(str("date"));

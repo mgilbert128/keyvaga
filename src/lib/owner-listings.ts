@@ -13,6 +13,6 @@ export async function getOwnedListing(user: CurrentUser, id: string) {
     where: { id },
     include: { photos: { orderBy: { position: "asc" } } },
   });
-  if (!listing || !canEditListing(user, listing)) notFound();
+  if (!listing || listing.deletedAt || !canEditListing(user, listing)) notFound();
   return listing;
 }

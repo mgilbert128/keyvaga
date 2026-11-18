@@ -29,7 +29,7 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
   await connection();
   const user = await requirePortal("owner", "/owner/services");
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
-  const listings = await db.listing.findMany({ where: { ownerId: user.id }, orderBy: { createdAt: "asc" }, select: { id: true, title: true, city: true, region: true } });
+  const listings = await db.listing.findMany({ where: { ownerId: user.id, deletedAt: null }, orderBy: { createdAt: "asc" }, select: { id: true, title: true, city: true, region: true } });
   const listing = listings.find((l) => l.id === str("listing")) ?? listings[0] ?? null;
   const category = isServiceCategory(str("need")) ? str("need") : "";
   const date = parseISODate(str("date"));

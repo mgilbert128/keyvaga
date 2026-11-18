@@ -13,7 +13,7 @@ export async function previewSample(ownerId: string): Promise<{ vars: Record<Pla
     include: { guest: { select: { name: true } }, listing: { include: { owner: { select: { name: true } } } } },
   });
   if (booking) return { vars: placeholderValues(booking, (await doorCodeText(booking.id).catch(() => "")) || "482913"), label: `using your next booking, ${booking.guest.name.split(" ")[0]}` };
-  const listing = await db.listing.findFirst({ where: { ownerId }, orderBy: { createdAt: "asc" }, include: { owner: { select: { name: true } } } });
+  const listing = await db.listing.findFirst({ where: { ownerId, deletedAt: null }, orderBy: { createdAt: "asc" }, include: { owner: { select: { name: true } } } });
   const checkIn = addDays(todayIn(), 14);
   return {
     vars: placeholderValues({
