@@ -232,3 +232,11 @@ Spec phases (section 12 of the brief):
   PUT calendar available:false for its nights; cancellation reopens them). Pure mapping in `src/lib/hospitable-map.ts` (tested).
 - Sync runs daily (cron), hourly on listing views, and before every booking (10 min). Failed pushes are retried daily.
 - For the partner version later: swap the PAT for per-host OAuth tokens and keep the same functions.
+
+## Stripe go-live (planned 2026-11-18, for the developer)
+
+- Keyvaga LLC gets its **own** Stripe account (the founder also runs Sunnyside Up Rentals; test keys so far may be from that account).
+- Steps: new account's test keys + webhook in Vercel → end-to-end test booking → one-time admin go-live cleanup → live keys + live webhook → founder reconnects payouts → real $1 booking, refund and payout.
+- Cleanup must: remove test bookings/payments/payment requests/job payments; call `releaseBookingInHospitable` for test bookings on linked listings first; clear users' `stripeCustomerId`, `stripeAccountId`, `payoutsEnabled`; delete the `@keyvaga.test` demo accounts and their paused demo listings; keep real accounts, listings, photos, Hospitable links, tax rates.
+- Before volume: handle `charge.dispute.created`/`closed` (flag booking, hold payout, email admin); check Radar + 3DS; confirm with Stripe how long funds can be held before transfer (payouts wait for check-in).
+- Vercel must be on Pro before live payments.
