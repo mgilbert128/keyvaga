@@ -41,12 +41,15 @@ async function api<T>(path: string, init: { method?: string; query?: Record<stri
     method: init.method ?? "GET",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json", ...(init.body ? { "Content-Type": "application/json" } : {}) },
     body: init.body ? JSON.stringify(init.body) : undefined,
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(30_000),
     cache: "no-store",
   });
   if (res.status === 401 || res.status === 403) throw new HospitableError("Hospitable refused the access token. Check it in Hospitable (Apps → API access) and in Vercel.");
   if (res.status === 429) throw new HospitableError("Hospitable is rate-limiting requests. We'll try again shortly.");
-  if (!res.ok) throw new HospitableError(`Hospitable returned an error (${res.status}).`);
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 200);
+    throw new HospitableError(`Hospitable returned an error (${res.status})${detail ? `: ${detail}` : ""}.`);
+  }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
@@ -63,11 +66,18 @@ export async function listHospitableProperties(): Promise<HProperty[]> {
   return out;
 }
 
+/** Calendar days in [start, end), fetched in ~3-month chunks so no single request is too large or slow. */
 async function getCalendar(propertyId: string, start: Date, end: Date): Promise<HCalendarDay[]> {
-  const r = await api<{ data?: { days?: HCalendarDay[] }; days?: HCalendarDay[] }>(`/properties/${encodeURIComponent(propertyId)}/calendar`, {
-    query: { start_date: start.toISOString().slice(0, 10), end_date: end.toISOString().slice(0, 10) },
-  });
-  return r.data?.days ?? r.days ?? [];
+  const days: HCalendarDay[] = [];
+  for (let from = start; from < end; from = addDays(from, 90)) {
+    const to = addDays(from, 89) < addDays(end, -1) ? addDays(from, 89) : addDays(end, -1);
+    const r = await api<{ data?: { days?: HCalendarDay[] } | HCalendarDay[]; days?: HCalendarDay[] }>(`/properties/${encodeURIComponent(propertyId)}/calendar`, {
+      query: { start_date: from.toISOString().slice(0, 10), end_date: to.toISOString().slice(0, 10) },
+    });
+    const chunk = Array.isArray(r.data) ? r.data : (r.data?.days ?? r.days ?? []);
+    days.push(...chunk);
+  }
+  return days;
 }
 
 /** PUT dates in batches of 60 (Hospitable's limit). */
@@ -182,7 +192,11 @@ export async function syncHospitableListing(listingId: string) {
   try {
     const today = todayIn(l.timeZone);
     const end = addDays(today, HORIZON_DAYS);
-    const { rates, blocked } = calendarToKeyvaga(await getCalendar(l.hospitablePropertyId, today, end));
+    const cal = calendarToKeyvaga(await getCalendar(l.hospitablePropertyId, today, end));
+    // Only nights in the window, one price per night (a repeated day would break the save).
+    const seen = new Set<string>();
+    const rates = cal.rates.filter((r) => r.date >= today && r.date < end && !seen.has(r.date.toISOString()) && (seen.add(r.date.toISOString()), true));
+    const blocked = cal.blocked.filter((b) => b.end > today && b.start < end);
     await db.$transaction([
       db.calendarBlock.deleteMany({ where: { listingId: l.id, source: "HOSPITABLE" } }),
       db.calendarBlock.createMany({ data: blocked.map((b) => ({ listingId: l.id, source: "HOSPITABLE" as const, startDate: b.start, endDate: b.end, note: "Hospitable" })) }),
@@ -196,7 +210,9 @@ export async function syncHospitableListing(listingId: string) {
     ]);
     return { ok: true as const, blocked: blocked.length, rates: rates.length };
   } catch (e) {
-    const error = e instanceof HospitableError ? e.message : "Couldn't reach Hospitable. We'll try again.";
+    // Show the real reason (only the owner sees this) so problems can be fixed quickly.
+    const detail = e instanceof Error ? e.message.replace(/\s+/g, " ").slice(0, 200) : String(e).slice(0, 200);
+    const error = e instanceof HospitableError ? e.message : `Couldn't sync with Hospitable: ${detail}`;
     if (!(e instanceof HospitableError)) console.error("hospitable sync failed", l.id, e instanceof Error ? e.message : e);
     await db.listing.update({ where: { id: l.id }, data: { hospitableSyncedAt: new Date(), hospitableSyncError: error } });
     return { ok: false as const, error };
