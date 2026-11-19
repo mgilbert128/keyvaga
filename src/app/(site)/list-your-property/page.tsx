@@ -28,7 +28,7 @@ export default function ListYourPropertyPage() {
     <div className="flex flex-col gap-10 pt-2 sm:pt-6">
       <section aria-labelledby="lyp-title" className="relative isolate -mx-4 overflow-hidden sm:mx-0 sm:rounded-[28px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hero/condos.webp" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[60%_center]" fetchPriority="high" />
+        <img src="/hero/gulf-beach-aerial.webp" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[45%_center]" fetchPriority="high" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-[#0f2a35]/85 via-[#0f2a35]/55 to-[#0f2a35]/10" />
         <div className="flex min-h-[460px] max-w-2xl flex-col justify-center gap-5 px-6 py-12 text-white sm:min-h-[520px] sm:px-12">
           <h1 id="lyp-title" className="font-brand text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-sm sm:text-5xl">List your property on Keyvaga</h1>
