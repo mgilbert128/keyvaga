@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { destinationTerms, formatRegion, formatTown } from "@/lib/place";
-import { lowestRateCents } from "@/lib/pricing";
+import { lowestRateCents, typicalRateCents } from "@/lib/pricing";
 
 describe("formatTown / formatRegion", () => {
   it("tidies lowercase and capitals", () => {
@@ -34,6 +34,18 @@ describe("lowestRateCents", () => {
   it("ignores seasons outside the window and falls back to base", () => {
     const seasons = [{ name: "Old", startDate: d("2025-01-01"), endDate: d("2025-03-01"), nightlyRateCents: 9000 }];
     expect(lowestRateCents({ ...base, seasons }, d("2026-11-16"))).toBe(45000);
+  });
+});
+
+describe("typicalRateCents", () => {
+  const d = (s: string) => new Date(`${s}T00:00:00Z`);
+  const base = { nightlyRateCents: 25300, cleaningFeeCents: 0, minNights: 1 };
+  it("isn't dragged down by one discounted night", () => {
+    expect(typicalRateCents({ ...base, dateRates: [{ date: d("2026-12-05"), rateCents: 8900 }] }, d("2026-11-16"))).toBe(25300);
+  });
+  it("follows a season that covers most of the window", () => {
+    const seasons = [{ name: "Winter", startDate: d("2026-11-01"), endDate: d("2027-03-01"), nightlyRateCents: 14000 }];
+    expect(typicalRateCents({ ...base, seasons }, d("2026-11-16"))).toBe(14000);
   });
 });
 
