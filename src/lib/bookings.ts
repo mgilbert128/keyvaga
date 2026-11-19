@@ -7,6 +7,7 @@ import { addDays, rangeHasConflict, todayIn, toISODate, unavailableNights } from
 import { quoteStay } from "@/lib/pricing";
 import { taxesFor } from "@/lib/tax";
 import { payOutDueRequests, settleRequestsForCancelledBooking } from "@/lib/payment-requests";
+import { feesToDeduct, markFeesCollected } from "@/lib/owner-fees";
 import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
@@ -409,10 +410,12 @@ export async function payOutBooking(bookingId: string) {
   if (!owner.stripeAccountId || !owner.payoutsEnabled) return "owner_not_connected";
 
   const { charges } = await paidSoFar(b.id);
-  const parts = splitPayoutAcrossCharges(
-    b.payoutDueCents,
-    charges.filter((c) => c.stripeChargeId).map((c) => ({ id: c.stripeChargeId!, amountCents: c.amountCents })),
-  );
+  // Monthly owner fees (smart locks) come out of the next payout.
+  const fees = await feesToDeduct(owner.id, b.payoutDueCents);
+  const transferCents = b.payoutDueCents - fees.deductCents;
+  const parts = transferCents > 0
+    ? splitPayoutAcrossCharges(transferCents, charges.filter((c) => c.stripeChargeId).map((c) => ({ id: c.stripeChargeId!, amountCents: c.amountCents })))
+    : [];
   for (const part of parts) {
     const t = await stripe().transfers.create(
       { amount: part.amountCents, currency: "usd", destination: owner.stripeAccountId, source_transaction: part.id, transfer_group: b.id, metadata: { bookingId: b.id } },
@@ -424,7 +427,8 @@ export async function payOutBooking(bookingId: string) {
       update: {},
     });
   }
-  await db.booking.update({ where: { id: b.id }, data: { payoutStatus: "PAID" } });
+  await markFeesCollected(fees.feeIds, b.id);
+  await db.booking.update({ where: { id: b.id }, data: { payoutStatus: "PAID", feesDeductedCents: fees.deductCents } });
   return "paid";
 }
 

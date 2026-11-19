@@ -4,6 +4,8 @@ import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { finishPendingConnects, locksConfigured, refreshCodeStatuses } from "@/lib/locks";
+import { LOCK_FEE_CENTS } from "@/lib/owner-fees";
+import { formatCents } from "@/lib/money";
 import { US_TIME_ZONES } from "@/lib/locks/time";
 import { connectLockAccount, disconnectLockAccount, dismissLockEvent, refreshLocks, retryLockEvent, saveLockSettings, setListingTimeZone } from "@/app/actions/locks";
 import { PortalShell } from "@/components/layout/PortalShell";
@@ -56,6 +58,9 @@ async function Locks({ searchParams }: { searchParams: PageProps<"/owner/locks">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Smart locks</h1>
           <p className="max-w-2xl text-ink-muted">
             Connect your smart lock and every guest gets their own door code that works only from check-in to checkout. Cleaners and other pros you hire get a code for the day of the job. Codes are removed automatically if a booking is cancelled.
+          </p>
+          <p className="max-w-2xl rounded-control bg-soft px-4 py-3 text-sm text-on-soft">
+            <strong>{formatCents(LOCK_FEE_CENTS)} per lock per month</strong> for each lock assigned to a property, taken out of your next payout. Connecting a lock is free until you assign it; locks you don&apos;t assign aren&apos;t charged.
           </p>
         </div>
         {error ? <p role="alert" className="rounded-control border border-danger/30 bg-danger/5 px-4 py-3 font-medium text-danger">{error}</p> : null}

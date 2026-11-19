@@ -52,6 +52,7 @@ model User {
   /// Stripe Connect account that receives the owner's payouts.
   stripeAccountId    String?                  @unique
   payoutsEnabled     Boolean                  @default(false)
+  ownerFees          OwnerFee[]
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -368,6 +369,8 @@ model Booking {
   isRequest             Boolean            @default(false)
   /// Guest said they're bringing a pet; petFeeCents is part of the stay subtotal like cleaning.
   pets                  Boolean            @default(false)
+  /// Owner fees (e.g. smart lock subscription) taken out of this booking's payout.
+  feesDeductedCents     Int                @default(0)
   petFeeCents           Int                @default(0)
   stripePaymentMethodId String?
   confirmedAt           DateTime?
@@ -1026,4 +1029,30 @@ model Complex {
   listings    Listing[]
 
   @@index([city, region])
+}
+
+enum OwnerFeeStatus {
+  OWED
+  COLLECTED
+  WAIVED
+}
+
+/// Monthly charges to owners (smart locks: $4 per lock assigned to a listing). Taken out of their next payout.
+model OwnerFee {
+  id                     String         @id @default(cuid())
+  ownerId                String
+  /// "LOCKS" for now.
+  kind                   String
+  /// Billing month, "YYYY-MM".
+  period                 String
+  quantity               Int
+  amountCents            Int
+  status                 OwnerFeeStatus @default(OWED)
+  collectedFromBookingId String?
+  collectedAt            DateTime?
+  createdAt              DateTime       @default(now())
+  owner                  User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, kind, period])
+  @@index([ownerId, status])
 }

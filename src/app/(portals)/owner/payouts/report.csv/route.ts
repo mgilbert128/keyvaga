@@ -52,6 +52,10 @@ export async function GET(request: Request) {
       ]);
     }
   }
+  const lockFees = await db.ownerFee.findMany({ where: { ownerId: user.id, period: { startsWith: String(year) }, status: { not: "WAIVED" } }, orderBy: { period: "asc" } });
+  for (const f of lockFees) {
+    rows.push(["Smart lock fee", "", "", "", `${f.period}-01`, "", "", f.status === "COLLECTED" ? "Paid from payout" : "Due", "", "", "", dollars(f.amountCents), "", dollars(-f.amountCents), "", `${f.quantity} lock${f.quantity === 1 ? "" : "s"} × $4`]);
+  }
   const total = (i: number) => dollars(rows.reduce((t, r) => t + Math.round(Number(r[i] || 0) * 100), 0));
   rows.push(["Total", "", "", "", "", "", "", "", total(8), total(9), total(10), total(11), total(12), total(13), "", ""]);
 

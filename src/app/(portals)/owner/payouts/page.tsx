@@ -31,10 +31,12 @@ async function Payouts({ searchParams }: { searchParams: PageProps<"/owner/payou
     ? await refreshPayoutStatus(user.id).catch(() => ({ connected: false, payoutsEnabled: false, detailsSubmitted: false, error: true as const }))
     : { connected: false, payoutsEnabled: false, detailsSubmitted: false };
 
-  const [upcoming, sent] = await Promise.all([
+  const [upcoming, sent, fees] = await Promise.all([
     db.booking.findMany({ where: { listing: { ownerId: user.id }, payoutStatus: "PENDING" }, orderBy: { checkIn: "asc" }, include: { listing: { select: { title: true } } } }),
     db.payment.findMany({ where: { kind: "PAYOUT", booking: { listing: { ownerId: user.id } } }, orderBy: { createdAt: "desc" }, take: 50, include: { booking: { include: { listing: { select: { title: true } } } } } }),
+    db.ownerFee.findMany({ where: { ownerId: user.id }, orderBy: { period: "desc" }, take: 12 }),
   ]);
+  const feesOwed = fees.filter((f) => f.status === "OWED").reduce((t, f) => t + f.amountCents, 0);
   const upcomingTotal = upcoming.reduce((s, b) => s + b.payoutDueCents, 0);
   const error = typeof sp.error === "string" ? sp.error : null;
   const thisYear = new Date().getUTCFullYear();
@@ -80,6 +82,20 @@ async function Payouts({ searchParams }: { searchParams: PageProps<"/owner/payou
             </ul>
           )}
         </Card>
+
+        {fees.length ? (
+          <Card className="flex flex-col gap-3">
+            <h2 className="text-xl font-bold">Smart lock fees{feesOwed ? ` · ${formatCents(feesOwed)} to come out of your next payout` : ""}</h2>
+            <ul className="flex flex-col divide-y divide-line">
+              {fees.map((f) => (
+                <li key={f.id} className="flex justify-between gap-4 py-2">
+                  <span>{new Date(`${f.period}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })} · {f.quantity} lock{f.quantity === 1 ? "" : "s"}</span>
+                  <span className="font-semibold">{formatCents(f.amountCents)} <span className="font-normal text-ink-muted">{f.status === "OWED" ? "due" : f.status === "COLLECTED" ? "paid" : "waived"}</span></span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
 
         <Card className="flex flex-col gap-3">
           <h2 className="text-xl font-bold">Earnings report</h2>
