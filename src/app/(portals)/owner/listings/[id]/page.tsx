@@ -12,6 +12,7 @@ import { deleteListing } from "@/app/actions/listings";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { complexNamesIn } from "@/lib/complexes";
 import { parseSleeping } from "@/lib/sleeping";
+import { ExternalRatingsSection } from "@/components/owner/ExternalRatingsSection";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
 import { OwnershipSection } from "@/components/owner/OwnershipSection";
@@ -87,6 +88,12 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
           listing={listing}
           docs={await db.listingDocument.findMany({ where: { listingId: listing.id }, orderBy: { createdAt: "desc" } })}
           today={todayIn()}
+        />
+
+        <ExternalRatingsSection
+          listingId={listing.id}
+          ratings={await db.externalRating.findMany({ where: { listingId: listing.id }, orderBy: { createdAt: "asc" } })}
+          now={new Date()}
         />
 
         <TurnoverCleaning

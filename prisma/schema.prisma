@@ -205,6 +205,7 @@ model Listing {
   @@index([status, city])
   @@index([ownerId])
   @@index([complexId])
+  externalRatings     ExternalRating[]
 }
 
 /// A date range with its own nightly rate, e.g. summer or holidays. [startDate, endDate) like bookings.
@@ -1055,4 +1056,32 @@ model OwnerFee {
 
   @@unique([ownerId, kind, period])
   @@index([ownerId, status])
+}
+
+enum ExternalRatingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// A listing's overall rating on another site (Airbnb, Vrbo…), checked by a Keyvaga admin before it shows.
+/// Kept separate from Keyvaga reviews, which only come from real Keyvaga stays.
+model ExternalRating {
+  id           String               @id @default(cuid())
+  listingId    String
+  /// AIRBNB | VRBO | BOOKING | GOOGLE
+  platform     String
+  url          String
+  /// On the platform's own scale (5 for most; 10 for Booking.com).
+  rating       Float
+  reviewCount  Int
+  status       ExternalRatingStatus @default(PENDING)
+  reviewNote   String?
+  verifiedAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  listing      Listing              @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, platform])
+  @@index([status])
 }

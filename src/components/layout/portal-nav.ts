@@ -28,6 +28,7 @@ export const adminNav = (current: string) =>
       { label: "Problems", href: "/admin/problems" },
       { label: "Taxes", href: "/admin/taxes" },
       { label: "Waitlist", href: "/admin/waitlist" },
+      { label: "Ratings", href: "/admin/ratings" },
     ],
     current,
   );

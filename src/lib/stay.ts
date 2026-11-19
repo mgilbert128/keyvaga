@@ -7,7 +7,7 @@ export async function getPublishedStay(slug: string) {
     where: { slug, status: "PUBLISHED" },
     select: {
       id: true, slug: true, title: true, summary: true, description: true, propertyType: true,
-      city: true, region: true, postalCode: true, complex: { select: { name: true, slug: true } }, latitude: true, longitude: true, bedrooms: true, bathrooms: true, maxGuests: true,
+      city: true, region: true, postalCode: true, complex: { select: { name: true, slug: true } }, externalRatings: { where: { status: "APPROVED" }, select: { platform: true, rating: true, reviewCount: true, status: true, verifiedAt: true } }, latitude: true, longitude: true, bedrooms: true, bathrooms: true, maxGuests: true,
       nightlyRateCents: true, cleaningFeeCents: true, petFeeCents: true, minNights: true, instantBook: true, cancellationPolicy: true, permitRequired: true, permitNumber: true,
       hostingRole: true,
       documents: { select: { id: true, type: true, status: true, expiresAt: true, createdAt: true } },

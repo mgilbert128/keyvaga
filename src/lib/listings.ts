@@ -6,6 +6,7 @@ import { addDays, todayIn } from "@/lib/dates";
 import { quoteStay, typicalRateCents, type PriceInputs } from "@/lib/pricing";
 import { bookingAmounts } from "@/lib/booking-money";
 import { destinationTerms } from "@/lib/place";
+import { shownRatings } from "@/lib/external-ratings";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ListingCardData = {
@@ -31,6 +32,8 @@ export type ListingCardData = {
   rating?: { average: number; count: number };
   /** Condo building or resort, when the owner named one. */
   complex?: { name: string; slug: string };
+  /** Verified rating from another site (shown only when there are no Keyvaga reviews yet). */
+  outside?: { label: string; rating: number; scale: number; reviewCount: number };
 };
 
 export type CardPrice =
@@ -60,6 +63,7 @@ export const cardSelect = (today: Date) => ({
   documents: { select: { type: true, status: true, expiresAt: true, createdAt: true } },
   reviews: { select: { rating: true } },
   complex: { select: { name: true, slug: true } },
+  externalRatings: { where: { status: "APPROVED" as const }, select: { platform: true, rating: true, reviewCount: true, status: true, verifiedAt: true } },
 }) satisfies Prisma.ListingSelect;
 
 type CardRow = Prisma.ListingGetPayload<{ select: ReturnType<typeof cardSelect> }>;
@@ -76,7 +80,7 @@ export function cardPrice(l: PriceInputs, today: Date, stay?: { checkIn: Date; c
 
 /** Builds card data from a row loaded with cardSelect(today). Pass the guest's dates to price that stay. */
 export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkOut: Date }): ListingCardData {
-  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, reviews, complex, ...l } = row;
+  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, reviews, complex, externalRatings, ...l } = row;
   const rating = reviews.length ? { average: Math.round((reviews.reduce((t, r) => t + r.rating, 0) / reviews.length) * 10) / 10, count: reviews.length } : undefined;
   const verified = listingVerification({ hostingRole, permitRequired, documents }, today).host !== null;
   const price = cardPrice(
@@ -84,7 +88,9 @@ export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkO
     today,
     stay,
   );
-  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified, rating, complex: complex ?? undefined };
+  const top = rating ? undefined : shownRatings(externalRatings)[0];
+  const outside = top ? { label: top.label, rating: top.rating, scale: top.scale, reviewCount: top.reviewCount } : undefined;
+  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified, rating, complex: complex ?? undefined, outside };
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {

@@ -8,6 +8,7 @@ import { refreshHospitableIfStale } from "@/lib/hospitable";
 import { approximateLocation } from "@/lib/geocode";
 import { AreaMap } from "@/components/listings/AreaMap";
 import { bedLine, parseSleeping } from "@/lib/sleeping";
+import { shownRatings } from "@/lib/external-ratings";
 import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -115,6 +116,16 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             {stay.complex ? <><Link href={`/complexes/${stay.complex.slug}`} className="font-medium text-brand underline underline-offset-4">{stay.complex.name}</Link> · </> : null}
             {stay.city}, {stay.region} · {propertyTypeLabel(stay.propertyType)}
           </p>
+          {shownRatings(stay.externalRatings).length ? (
+            <ul className="flex flex-wrap gap-2" aria-label="Ratings on other sites, verified by Keyvaga">
+              {shownRatings(stay.externalRatings).map((r) => (
+                <li key={r.platform} className="rounded-full border border-line bg-surface px-3 py-1 text-sm">
+                  <span aria-hidden="true" className="text-brand">★</span> <span className="font-semibold">{r.rating}</span>{r.scale !== 5 ? `/${r.scale}` : ""} from {r.reviewCount.toLocaleString()} reviews on {r.label}
+                  <span className="text-ink-muted"> · verified by Keyvaga {r.verifiedAt.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <VerifiedBadges v={verification} />
         </div>
         <form action={toggleSaved.bind(null, stay.id, stay.slug)}>
