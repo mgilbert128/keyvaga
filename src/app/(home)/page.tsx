@@ -10,7 +10,7 @@ import { getFeaturedListings } from "@/lib/listings";
 import { listDestinations } from "@/lib/destinations";
 import { FeesSection, OwnerValueSection } from "@/components/marketing/FeesSection";
 import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
-import { curatedHero, getHeroSlides } from "@/lib/hero";
+import { curatedHero, curatedHeroes, getHeroSlides } from "@/lib/hero";
 
 const portals = [
   {
@@ -40,7 +40,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-14 sm:gap-20">
       {curatedHero() ? (
-        <Hero slides={[{ type: "photo", ...curatedHero()! }]} />
+        <Hero slides={curatedHeroes(2).map((p) => ({ type: "photo" as const, ...p }))} />
       ) : (
         <Suspense fallback={<Hero slides={SCENES.slice(0, 1)} />}>
           <HeroWithPhotos />

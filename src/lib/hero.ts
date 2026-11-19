@@ -9,9 +9,15 @@ export type HeroSlide = { src: string; alt: string; title: string; place: string
  * (they show first, before photos from live listings). Keep them ~2400px wide, JPEG/WebP, under 500 KB.
  */
 const CURATED: HeroSlide[] = [
+  { src: "/hero/gulf-shores-beach.webp", alt: "Aerial view of the white-sand public beach and Gulf of Mexico in Gulf Shores, Alabama", title: "Gulf Shores, Alabama", place: "White-sand beaches and emerald water", href: "/search?where=Gulf%20Shores%2C%20AL", position: "40% center" },
   { src: "/hero/hammock-balcony.webp", alt: "Colorful hammock on a sunny oceanfront balcony with palm trees and white railings", title: "Coastal escapes", place: "Oceanfront balconies and white-sand beaches", href: "/search", position: "35% center" },
   { src: "/hero/boardwalk.webp", alt: "Wooden boardwalk leading over the dunes to a sunny white-sand beach", title: "Coastal escapes", place: "White-sand beaches and blue water", href: "/search" },
 ];
+
+/** The curated photos the homepage rotates through (no database needed, so they render instantly). */
+export function curatedHeroes(limit = 2): HeroSlide[] {
+  return CURATED.slice(0, limit);
+}
 
 /** The main curated photo, if one is set (no database needed, so it can render instantly). */
 export function curatedHero(): HeroSlide | null {
