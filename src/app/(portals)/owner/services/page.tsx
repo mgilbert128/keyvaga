@@ -59,6 +59,7 @@ async function Services({ searchParams }: { searchParams: PageProps<"/owner/serv
           <div className="flex max-w-2xl flex-col gap-3">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Find help for your property</h1>
             <p className="text-lg text-ink-muted">Compare vetted local pros and request quotes in one tap.</p>
+            <p className="text-sm text-ink-muted">Booking through Keyvaga means your payment is held until the job is done, problems are covered by our dispute help, and every receipt is saved for tax time.</p>
           </div>
           <ButtonLink href={`/owner/jobs/new${ctx ? `?${ctx}` : ""}`}>Post a job</ButtonLink>
         </div>

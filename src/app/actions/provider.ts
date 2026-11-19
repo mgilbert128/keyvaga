@@ -1,5 +1,6 @@
 "use server";
 
+import { maskContactInfo } from "@/lib/contact-mask";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -31,10 +32,17 @@ export async function saveProviderProfile(_prev: ProviderResult, fd: FormData): 
   const pricingGuidance = String(fd.get("pricingGuidance") ?? "").trim().slice(0, 1000);
   const availabilityNote = String(fd.get("availabilityNote") ?? "").trim().slice(0, 60);
   if (!businessName) return { message: "Enter your business name." };
+  // Owners reach providers through Keyvaga, so public profile text can't carry phone numbers, emails or links.
+  const clean = (t: string) => maskContactInfo(t, "[contact info removed]");
+  const [b, pg, av] = [clean(bio), clean(pricingGuidance), clean(availabilityNote)];
   await db.providerProfile.update({
     where: { id: profile.id },
-    data: { businessName, bio, categories, serviceAreaText, serviceAreas: parseServiceAreas(serviceAreaText), region, pricingGuidance, availabilityNote },
+    data: { businessName, bio: b.text, categories, serviceAreaText, serviceAreas: parseServiceAreas(serviceAreaText), region, pricingGuidance: pg.text, availabilityNote: av.text },
   });
+  if (b.masked || pg.masked || av.masked) {
+    revalidatePath("/provider/profile");
+    return { ok: true, message: "Saved. We removed phone numbers, emails and links: owners contact and pay you through Keyvaga, which keeps your payment protected." };
+  }
   revalidatePath("/provider");
   revalidatePath("/provider/profile");
   return { ok: true, message: profile.status === "APPROVED" ? "Saved. Changes are live." : "Saved." };

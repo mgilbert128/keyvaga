@@ -1,5 +1,6 @@
 "use server";
 
+import { maskContactInfo } from "@/lib/contact-mask";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -158,10 +159,13 @@ export async function sendJobMessage(jobId: string, providerId: string, _prev: J
   // Owners can message providers they sent the job to or who quoted.
   const ownerMayMessage = isOwner && (job.targetProviderId === providerId || job.quotes.some((q) => q.providerId === providerId));
   if (!ownerMayMessage && !isProvider) return { message: "Conversation not found." };
-  const msg = await db.jobMessage.create({ data: { jobId, providerId, senderId: u.id, body } });
+  // Keep the deal on Keyvaga: contact details are hidden until this provider's job is booked and paid.
+  const booked = job.acceptedQuote?.providerId === providerId && ["ASSIGNED", "COMPLETED", "PAID", "DISPUTED"].includes(job.status);
+  const safe = booked ? { text: body, masked: false } : maskContactInfo(body);
+  const msg = await db.jobMessage.create({ data: { jobId, providerId, senderId: u.id, body: safe.text } });
   await notifyJobMessage(msg.id);
   refreshJob(jobId);
-  return { ok: true };
+  return safe.masked ? { ok: true, message: "Sent. Phone numbers, emails and links are hidden until the job is booked, so payment and protection stay with Keyvaga." } : { ok: true };
 }
 
 export async function submitJobReview(jobId: string, _prev: JobResult, fd: FormData): Promise<JobResult> {

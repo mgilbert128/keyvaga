@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { notifyBookingMessage } from "@/lib/notify";
+import { maskContactInfo } from "@/lib/contact-mask";
 
 export type SendResult = { ok?: boolean; message?: string } | undefined;
 
@@ -23,7 +24,8 @@ export async function sendMessage(bookingId: string, _prev: SendResult, fd: Form
 
   const now = new Date();
   const [msg] = await db.$transaction([
-    db.message.create({ data: { bookingId, senderId: user.id, body } }),
+    // Before the host accepts a request, contact details stay hidden so the booking and payment stay on Keyvaga.
+    db.message.create({ data: { bookingId, senderId: user.id, body: b.status === "REQUESTED" ? maskContactInfo(body).text : body } }),
     db.booking.update({ where: { id: bookingId }, data: side === "guest" ? { guestLastReadAt: now } : { ownerLastReadAt: now } }),
   ]);
   await notifyBookingMessage(msg.id);

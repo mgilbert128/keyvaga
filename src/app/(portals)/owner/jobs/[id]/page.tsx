@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ButtonLink } from "@/components/ui/Button";
 import { ChecklistReview } from "@/components/jobs/Checklist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -154,6 +155,20 @@ async function Job({ params, searchParams }: Pick<PageProps<"/owner/jobs/[id]">,
         ) : null}
         {status === "DISPUTED" ? <p className="rounded-control bg-warn-soft px-4 py-3 text-on-warn-soft">You reported a problem. Payment is on hold while Keyvaga reviews it. We&apos;ll be in touch.</p> : null}
         {status === "CANCELLED" ? <p className="rounded-control bg-warn-soft px-4 py-3 text-on-warn-soft">This job was cancelled{job.cancelledBy ? ` by ${job.cancelledBy === "owner" ? "you" : job.cancelledBy === "provider" ? "the provider" : "Keyvaga"}` : ""}. Any payment was refunded in full.</p> : null}
+
+        {(status === "PAID" || status === "COMPLETED") && provider ? (
+          <Card className="flex flex-col gap-3">
+            <h2 className="text-xl font-bold">Book {provider.businessName} again</h2>
+            <p className="text-ink-muted">Rebooking through Keyvaga keeps your payment protected until the work is done, and every job and receipt stays in one place for tax time.</p>
+            <div className="flex flex-wrap gap-3">
+              <ButtonLink href={`/owner/jobs/new?provider=${provider.id}&listing=${job.listingId}&category=${job.category}`}>Book again</ButtonLink>
+              {job.category === "cleaning" ? (
+                <ButtonLink href={`/owner/listings/${job.listingId}#turnover`} variant="secondary">Make them my regular cleaner</ButtonLink>
+              ) : null}
+            </div>
+            {job.category === "cleaning" ? <p className="text-sm text-ink-muted">A regular cleaner is asked automatically after every guest checkout, so you don&apos;t have to book each turnover.</p> : null}
+          </Card>
+        ) : null}
 
         {status === "PAID" ? (
           <Card className="flex flex-col gap-3">

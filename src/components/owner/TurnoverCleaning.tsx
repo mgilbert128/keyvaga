@@ -9,7 +9,7 @@ import { DEFAULT_CHECKLIST } from "@/lib/checklist";
 export function TurnoverCleaning({ listingId, cleaners, current, auto, checklist, minPhotos }: { listingId: string; cleaners: { id: string; businessName: string; slug: string }[]; current: { id: string; businessName: string; slug: string; status: string } | null; auto: boolean; checklist: string[]; minPhotos: number }) {
   const options = current && !cleaners.some((c) => c.id === current.id) ? [current, ...cleaners] : cleaners;
   return (
-    <section aria-labelledby="turnover-title" className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 sm:p-8">
+    <section id="turnover" aria-labelledby="turnover-title" className="scroll-mt-24 flex flex-col gap-4 rounded-card border border-line bg-surface p-6 sm:p-8">
       <div>
         <h2 id="turnover-title" className="text-xl font-bold">Turnover cleaning</h2>
         <p className="mt-1 text-ink-muted">Pick your regular cleaner. With automatic requests on, every new booking sends them a cleaning request for checkout day. You just accept their quote. If a booking is cancelled, its cleaning is cancelled too.</p>

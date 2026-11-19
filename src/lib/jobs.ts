@@ -1,4 +1,5 @@
 import "server-only";
+import { maskContactInfo } from "@/lib/contact-mask";
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe, idOf } from "@/lib/stripe";
@@ -45,7 +46,7 @@ export async function createJob(ownerId: string, input: { listingId: string; cat
       bookingId,
       category: input.category,
       title: input.title.trim().slice(0, 100),
-      description: input.description.trim().slice(0, 3000),
+      description: maskContactInfo(input.description.trim().slice(0, 3000)).text,
       preferredDate: input.preferredDate,
       flexibleDate: input.flexibleDate,
       targetProviderId: input.providerId ?? null,
@@ -86,8 +87,8 @@ export async function submitQuote(profile: Profile & { userId: string }, jobId: 
   if (input.proposedDate && input.proposedDate < todayIn()) throw new JobError("The date can't be in the past.");
   const quote = await db.quote.upsert({
     where: { jobId_providerId: { jobId, providerId: profile.id } },
-    create: { jobId, providerId: profile.id, amountCents: input.amountCents, proposedDate: input.proposedDate, message: input.message.trim().slice(0, 2000) },
-    update: { amountCents: input.amountCents, proposedDate: input.proposedDate, message: input.message.trim().slice(0, 2000), status: "SUBMITTED" },
+    create: { jobId, providerId: profile.id, amountCents: input.amountCents, proposedDate: input.proposedDate, message: maskContactInfo(input.message.trim().slice(0, 2000)).text },
+    update: { amountCents: input.amountCents, proposedDate: input.proposedDate, message: maskContactInfo(input.message.trim().slice(0, 2000)).text, status: "SUBMITTED" },
   });
   await notifyQuoteReceived(quote.id);
   return quote;
