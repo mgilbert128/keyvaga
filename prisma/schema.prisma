@@ -1085,3 +1085,10 @@ model ExternalRating {
   @@unique([listingId, platform])
   @@index([status])
 }
+
+/// Written introduction for a destination page (keyed by its slug, e.g. "gulf-shores-al"). Edited in Admin → Destinations.
+model DestinationContent {
+  slug      String   @id
+  intro     String
+  updatedAt DateTime @updatedAt
+}

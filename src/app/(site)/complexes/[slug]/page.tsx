@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: PageProps<"/complexes/[slug]"
   const { slug } = await params;
   const c = await db.complex.findUnique({ where: { slug }, select: { name: true, city: true, region: true } });
   if (!c) return { title: "Building not found" };
-  return { title: `${c.name}, ${c.city} vacation rentals`, description: `Every Keyvaga vacation rental at ${c.name} in ${c.city}, ${c.region}, booked directly with local hosts.` };
+  return { title: `${c.name}, ${c.city} vacation rentals`, description: `Every Keyvaga vacation rental at ${c.name} in ${c.city}, ${c.region}, booked directly with local hosts.`, alternates: { canonical: `/complexes/${slug}` } };
 }
 
 export default function Page({ params }: PageProps<"/complexes/[slug]">) {

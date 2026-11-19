@@ -9,6 +9,8 @@ import { approximateLocation } from "@/lib/geocode";
 import { AreaMap } from "@/components/listings/AreaMap";
 import { bedLine, parseSleeping } from "@/lib/sleeping";
 import { shownRatings } from "@/lib/external-ratings";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { destinationSlug } from "@/lib/destinations";
 import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -35,8 +37,16 @@ export async function generateMetadata({ params }: PageProps<"/stays/[slug]">): 
   const { slug } = await params;
   // A small, time-independent query: getPublishedStay filters date rates by Date.now(), which Next's
   // prerender rejects inside generateMetadata ("encountered the unstable value Date.now()").
-  const stay = await db.listing.findFirst({ where: { slug, status: "PUBLISHED" }, select: { title: true, city: true, region: true, summary: true } });
-  return stay ? { title: `${stay.title} in ${stay.city}, ${stay.region}`, description: stay.summary } : { title: "Stay not found" };
+  const stay = await db.listing.findFirst({ where: { slug, status: "PUBLISHED" }, select: { title: true, city: true, region: true, summary: true, photos: { take: 1, orderBy: { position: "asc" }, select: { url: true } } } });
+  if (!stay) return { title: "Stay not found", robots: { index: false } };
+  const title = `${stay.title} in ${stay.city}, ${stay.region}`;
+  return {
+    title,
+    description: stay.summary,
+    // One address per stay, so dated links (?checkIn=…) don't compete with the listing itself in Google.
+    alternates: { canonical: `/stays/${slug}` },
+    openGraph: { title, description: stay.summary, ...(stay.photos[0] ? { images: [{ url: stay.photos[0].url }] } : {}) },
+  };
 }
 
 export default function StayPage({ params, searchParams }: PageProps<"/stays/[slug]">) {
@@ -110,6 +120,33 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
     <article className="flex flex-col gap-8 pt-6 sm:pt-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
+          <JsonLd
+            data={[
+              {
+                "@context": "https://schema.org",
+                "@type": "VacationRental",
+                name: stay.title,
+                description: stay.summary,
+                url: `https://www.keyvaga.com/stays/${stay.slug}`,
+                image: stay.photos.slice(0, 8).map((p) => p.url),
+                // Town-level address only; the exact address is private until booking.
+                address: { "@type": "PostalAddress", addressLocality: stay.city, addressRegion: stay.region, addressCountry: "US" },
+                ...(stay.latitude != null && stay.longitude != null ? { geo: { "@type": "GeoCoordinates", latitude: Math.round(stay.latitude * 100) / 100, longitude: Math.round(stay.longitude * 100) / 100 } } : {}),
+                containsPlace: { "@type": "Accommodation", numberOfBedrooms: stay.bedrooms, numberOfBathroomsTotal: stay.bathrooms, occupancy: { "@type": "QuantitativeValue", maxValue: stay.maxGuests } },
+                // Only Keyvaga's own reviews (Google doesn't allow ratings collected on other sites here).
+                ...(reviewData.count ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(reviewData.average!.toFixed(1)), reviewCount: reviewData.count, bestRating: 5 } } : {}),
+              },
+              {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "Destinations", item: "https://www.keyvaga.com/destinations" },
+                  { "@type": "ListItem", position: 2, name: `${stay.city}, ${stay.region}`, item: `https://www.keyvaga.com/destinations/${destinationSlug(stay.city, stay.region)}` },
+                  { "@type": "ListItem", position: 3, name: stay.title, item: `https://www.keyvaga.com/stays/${stay.slug}` },
+                ],
+              },
+            ]}
+          />
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{stay.title}</h1>
           <p className="text-lg text-ink-muted">
             {reviewData.count ? <><span className="text-brand" aria-hidden="true">★</span> {reviewData.average!.toFixed(1)} ({reviewData.count} review{reviewData.count === 1 ? "" : "s"}) · </> : null}

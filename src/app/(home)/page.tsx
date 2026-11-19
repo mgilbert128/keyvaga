@@ -8,6 +8,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card, Chip } from "@/components/ui/Card";
 import { getFeaturedListings } from "@/lib/listings";
 import { listDestinations } from "@/lib/destinations";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { FeesSection, OwnerValueSection } from "@/components/marketing/FeesSection";
 import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
 import { curatedHero, curatedHeroes, getHeroSlides } from "@/lib/hero";
@@ -72,6 +73,17 @@ export default function HomePage() {
         </Suspense>
       </section>
 
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Keyvaga",
+          legalName: "Keyvaga LLC",
+          url: "https://www.keyvaga.com",
+          logo: "https://www.keyvaga.com/brand/keyvaga-icon-a-pin.png",
+          contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: "support@keyvaga.com" },
+        }}
+      />
       <Suspense fallback={null}>
         <Destinations />
       </Suspense>

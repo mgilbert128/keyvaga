@@ -8,7 +8,11 @@ import { searchListings } from "@/lib/listings";
 import { parseSearchParams } from "@/lib/search-params";
 import { db } from "@/lib/db";
 
-export const metadata: Metadata = { title: "Search stays" };
+export async function generateMetadata({ searchParams }: PageProps<"/search">): Promise<Metadata> {
+  const sp = await searchParams;
+  const filtered = Object.keys(sp).length > 0;
+  return { title: "Search stays", alternates: { canonical: "/search" }, ...(filtered ? { robots: { index: false, follow: true } } : {}) };
+}
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (

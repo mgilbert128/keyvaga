@@ -13,7 +13,9 @@ import { StaySearchForm } from "@/components/search/StaySearchForm";
 export async function generateMetadata({ params }: PageProps<"/destinations/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const town = slug.replace(/-[a-z]{2}$/, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  return { title: `Vacation rentals in ${town}`, description: `Book vacation rentals in ${town} directly from local hosts on Keyvaga.` };
+  const content = await db.destinationContent.findUnique({ where: { slug }, select: { intro: true } });
+  const description = content?.intro.split(/\n+/)[0]?.slice(0, 160) || `Book vacation rentals in ${town} directly from local hosts on Keyvaga.`;
+  return { title: `Vacation rentals in ${town}`, description, alternates: { canonical: `/destinations/${slug}` } };
 }
 
 export default function Page({ params }: PageProps<"/destinations/[slug]">) {
@@ -30,13 +32,14 @@ async function DestinationPage({ params }: { params: PageProps<"/destinations/[s
   const d = await findDestination(slug);
   if (!d) notFound();
   const place = { city: { equals: d.city, mode: "insensitive" as const }, region: { in: regionVariants(d.region), mode: "insensitive" as const } };
-  const [stays, complexes] = await Promise.all([
+  const [stays, complexes, content] = await Promise.all([
     listingCardsWhere(place),
     db.complex.findMany({
       where: { ...place, listings: { some: { status: "PUBLISHED" } } },
       select: { name: true, slug: true, _count: { select: { listings: { where: { status: "PUBLISHED" } } } } },
       orderBy: { name: "asc" },
     }),
+    db.destinationContent.findUnique({ where: { slug }, select: { intro: true } }),
   ]);
   return (
     <div className="flex flex-col gap-8 pt-6 sm:pt-10">
@@ -45,6 +48,11 @@ async function DestinationPage({ params }: { params: PageProps<"/destinations/[s
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Vacation rentals in {d.label}</h1>
         <p className="text-ink-muted">{stays.length} {stays.length === 1 ? "stay" : "stays"} from local hosts. Add your dates to see prices for your trip.</p>
       </div>
+      {content?.intro ? (
+        <div className="flex max-w-3xl flex-col gap-3 text-lg leading-relaxed">
+          {content.intro.split(/\n\s*\n/).map((para, i) => <p key={i}>{para.trim()}</p>)}
+        </div>
+      ) : null}
       <StaySearchForm defaults={{ where: d.label }} />
       {complexes.length ? (
         <section aria-labelledby="complexes-title" className="flex flex-col gap-3">
