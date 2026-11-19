@@ -56,7 +56,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
   const listing = await db.listing.findUniqueOrThrow({ where: { id: current.id }, include: { seasonalRates: true, dateRates: { where: { date: { gte: first, lt: next } } } } });
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
-      where: { listingId: listing.id, checkIn: { lt: next }, checkOut: { gt: first }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }] },
+      where: { listingId: listing.id, checkIn: { lt: next }, checkOut: { gt: first }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: new Date() } }] },
       include: { guest: { select: { name: true } } },
     }),
     db.calendarBlock.findMany({ where: { listingId: listing.id, endDate: { gt: today } }, orderBy: { startDate: "asc" } }),

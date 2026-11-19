@@ -11,6 +11,7 @@ import { listingFormToObject, listingSchema, type ListingFormState } from "@/lib
 import { slugify } from "@/lib/slug";
 import { documentsApproved, missingDocuments } from "@/lib/documents";
 import { todayIn } from "@/lib/dates";
+import { approximateLocation } from "@/lib/geocode";
 import { blobUploadAccess, deleteImage, deleteStored, describeBlob, statLocalFile, storageMode } from "@/lib/storage";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, isAllowedDuration, isAllowedVideoType, isVideoPathForListing } from "@/lib/video";
 
@@ -77,9 +78,14 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
   }
   const v = parsed.data;
 
+  // Map: look up the approximate area when the place changes (or was never found).
+  const placeChanged = v.city !== listing.city || v.region !== listing.region || v.postalCode !== listing.postalCode;
+  const location = placeChanged || listing.latitude == null ? await approximateLocation({ postalCode: v.postalCode, city: v.city, region: v.region }) : null;
+
   await db.listing.update({
     where: { id },
     data: {
+      ...(location ? location : placeChanged ? { latitude: null, longitude: null } : {}),
       title: v.title,
       summary: v.summary,
       description: v.description,
@@ -102,6 +108,7 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
       accessReleaseDays: v.accessReleaseDays,
       guidebook: v.guidebook,
       cancellationPolicy: v.cancellationPolicy,
+      instantBook: v.instantBook,
       amenities: v.amenities,
     },
   });
@@ -169,7 +176,7 @@ export async function deleteListing(id: string, _prev: DeleteListingState, formD
   const listing = await loadOwned(user, id);
   if (String(formData.get("confirm") ?? "").trim().toUpperCase() !== "DELETE") return { message: "Type DELETE to confirm." };
   const today = todayIn();
-  const upcoming = await db.booking.count({ where: { listingId: id, status: { in: ["CONFIRMED", "PENDING_PAYMENT"] }, checkOut: { gt: today } } });
+  const upcoming = await db.booking.count({ where: { listingId: id, status: { in: ["CONFIRMED", "PENDING_PAYMENT", "REQUESTED"] }, checkOut: { gt: today } } });
   if (upcoming) {
     return { message: `This listing has ${upcoming} upcoming ${upcoming === 1 ? "booking" : "bookings"}. Cancel ${upcoming === 1 ? "it" : "them"} (guests are refunded) or wait until the stays are over, then delete.` };
   }

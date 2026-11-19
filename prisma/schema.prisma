@@ -308,6 +308,8 @@ enum CancellationPolicy {
 
 enum BookingStatus {
   PENDING_PAYMENT
+  /// Request to book: card authorized, waiting for the owner to accept (holdExpiresAt = the deadline).
+  REQUESTED
   CONFIRMED
   CANCELLED
   COMPLETED
@@ -354,6 +356,8 @@ model Booking {
   balanceAttempts       Int                @default(0)
   /// While PENDING_PAYMENT the dates are held until this time.
   holdExpiresAt         DateTime?
+  /// The listing needed the owner's approval when this was booked (request to book).
+  isRequest             Boolean            @default(false)
   stripePaymentMethodId String?
   confirmedAt           DateTime?
   cancelledAt           DateTime?

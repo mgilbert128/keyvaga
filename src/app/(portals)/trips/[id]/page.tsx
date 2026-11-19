@@ -8,7 +8,7 @@ import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { previewCancellation, syncPaymentIntent } from "@/lib/bookings";
-import { guestCancel } from "@/app/actions/bookings";
+import { guestCancel, withdrawRequestAction } from "@/app/actions/bookings";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { guestNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
@@ -88,6 +88,18 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
         ) : null}
         {b.status === "CANCELLED" && b.cancelledBy === "system" && b.refundedCents > 0 ? (
           <p role="alert" className="rounded-control bg-warn-soft px-4 py-3 text-on-warn-soft">Those dates were taken while your payment was processing, so we refunded you in full.</p>
+        ) : null}
+        {b.status === "REQUESTED" ? (
+          <Card className="flex flex-col gap-3">
+            <p role="status" className="text-lg font-semibold">Request sent. {b.listing.owner.name.split(" ")[0]} has until {b.holdExpiresAt?.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: b.listing.timeZone, timeZoneName: "short" }) ?? "tomorrow"} to accept.</p>
+            <p className="text-ink-muted">Your card is authorized for {formatCents(b.dueNowCents)} but won&apos;t be charged unless your host accepts. We&apos;ll email you either way.</p>
+            <CancelBooking action={withdrawRequestAction.bind(null, b.id)} label="Withdraw request" preview="Your request will be withdrawn and the hold on your card released." />
+          </Card>
+        ) : null}
+        {b.status === "CANCELLED" && (b.cancelledBy === "declined" || b.cancelledBy === "expired" || b.cancelledBy === "withdrawn") ? (
+          <p role="status" className="rounded-control bg-warn-soft px-4 py-3 font-medium text-on-warn-soft">
+            {b.cancelledBy === "declined" ? "Your host couldn't accept this request." : b.cancelledBy === "expired" ? "Your host didn't answer in time, so this request expired." : "You withdrew this request."} You weren&apos;t charged; the hold on your card is released.
+          </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{b.listing.title}</h1>

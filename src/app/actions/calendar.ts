@@ -37,7 +37,7 @@ export async function blockDates(listingId: string, _prev: FormResult, fd: FormD
   const note = String(fd.get("note") ?? "").trim().slice(0, 120) || null;
 
   const overlapBooking = await db.booking.findFirst({
-    where: { listingId, checkIn: { lt: end }, checkOut: { gt: start }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }] },
+    where: { listingId, checkIn: { lt: end }, checkOut: { gt: start }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: new Date() } }] },
   });
   if (overlapBooking) return { message: "Some of those nights are already booked. Pick dates around the booking." };
   const overlapBlock = await db.calendarBlock.findFirst({ where: { listingId, startDate: { lt: end }, endDate: { gt: start } } });

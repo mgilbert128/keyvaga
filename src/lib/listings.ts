@@ -128,7 +128,7 @@ export function buildSearchWhere(f: SearchFilters): Prisma.ListingWhereInput {
         none: {
           checkIn: { lt: checkOut },
           checkOut: { gt: checkIn },
-          OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: f.now ?? new Date() } }],
+          OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: f.now ?? new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: f.now ?? new Date() } }],
         },
       },
       calendarBlocks: { none: { startDate: { lt: checkOut }, endDate: { gt: checkIn } } },

@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { BookingError, cancelBooking, startBooking } from "@/lib/bookings";
+import { BookingError, approveRequest, cancelBooking, endRequest, startBooking } from "@/lib/bookings";
 import { parseISODate } from "@/lib/dates";
 import { payoutOnboardingLink, payoutDashboardLink } from "@/lib/payouts";
 import { stripeConfigured } from "@/lib/stripe";
@@ -40,6 +40,48 @@ export async function reserve(formData: FormData) {
 }
 
 export type CancelState = { ok?: boolean; message?: string } | undefined;
+
+async function ownsBooking(bookingId: string, userId: string) {
+  const b = await db.booking.findUnique({ where: { id: bookingId }, select: { listing: { select: { ownerId: true } } } });
+  return Boolean(b && b.listing.ownerId === userId);
+}
+
+async function runRequest(fn: () => Promise<void>, okMessage: string, paths: string[]): Promise<CancelState> {
+  try {
+    await fn();
+  } catch (e) {
+    if (e instanceof BookingError) return { message: e.message };
+    console.error("booking request action failed", e);
+    return { message: "Something went wrong. Please try again." };
+  }
+  for (const p of paths) revalidatePath(p);
+  return { ok: true, message: okMessage };
+}
+
+/** Owner accepts a request to book. */
+export async function acceptRequestAction(bookingId: string): Promise<CancelState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!(await ownsBooking(bookingId, user.id))) return { message: "Booking not found." };
+  return runRequest(() => approveRequest(bookingId), "Accepted. The guest has been charged and the booking is confirmed.", [`/owner/bookings/${bookingId}`, "/owner/bookings"]);
+}
+
+/** Owner declines a request to book. */
+export async function declineRequestAction(bookingId: string): Promise<CancelState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!(await ownsBooking(bookingId, user.id))) return { message: "Booking not found." };
+  return runRequest(() => endRequest(bookingId, "declined"), "Declined. The guest wasn't charged and the dates are open again.", [`/owner/bookings/${bookingId}`, "/owner/bookings"]);
+}
+
+/** Guest withdraws their request before the owner answers. */
+export async function withdrawRequestAction(bookingId: string): Promise<CancelState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const b = await db.booking.findUnique({ where: { id: bookingId }, select: { guestId: true } });
+  if (!b || b.guestId !== user.id) return { message: "Booking not found." };
+  return runRequest(() => endRequest(bookingId, "withdrawn"), "Request withdrawn. Your card won't be charged.", [`/trips/${bookingId}`, "/trips"]);
+}
 
 export async function guestCancel(bookingId: string): Promise<CancelState> {
   const user = await getCurrentUser();

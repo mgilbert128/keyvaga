@@ -109,7 +109,7 @@ export async function exportFeed(token: string): Promise<string | null> {
   const today = todayIn(listing.timeZone);
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
-      where: { listingId: listing.id, checkOut: { gt: addDays(today, -30) }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }] },
+      where: { listingId: listing.id, checkOut: { gt: addDays(today, -30) }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: new Date() } }] },
       select: { id: true, checkIn: true, checkOut: true },
     }),
     db.calendarBlock.findMany({ where: { listingId: listing.id, source: "OWNER", endDate: { gt: addDays(today, -30) } }, select: { id: true, startDate: true, endDate: true } }),

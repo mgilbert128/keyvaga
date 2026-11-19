@@ -7,7 +7,7 @@ export async function getPublishedStay(slug: string) {
     where: { slug, status: "PUBLISHED" },
     select: {
       id: true, slug: true, title: true, summary: true, description: true, propertyType: true,
-      city: true, region: true, bedrooms: true, bathrooms: true, maxGuests: true,
+      city: true, region: true, postalCode: true, latitude: true, longitude: true, bedrooms: true, bathrooms: true, maxGuests: true,
       nightlyRateCents: true, cleaningFeeCents: true, minNights: true, instantBook: true, cancellationPolicy: true, permitRequired: true, permitNumber: true,
       hostingRole: true,
       documents: { select: { id: true, type: true, status: true, expiresAt: true, createdAt: true } },
@@ -33,7 +33,7 @@ export async function getUnavailableNights(listingId: string, from: Date, days =
         listingId,
         checkOut: { gt: from },
         checkIn: { lt: until },
-        OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }],
+        OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: new Date() } }],
       },
       select: { checkIn: true, checkOut: true },
     }),

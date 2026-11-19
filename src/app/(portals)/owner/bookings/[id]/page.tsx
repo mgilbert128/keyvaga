@@ -8,7 +8,8 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
-import { ownerCancel } from "@/app/actions/bookings";
+import { acceptRequestAction, declineRequestAction, ownerCancel } from "@/app/actions/bookings";
+import { RequestDecision } from "@/components/booking/RequestDecision";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
@@ -35,7 +36,7 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
   const { id } = await params;
   await connection();
   const user = await requirePortal("owner", `/owner/bookings/${id}`);
-  const b = await db.booking.findUnique({ where: { id }, include: { paymentRequests: { orderBy: { createdAt: "desc" } }, listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
+  const b = await db.booking.findUnique({ where: { id }, include: { paymentRequests: { orderBy: { createdAt: "desc" } }, listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true, timeZone: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
   if (!b || b.listing.ownerId !== user.id || b.status === "PENDING_PAYMENT") notFound();
   const today = todayIn();
   const canCancel = b.status === "CONFIRMED" && b.checkOut > today;
@@ -50,7 +51,21 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
           <BookingStatusChip status={b.status} checkIn={b.checkIn} checkOut={b.checkOut} today={today} />
         </div>
         <p className="text-ink-muted">Guest: {b.guest.name} · {b.guest.email} · Booking {b.id.slice(-8).toUpperCase()}</p>
-        {b.status === "CANCELLED" ? (
+        {b.status === "REQUESTED" ? (
+          <Card className="flex flex-col gap-3 border-brand">
+            <h2 className="text-xl font-bold">{b.guest.name.split(" ")[0]} is requesting to book</h2>
+            <p className="text-ink-muted">
+              Please answer by {b.holdExpiresAt?.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: b.listing.timeZone, timeZoneName: "short" }) ?? "the deadline"}.
+              Their card is authorized for {formatCents(b.dueNowCents)}; accepting charges it and confirms the booking. If you don&apos;t answer in time, the request expires and they aren&apos;t charged.
+            </p>
+            <RequestDecision accept={acceptRequestAction.bind(null, b.id)} decline={declineRequestAction.bind(null, b.id)} guestFirst={b.guest.name.split(" ")[0] ?? "the guest"} />
+          </Card>
+        ) : null}
+        {b.status === "CANCELLED" && (b.cancelledBy === "declined" || b.cancelledBy === "withdrawn" || b.cancelledBy === "expired") ? (
+          <p role="status" className="rounded-control bg-soft px-4 py-3 font-medium text-on-soft">
+            {b.cancelledBy === "declined" ? "You declined this request. The guest wasn't charged." : b.cancelledBy === "withdrawn" ? "The guest withdrew this request before you answered." : "This request expired before it was answered. The guest wasn't charged."}
+          </p>
+        ) : b.status === "CANCELLED" ? (
           <p role="status" className="rounded-control bg-warn-soft px-4 py-3 font-medium text-on-warn-soft">
             {b.cancelledBy === "owner" ? "You cancelled this booking and the guest was refunded in full." : `The guest cancelled. ${b.payoutDueCents > 0 ? `You'll still receive ${formatCents(b.payoutDueCents)} under your cancellation policy.` : "No payout is due."}`}
           </p>

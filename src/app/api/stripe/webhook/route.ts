@@ -24,6 +24,7 @@ export async function POST(request: Request) {
   try {
     switch (event.type) {
       case "payment_intent.succeeded":
+      case "payment_intent.amount_capturable_updated": // request to book: card authorized, waiting for the owner
       case "payment_intent.payment_failed":
       case "payment_intent.canceled":
         if ((event.data.object as Stripe.PaymentIntent).metadata?.paymentRequestId) await syncRequestPayment(event.data.object as Stripe.PaymentIntent);

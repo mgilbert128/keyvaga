@@ -33,6 +33,7 @@ export type EditableListing = {
   houseRules: string;
   amenities: string[];
   cancellationPolicy: string;
+  instantBook: boolean;
   checkInInstructions: string;
   accessReleaseDays: number;
   guidebook: string;
@@ -107,6 +108,21 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
           <Field label="Cleaning fee ($)" id="cleaningFee" inputMode="decimal" placeholder="95" defaultValue={listing.cleaningFee} error={e.cleaningFee} hint="Charged once per stay." />
           <Field label="Minimum stay (nights)" id="minNights" type="number" min={1} max={365} inputMode="numeric" defaultValue={listing.minNights} error={e.minNights} />
         </div>
+      </Section>
+
+      <Section title="How guests book" description="Instant book confirms right away. With request to book, you accept or decline each request within 24 hours; the guest's card is only charged if you accept.">
+        <fieldset className="flex flex-col gap-2">
+          <legend className="sr-only">How guests book</legend>
+          {([["INSTANT", "Instant book", "Guests book and pay right away. Best for most listings."], ["REQUEST", "Request to book", "You review each request and accept or decline within 24 hours."]] as const).map(([value, label, hint]) => (
+            <label key={value} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-control border border-line px-4 py-3 has-[:checked]:border-brand has-[:checked]:bg-soft">
+              <input type="radio" name="bookingMode" value={value} defaultChecked={(value === "INSTANT") === listing.instantBook} className="mt-1 h-5 w-5 accent-[var(--kv-brand)]" />
+              <span className="flex flex-col">
+                <span className="font-semibold">{label}</span>
+                <span className="text-sm text-ink-muted">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </Section>
 
       <Section title="Cancellation policy" description="What guests get back if they cancel. Guests always get a full refund if you cancel.">

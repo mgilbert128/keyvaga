@@ -27,7 +27,7 @@ async function Trips() {
   const user = await requirePortal("guest", "/trips");
   const today = todayIn();
   const bookings = await db.booking.findMany({
-    where: { guestId: user.id, OR: [{ status: { in: ["CONFIRMED", "CANCELLED"] } }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }], NOT: { cancelledBy: "system" } },
+    where: { guestId: user.id, OR: [{ status: { in: ["CONFIRMED", "CANCELLED", "REQUESTED"] } }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }], NOT: { cancelledBy: "system" } },
     orderBy: { checkIn: "asc" },
     include: { listing: { select: { title: true, city: true, region: true, photos: { orderBy: { position: "asc" }, take: 1, select: { url: true } } } } },
   });

@@ -5,7 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { buttonClass } from "@/components/ui/Button";
 
-type Props = { publishableKey: string; clientSecret: string; bookingId: string; amountLabel: string; holdExpiresAt: string | null; returnPath?: string };
+type Props = { publishableKey: string; clientSecret: string; bookingId: string; amountLabel: string; holdExpiresAt: string | null; returnPath?: string; submitLabel?: string };
 
 /** Card details are entered in Stripe's secure fields; Keyvaga's servers never see card numbers. */
 export function PaymentForm(props: Props) {
@@ -26,7 +26,7 @@ export function PaymentForm(props: Props) {
   );
 }
 
-function Inner({ bookingId, amountLabel, holdExpiresAt, returnPath }: Props) {
+function Inner({ bookingId, amountLabel, holdExpiresAt, returnPath, submitLabel }: Props) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState("");
@@ -52,7 +52,7 @@ function Inner({ bookingId, amountLabel, holdExpiresAt, returnPath }: Props) {
       <PaymentElement options={{ layout: "tabs" }} />
       {error ? <p role="alert" className="font-medium text-danger">{error}</p> : null}
       <button type="submit" disabled={!stripe || busy} className={buttonClass("primary", "w-full")}>
-        {busy ? "Processing…" : `Pay ${amountLabel}`}
+        {busy ? "Processing…" : (submitLabel ?? `Pay ${amountLabel}`)}
       </button>
       {holdTime ? <p className="text-center text-sm text-ink-muted">We&apos;re holding these dates for you until {holdTime}.</p> : null}
     </form>

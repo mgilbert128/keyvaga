@@ -30,7 +30,7 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
   const user = await requireUser(`/book/${id}`);
   const b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true } } } });
   if (!b || b.guestId !== user.id) notFound();
-  if (b.status === "CONFIRMED") redirect(`/trips/${b.id}`);
+  if (b.status === "CONFIRMED" || b.status === "REQUESTED") redirect(`/trips/${b.id}`);
 
   const expired = b.status !== "PENDING_PAYMENT" || (b.holdExpiresAt && b.holdExpiresAt < new Date());
   const clientSecret = expired ? null : await getCheckoutSecret(b.id).catch(() => null);
@@ -40,7 +40,10 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
   return (
     <div className="grid grid-cols-1 gap-8 pt-6 sm:pt-10 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col gap-6">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Confirm and pay</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{b.isRequest ? "Request to book" : "Confirm and pay"}</h1>
+        {b.isRequest ? (
+          <p className="rounded-control bg-soft px-4 py-3 text-on-soft">This host reviews each booking. Your card is authorized now but <strong>only charged if they accept</strong>, within 24 hours. If they decline or don&apos;t answer, the hold is released.</p>
+        ) : null}
         {expired ? (
           <Card className="flex flex-col items-start gap-4">
             <p className="font-semibold">This reservation hold has expired, so the dates were released.</p>
@@ -53,13 +56,13 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
         ) : (
           <Card>
             <h2 className="mb-4 text-xl font-bold">Payment</h2>
-            <PaymentForm publishableKey={publishableKey} clientSecret={clientSecret} bookingId={b.id} amountLabel={formatCents(b.dueNowCents)} holdExpiresAt={b.holdExpiresAt?.toISOString() ?? null} />
+            <PaymentForm publishableKey={publishableKey} clientSecret={clientSecret} bookingId={b.id} amountLabel={formatCents(b.dueNowCents)} holdExpiresAt={b.holdExpiresAt?.toISOString() ?? null} submitLabel={b.isRequest ? `Send request (${formatCents(b.dueNowCents)} hold)` : undefined} />
           </Card>
         )}
         <Card className="flex flex-col gap-2 text-sm">
           <h2 className="text-lg font-bold">Cancellation policy: {POLICY_INFO[b.cancellationPolicy].label}</h2>
           <p className="text-ink-muted">{POLICY_INFO[b.cancellationPolicy].summary}</p>
-          <p className="text-ink-muted">By paying you agree to the house rules, Keyvaga&apos;s <a href="/terms" target="_blank" className="text-brand underline underline-offset-4">Terms of Service</a> and the <a href="/cancellation-policy" target="_blank" className="text-brand underline underline-offset-4">Cancellation Policy</a>. Your booking is confirmed instantly.</p>
+          <p className="text-ink-muted">By paying you agree to the house rules, Keyvaga&apos;s <a href="/terms" target="_blank" className="text-brand underline underline-offset-4">Terms of Service</a> and the <a href="/cancellation-policy" target="_blank" className="text-brand underline underline-offset-4">Cancellation Policy</a>. {b.isRequest ? "Your booking is confirmed once the host accepts." : "Your booking is confirmed instantly."}</p>
         </Card>
       </div>
 

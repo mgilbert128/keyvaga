@@ -55,6 +55,60 @@ export function notifyBookingConfirmed(bookingId: string) {
   });
 }
 
+/** Request to book: the guest's card is authorized; the owner has until holdExpiresAt to accept. */
+export function notifyBookingRequested(bookingId: string) {
+  return safe(async () => {
+    const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { guest: true, listing: { include: { owner: true } } } });
+    const deadline = b.holdExpiresAt ? b.holdExpiresAt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: b.listing.timeZone, timeZoneName: "short" }) : "within 24 hours";
+    const when = `${day.format(b.checkIn)} – ${day.format(b.checkOut)}`;
+    await sendEmail(b.listing.owner.email, {
+      subject: `Booking request: ${b.listing.title}, ${when}`,
+      heading: `${first(b.guest.name)} wants to book ${b.listing.title}`,
+      paragraphs: [`Please accept or decline by ${deadline}. If you don't answer by then, the request expires and the guest isn't charged.`, "The dates are held for this guest until you answer."],
+      details: [
+        { label: "Dates", value: when },
+        { label: "Guests", value: String(b.guests) },
+        { label: "Your payout", value: formatCents(b.hostPayoutCents) },
+      ],
+      button: { label: "Review the request", url: `${siteUrl()}/owner/bookings/${b.id}` },
+    });
+    await sendEmail(b.guest.email, {
+      subject: `Request sent: ${b.listing.title}`,
+      heading: "Your request is on its way",
+      paragraphs: [
+        `${first(b.listing.owner.name)} has until ${deadline} to accept your request for ${b.listing.title} (${when}).`,
+        `Your card is authorized for ${formatCents(b.dueNowCents)} but won't be charged unless your host accepts. If they decline or don't answer, the hold is released.`,
+      ],
+      button: { label: "View your request", url: `${siteUrl()}/trips/${b.id}` },
+    });
+  });
+}
+
+/** A request to book ended without a booking: declined by the owner, withdrawn by the guest, or expired. */
+export function notifyRequestEnded(bookingId: string, reason: "declined" | "withdrawn" | "expired") {
+  return safe(async () => {
+    const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { guest: true, listing: { include: { owner: true } } } });
+    const when = `${day.format(b.checkIn)} – ${day.format(b.checkOut)}`;
+    if (reason !== "withdrawn") {
+      await sendEmail(b.guest.email, {
+        subject: `Request ${reason === "declined" ? "declined" : "expired"}: ${b.listing.title}`,
+        heading: reason === "declined" ? "Your host couldn't accept this request" : "Your request expired",
+        paragraphs: [
+          reason === "declined" ? `${first(b.listing.owner.name)} wasn't able to accept your request for ${b.listing.title} (${when}).` : `${first(b.listing.owner.name)} didn't answer your request for ${b.listing.title} (${when}) in time.`,
+          "You weren't charged. The hold on your card is released, which can take a few days to disappear from your statement.",
+        ],
+        button: { label: "Find another stay", url: `${siteUrl()}/search` },
+      });
+    }
+    await sendEmail(b.listing.owner.email, {
+      subject: `Request ${reason}: ${b.listing.title}, ${when}`,
+      heading: reason === "withdrawn" ? `${first(b.guest.name)} withdrew their request` : reason === "declined" ? "You declined a request" : "A booking request expired",
+      paragraphs: [`The request for ${b.listing.title} (${when}) ended without a booking, and the dates are open again.`],
+      button: { label: "View bookings", url: `${siteUrl()}/owner/bookings` },
+    });
+  });
+}
+
 export function notifyBookingCancelled(bookingId: string, by: "guest" | "owner", refundCents: number) {
   return safe(async () => {
     const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { guest: true, listing: { include: { owner: true } } } });

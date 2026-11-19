@@ -10,32 +10,42 @@ import { payOutDueRequests, settleRequestsForCancelledBooking } from "@/lib/paym
 import type { Prisma } from "@/generated/prisma/client";
 import { autoRequestTurnover, cancelJobsForBooking } from "@/lib/jobs";
 import { sendDueAutoMessages } from "@/lib/auto-messages-server";
-import { notifyBookingCancelled, notifyBookingConfirmed } from "@/lib/notify";
+import { notifyBookingCancelled, notifyBookingConfirmed, notifyBookingRequested, notifyRequestEnded } from "@/lib/notify";
 import { issueBookingCodes, revokeBookingCodes } from "@/lib/locks";
 import { refreshStaleFeeds } from "@/lib/calendar-sync";
 import { pushBookingToHospitable, refreshHospitableIfStale, releaseBookingInHospitable } from "@/lib/hospitable";
 
 /** Bookings that occupy dates: confirmed ones, and holds that haven't expired yet. */
 export function occupyingBookings(now = new Date()): Prisma.BookingWhereInput {
-  return { OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: now } }] };
+  return { OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: now } }, { status: "REQUESTED", holdExpiresAt: { gt: now } }] };
 }
 
 export class BookingError extends Error {}
 
-/** Releases dates held by guests who started checkout but didn't pay in time. */
+/** How long an owner has to accept a request to book. Card authorizations last 7 days, so this stays well inside. */
+export const REQUEST_HOURS = 24;
+
+/** Releases dates held by guests who started checkout but didn't pay in time, and requests the owner didn't answer. */
 export async function expireStaleHolds(listingId?: string) {
   const stale = await db.booking.findMany({
-    where: { status: "PENDING_PAYMENT", holdExpiresAt: { lte: new Date() }, ...(listingId ? { listingId } : {}) },
+    where: { status: { in: ["PENDING_PAYMENT", "REQUESTED"] }, holdExpiresAt: { lte: new Date() }, ...(listingId ? { listingId } : {}) },
     include: { payments: { where: { status: "PENDING" } } },
   });
   for (const b of stale) {
-    await db.booking.update({ where: { id: b.id }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelledBy: "system" } });
+    const wasRequest = b.status === "REQUESTED";
+    const { count } = await db.booking.updateMany({
+      where: { id: b.id, status: b.status },
+      data: { status: "CANCELLED", cancelledAt: new Date(), cancelledBy: wasRequest ? "expired" : "system" },
+    });
+    if (!count) continue;
     for (const p of b.payments) {
       if (p.stripeId?.startsWith("pi_")) {
-        await stripe().paymentIntents.cancel(p.stripeId).catch(() => {}); // already paid/cancelled: sync handles it
+        // Releases the card hold (or abandons the unpaid checkout). Already paid/cancelled: sync handles it.
+        await stripe().paymentIntents.cancel(p.stripeId).catch(() => {});
       }
       await db.payment.update({ where: { id: p.id }, data: { status: "CANCELED" } }).catch(() => {});
     }
+    if (wasRequest) await notifyRequestEnded(b.id, "expired");
   }
   return stale.length;
 }
@@ -87,6 +97,7 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         guests: input.guests,
         status: "PENDING_PAYMENT",
         holdExpiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
+        isRequest: !listing.instantBook,
         nightlyCents: quote.nightsCents - quote.discountCents, // nights after any weekly/monthly discount
         cleaningCents: quote.cleaningCents,
         serviceCents: amounts.guestFeeCents,
@@ -121,6 +132,8 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         // Save the card so the balance can be charged automatically later.
         ...(schedule.kind === "split" ? { setup_future_usage: "off_session" as const } : {}),
         automatic_payment_methods: { enabled: true },
+        // Request to book: only authorize the card now; it's charged when the owner accepts.
+        ...(listing.instantBook ? {} : { capture_method: "manual" as const }),
         description: `Keyvaga ${kind === "DEPOSIT" ? "deposit" : "payment"}: ${listing.title}, ${toISODate(input.checkIn)} to ${toISODate(input.checkOut)}`,
         metadata: { bookingId: booking.id, kind },
         transfer_group: booking.id,
@@ -153,6 +166,32 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
   if (!payment) return null;
   const booking = payment.booking;
 
+  if (pi.status === "requires_capture") {
+    // Request to book: the card is authorized. Hand the dates to the owner to accept within REQUEST_HOURS.
+    if (booking.status === "REQUESTED") return "requested";
+    if (booking.status === "PENDING_PAYMENT" || (booking.status === "CANCELLED" && booking.cancelledBy === "system")) {
+      try {
+        const { count } = await db.booking.updateMany({
+          where: { id: booking.id, status: booking.status },
+          data: {
+            status: "REQUESTED",
+            holdExpiresAt: new Date(Date.now() + REQUEST_HOURS * 3_600_000),
+            cancelledAt: null,
+            cancelledBy: null,
+            stripePaymentMethodId: idOf(pi.payment_method),
+          },
+        });
+        if (count) await notifyBookingRequested(booking.id);
+        return "requested";
+      } catch {
+        // The checkout hold lapsed and someone else took the dates: release the card hold.
+        await stripe().paymentIntents.cancel(pi.id).catch(() => {});
+        await db.payment.update({ where: { id: payment.id }, data: { status: "CANCELED" } });
+        return "refunded_conflict";
+      }
+    }
+    return booking.status.toLowerCase();
+  }
   if (pi.status === "succeeded") {
     if (payment.status !== "SUCCEEDED") {
       await db.payment.update({ where: { id: payment.id }, data: { status: "SUCCEEDED", stripeChargeId: idOf(pi.latest_charge), failureMessage: null } });
@@ -162,7 +201,7 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
       return "balance_paid";
     }
     if (booking.status === "CONFIRMED") return "confirmed";
-    if (booking.status === "PENDING_PAYMENT" || (booking.status === "CANCELLED" && booking.cancelledBy === "system")) {
+    if (booking.status === "PENDING_PAYMENT" || booking.status === "REQUESTED" || (booking.status === "CANCELLED" && booking.cancelledBy === "system")) {
       try {
         // Conditional update: only the first sync (page return or webhook) confirms, so follow-ups run once.
         const { count } = await db.booking.updateMany({
@@ -207,6 +246,40 @@ export async function syncPaymentIntent(piOrId: string | Stripe.PaymentIntent) {
     await db.payment.update({ where: { id: payment.id }, data: { failureMessage: pi.last_payment_error.message ?? "Payment failed" } });
   }
   return pi.status;
+}
+
+/** The owner accepts a request to book: charge the authorized card, which confirms the booking. */
+export async function approveRequest(bookingId: string) {
+  const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { payments: { where: { status: "PENDING" } } } });
+  if (b.status !== "REQUESTED") throw new BookingError("This request has already been answered.");
+  if (!b.holdExpiresAt || b.holdExpiresAt <= new Date()) {
+    await expireStaleHolds(b.listingId);
+    throw new BookingError("This request expired, so the dates were released and the guest wasn't charged.");
+  }
+  const p = b.payments.find((x) => x.stripeId?.startsWith("pi_"));
+  if (!p) throw new BookingError("The guest's payment couldn't be found. Please decline and ask them to book again.");
+  try {
+    const pi = await stripe().paymentIntents.capture(p.stripeId!, {}, { idempotencyKey: `approve-${b.id}` });
+    await syncPaymentIntent(pi);
+  } catch (e) {
+    console.error("capture failed", e);
+    const pi = await stripe().paymentIntents.retrieve(p.stripeId!).catch(() => null);
+    if (pi?.status === "succeeded") { await syncPaymentIntent(pi); return; }
+    throw new BookingError("The guest's card couldn't be charged. Please decline the request; they can book again with another card.");
+  }
+}
+
+/** The owner declines, or the guest withdraws, a request: release the card hold and free the dates. */
+export async function endRequest(bookingId: string, reason: "declined" | "withdrawn") {
+  const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { payments: { where: { status: "PENDING" } } } });
+  if (b.status !== "REQUESTED") throw new BookingError("This request has already been answered.");
+  const { count } = await db.booking.updateMany({ where: { id: b.id, status: "REQUESTED" }, data: { status: "CANCELLED", cancelledAt: new Date(), cancelledBy: reason } });
+  if (!count) throw new BookingError("This request has already been answered.");
+  for (const p of b.payments) {
+    if (p.stripeId?.startsWith("pi_")) await stripe().paymentIntents.cancel(p.stripeId).catch((e) => console.error("release card hold failed", e));
+    await db.payment.update({ where: { id: p.id }, data: { status: "CANCELED" } }).catch(() => {});
+  }
+  await notifyRequestEnded(b.id, reason);
 }
 
 async function refundPaymentIntent(bookingId: string, paymentIntentId: string, amountCents: number, reason: string) {

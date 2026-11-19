@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { after, connection } from "next/server";
 import { refreshStaleFeeds } from "@/lib/calendar-sync";
 import { refreshHospitableIfStale } from "@/lib/hospitable";
+import { approximateLocation } from "@/lib/geocode";
+import { AreaMap } from "@/components/listings/AreaMap";
 import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -57,6 +59,13 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   // Keep Airbnb/Vrbo-synced dates fresh for the next visitor (runs after this response is sent).
   after(() => refreshStaleFeeds(stay.id, 60).catch(() => {}));
   after(() => refreshHospitableIfStale(stay.id, 60).catch(() => {}));
+  // Listings saved before the map existed: look up their approximate area once, in the background.
+  if (stay.latitude == null) {
+    after(async () => {
+      const loc = await approximateLocation({ postalCode: stay.postalCode, city: stay.city, region: stay.region });
+      if (loc) await db.listing.update({ where: { id: stay.id }, data: loc }).catch(() => {});
+    });
+  }
   const today = todayIn();
   const [unavailable, reviewData, viewer] = await Promise.all([getUnavailableNights(stay.id, today), getStayReviews(stay.id), getCurrentUser()]);
   const verification = listingVerification(stay, today);
@@ -152,6 +161,14 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             />
           </section>
 
+          {stay.latitude != null && stay.longitude != null ? (
+            <section aria-labelledby="where" className="flex flex-col gap-4 border-t border-line pt-8">
+              <h2 id="where" className="text-2xl font-bold">Where you&apos;ll be</h2>
+              <p className="text-ink-muted">{stay.city}, {stay.region}</p>
+              <AreaMap latitude={stay.latitude} longitude={stay.longitude} label={`${stay.city}, ${stay.region}`} />
+            </section>
+          ) : null}
+
           <section aria-labelledby="rules" className="flex flex-col gap-4 border-t border-line pt-8">
             <h2 id="rules" className="text-2xl font-bold">House rules</h2>
             <ul className="flex flex-col gap-2">
@@ -204,7 +221,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                 <><span className="text-lg font-medium">From</span> {formatCents(lowestRateCents({ ...stay, seasons: stay.seasonalRates, dateRates: stay.dateRates }, today))} <span className="text-lg font-medium">/ night</span></>
               )}
             </h2>
-            {stay.instantBook ? <Chip className="self-start">Instant book</Chip> : null}
+            {stay.instantBook ? <Chip className="self-start">Instant book</Chip> : <Chip className="self-start">Host approves within 24 hours</Chip>}
             <form method="get" className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-2">
@@ -284,13 +301,13 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                 <input type="hidden" name="checkIn" value={toISODate(checkIn)} />
                 <input type="hidden" name="checkOut" value={toISODate(checkOut)} />
                 <input type="hidden" name="guests" value={guests ?? 1} />
-                <button type="submit" className={buttonClass("primary", "w-full")}>Reserve</button>
+                <button type="submit" className={buttonClass("primary", "w-full")}>{stay.instantBook ? "Reserve" : "Request to book"}</button>
               </form>
             ) : (
-              <button type="button" disabled className={buttonClass("primary", "w-full")} aria-describedby="book-hint">Reserve</button>
+              <button type="button" disabled className={buttonClass("primary", "w-full")} aria-describedby="book-hint">{stay.instantBook ? "Reserve" : "Request to book"}</button>
             )}
             <p id="book-hint" className="text-center text-sm text-ink-muted">
-              {quote?.ok && !quoteError ? "You won't be charged until you confirm payment." : "Choose dates and click Check price to book."}
+              {quote?.ok && !quoteError ? (stay.instantBook ? "You won't be charged until you confirm payment." : "You'll only be charged if the host accepts.") : "Choose dates and click Check price to book."}
             </p>
             <div className="border-t border-line pt-4 text-sm">
               <p className="font-semibold">Cancellation: {POLICY_INFO[stay.cancellationPolicy].label}</p>

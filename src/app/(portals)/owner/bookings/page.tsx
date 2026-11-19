@@ -9,6 +9,7 @@ import { ownerNav } from "@/components/layout/portal-nav";
 import { BookingStatusChip } from "@/components/booking/BookingStatus";
 import { formatCents } from "@/lib/money";
 import { todayIn } from "@/lib/dates";
+import { expireStaleHolds } from "@/lib/bookings";
 
 export const metadata: Metadata = { title: "Bookings" };
 const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -25,13 +26,15 @@ async function Bookings() {
   await connection();
   const user = await requirePortal("owner", "/owner/bookings");
   const today = todayIn();
+  await expireStaleHolds(); // unanswered requests past their deadline
   const bookings = await db.booking.findMany({
-    where: { listing: { ownerId: user.id }, status: { in: ["CONFIRMED", "CANCELLED"] }, NOT: { cancelledBy: "system" } },
+    where: { listing: { ownerId: user.id }, status: { in: ["CONFIRMED", "CANCELLED", "REQUESTED"] }, NOT: { cancelledBy: "system" } },
     orderBy: { checkIn: "asc" },
     include: { listing: { select: { title: true } }, guest: { select: { name: true } } },
   });
+  const requests = bookings.filter((b) => b.status === "REQUESTED");
   const upcoming = bookings.filter((b) => b.status === "CONFIRMED" && b.checkOut > today);
-  const other = bookings.filter((b) => !(b.status === "CONFIRMED" && b.checkOut > today)).reverse();
+  const other = bookings.filter((b) => b.status !== "REQUESTED" && !(b.status === "CONFIRMED" && b.checkOut > today)).reverse();
 
   const table = (title: string, rows: typeof bookings) => (
     <section className="flex flex-col gap-3">
@@ -60,6 +63,7 @@ async function Bookings() {
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/bookings")}>
       <div className="flex flex-col gap-10 pt-6 sm:pt-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Bookings</h1>
+        {requests.length ? table("Requests to answer", requests) : null}
         {table("Upcoming", upcoming)}
         {table("Past and cancelled", other)}
       </div>
