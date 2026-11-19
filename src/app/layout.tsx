@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { AssistantWidget } from "@/components/assistant/AssistantWidget";
 import { assistantConfigured } from "@/lib/assistant/client";
 import { ModeTransitionProvider } from "@/components/mode/ModeTransition";
@@ -35,6 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <PreviewBanner />
         <ModeTransitionProvider>{children}</ModeTransitionProvider>
         {assistantConfigured() ? <AssistantWidget /> : null}
+        {/* Vercel Web Analytics (cookie-free page views). Turn on under the project's Analytics tab in Vercel. */}
+        <Script id="vercel-analytics-queue" strategy="afterInteractive">{"window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };"}</Script>
+        <Script src="/_vercel/insights/script.js" strategy="afterInteractive" />
       </body>
     </html>
   );

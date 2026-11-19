@@ -18,6 +18,11 @@ export type SearchFilters = {
   bedrooms?: number;
   types?: PropertyType[];
   amenities?: string[];
+  /** Complex slug (from a complex page's "search these dates" link). */
+  complex?: string;
+  /** Exact town + state (destination pages). */
+  city?: string;
+  region?: string;
   sort?: SortKey;
   /** For tests: the moment used to decide whether checkout holds have expired. */
   now?: Date;

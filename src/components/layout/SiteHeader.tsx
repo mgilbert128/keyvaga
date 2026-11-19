@@ -34,6 +34,7 @@ export function SiteFooter() {
         <p>© {year} Keyvaga LLC. Your key to the ultimate vacation getaway.</p>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-2">
           <Link href="/search" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Stays</Link>
+          <Link href="/destinations" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Destinations</Link>
           <Link href="/list-your-property" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">List your property</Link>
           <Link href="/signup?intent=PROVIDER" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Offer your services</Link>
           <Link href="/integrations" className="inline-flex min-h-11 items-center px-2 hover:text-white hover:underline underline-offset-4 focus-visible:outline-mist">Integrations</Link>

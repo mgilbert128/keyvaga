@@ -37,6 +37,7 @@ async function Payouts({ searchParams }: { searchParams: PageProps<"/owner/payou
   ]);
   const upcomingTotal = upcoming.reduce((s, b) => s + b.payoutDueCents, 0);
   const error = typeof sp.error === "string" ? sp.error : null;
+  const thisYear = new Date().getUTCFullYear();
 
   return (
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/payouts")}>
@@ -78,6 +79,18 @@ async function Payouts({ searchParams }: { searchParams: PageProps<"/owner/payou
               ))}
             </ul>
           )}
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-xl font-bold">Earnings report</h2>
+          <p className="text-ink-muted">Download a spreadsheet of every booking and paid extra for the year: rent, cleaning, Keyvaga&apos;s fee, lodging tax for you to remit, and your payout. Handy for your accountant.</p>
+          <div className="flex flex-wrap gap-3">
+            {[thisYear, thisYear - 1].map((y) => (
+              <a key={y} href={`/owner/payouts/report.csv?year=${y}`} className="inline-flex min-h-11 items-center rounded-control border border-line-strong px-4 font-semibold hover:border-brand" download>
+                Download {y} (CSV)
+              </a>
+            ))}
+          </div>
         </Card>
 
         <Card className="flex flex-col gap-3">

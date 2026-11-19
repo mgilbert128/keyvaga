@@ -34,6 +34,9 @@ export type EditableListing = {
   amenities: string[];
   cancellationPolicy: string;
   instantBook: boolean;
+  complexName: string;
+  /** Building names other owners already used in this town (suggestions). */
+  complexSuggestions?: string[];
   checkInInstructions: string;
   accessReleaseDays: number;
   guidebook: string;
@@ -92,6 +95,19 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
           <Field label="State" id="region" autoComplete="address-level1" defaultValue={listing.region} error={e.region} placeholder="e.g. WI" />
           <Field label="ZIP code" id="postalCode" autoComplete="postal-code" inputMode="numeric" defaultValue={listing.postalCode} error={e.postalCode} />
         </div>
+        <Field
+          label="Condo building or resort (optional)"
+          id="complexName"
+          list="complex-suggestions"
+          autoComplete="off"
+          placeholder="e.g. Crystal Shores West"
+          defaultValue={listing.complexName}
+          error={e.complexName}
+          hint="Guests can browse every Keyvaga unit in the same building. Pick an existing name if yours is listed."
+        />
+        <datalist id="complex-suggestions">
+          {(listing.complexSuggestions ?? []).map((n) => <option key={n} value={n} />)}
+        </datalist>
       </Section>
 
       <Section title="Rooms and guests">

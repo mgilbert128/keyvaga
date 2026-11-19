@@ -20,8 +20,13 @@ export function ListingCard({ listing, index, query }: { listing: ListingCardDat
           </Link>
         </h3>
         <p className="text-ink-muted">
-          {listing.city}, {listing.region} · Sleeps {listing.maxGuests} · {listing.bedrooms} bd
+          {listing.complex ? `${listing.complex.name} · ` : ""}{listing.city}, {listing.region} · Sleeps {listing.maxGuests} · {listing.bedrooms} bd
         </p>
+        {listing.rating ? (
+          <p className="mt-1 text-sm font-semibold" aria-label={`Rated ${listing.rating.average} out of 5 from ${listing.rating.count} review${listing.rating.count === 1 ? "" : "s"}`}>
+            <span aria-hidden="true" className="text-brand">★</span> {listing.rating.average.toFixed(1)} <span className="font-normal text-ink-muted">({listing.rating.count})</span>
+          </p>
+        ) : null}
         {listing.verified ? (
           <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-soft px-2.5 py-0.5 text-xs font-semibold text-on-soft" title="Keyvaga checked this host's ownership documents">
             <span aria-hidden="true">✓</span> Verified host

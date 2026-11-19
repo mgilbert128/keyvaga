@@ -27,6 +27,10 @@ export type ListingCardData = {
   coverAlt: string;
   /** Host documents approved by Keyvaga (shows a "Verified" tag). */
   verified?: boolean;
+  /** Average guest rating (1–5, one decimal) and how many reviews; absent with no reviews. */
+  rating?: { average: number; count: number };
+  /** Condo building or resort, when the owner named one. */
+  complex?: { name: string; slug: string };
 };
 
 export type CardPrice =
@@ -54,6 +58,8 @@ export const cardSelect = (today: Date) => ({
   hostingRole: true,
   permitRequired: true,
   documents: { select: { type: true, status: true, expiresAt: true, createdAt: true } },
+  reviews: { select: { rating: true } },
+  complex: { select: { name: true, slug: true } },
 }) satisfies Prisma.ListingSelect;
 
 type CardRow = Prisma.ListingGetPayload<{ select: ReturnType<typeof cardSelect> }>;
@@ -70,14 +76,15 @@ export function cardPrice(l: PriceInputs, today: Date, stay?: { checkIn: Date; c
 
 /** Builds card data from a row loaded with cardSelect(today). Pass the guest's dates to price that stay. */
 export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkOut: Date }): ListingCardData {
-  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, ...l } = row;
+  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, reviews, complex, ...l } = row;
+  const rating = reviews.length ? { average: Math.round((reviews.reduce((t, r) => t + r.rating, 0) / reviews.length) * 10) / 10, count: reviews.length } : undefined;
   const verified = listingVerification({ hostingRole, permitRequired, documents }, today).host !== null;
   const price = cardPrice(
     { nightlyRateCents: l.nightlyRateCents, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, seasons: seasonalRates, dateRates },
     today,
     stay,
   );
-  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified };
+  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified, rating, complex: complex ?? undefined };
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {
@@ -104,6 +111,8 @@ export function buildSearchWhere(f: SearchFilters): Prisma.ListingWhereInput {
   if (f.maxPriceCents !== undefined) and.push({ nightlyRateCents: { lte: f.maxPriceCents } });
   if (f.types?.length) and.push({ propertyType: { in: f.types } });
   if (f.amenities?.length) and.push({ amenities: { hasEvery: f.amenities } });
+  if (f.complex) and.push({ complex: { slug: f.complex } });
+  if (f.city && f.region) and.push({ city: { equals: f.city, mode: "insensitive" }, region: { equals: f.region, mode: "insensitive" } });
   if (f.where) {
     // Every word must match somewhere ("gulf shores, al" → "gulf" AND "shores" AND state AL).
     for (const t of destinationTerms(f.where)) {
@@ -115,6 +124,7 @@ export function buildSearchWhere(f: SearchFilters): Prisma.ListingWhereInput {
                 { city: { contains: t.text, mode: "insensitive" } },
                 { region: { contains: t.text, mode: "insensitive" } },
                 { title: { contains: t.text, mode: "insensitive" } },
+                { complex: { name: { contains: t.text, mode: "insensitive" } } },
               ],
             },
       );
@@ -168,4 +178,12 @@ export async function searchListings(f: SearchFilters): Promise<ListingCardData[
   if (maxPriceCents !== undefined) cards = cards.filter((c) => nightly(c) <= maxPriceCents);
   if (byPrice) cards = [...cards].sort((a, b) => (f.sort === "price_asc" ? nightly(a) - nightly(b) : nightly(b) - nightly(a)));
   return cards.slice(0, 60);
+}
+
+/** Every published listing in one place (destination and complex pages), as cards. */
+export async function listingCardsWhere(where: Prisma.ListingWhereInput, take = 60): Promise<ListingCardData[]> {
+  await connection();
+  const today = todayIn();
+  const rows = await db.listing.findMany({ where: { AND: [{ status: "PUBLISHED" }, where] }, select: cardSelect(today), orderBy: [{ featured: "desc" }, { publishedAt: "desc" }, { id: "asc" }], take });
+  return rows.map((r) => toCard(r, today));
 }

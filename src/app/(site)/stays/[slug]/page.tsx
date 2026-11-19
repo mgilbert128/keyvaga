@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { after, connection } from "next/server";
@@ -105,6 +106,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{stay.title}</h1>
           <p className="text-lg text-ink-muted">
             {reviewData.count ? <><span className="text-brand" aria-hidden="true">★</span> {reviewData.average!.toFixed(1)} ({reviewData.count} review{reviewData.count === 1 ? "" : "s"}) · </> : null}
+            {stay.complex ? <><Link href={`/complexes/${stay.complex.slug}`} className="font-medium text-brand underline underline-offset-4">{stay.complex.name}</Link> · </> : null}
             {stay.city}, {stay.region} · {propertyTypeLabel(stay.propertyType)}
           </p>
           <VerifiedBadges v={verification} />

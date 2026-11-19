@@ -1,13 +1,14 @@
 import { inputClass } from "@/components/ui/Field";
 import { buttonClass } from "@/components/ui/Button";
 
-type Defaults = { where?: string; checkIn?: string; checkOut?: string; guests?: string };
+type Defaults = { where?: string; checkIn?: string; checkOut?: string; guests?: string; complex?: string };
 
 /** Plain GET form: works without JavaScript and produces shareable search URLs. */
 export function StaySearchForm({ defaults = {}, variant = "card" }: { defaults?: Defaults; variant?: "card" | "hero" }) {
   const box = variant === "hero" ? "rounded-card bg-surface p-4 shadow-[0_18px_50px_-12px_rgba(18,47,58,0.45)] sm:p-5" : "rounded-card border border-line bg-surface p-6 sm:p-8";
   return (
     <form action="/search" method="get" role="search" aria-label="Search stays" className={box}>
+      {defaults.complex ? <input type="hidden" name="complex" value={defaults.complex} /> : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end">
         <div className="flex flex-col gap-2">
           <label htmlFor="where" className="text-sm font-semibold">Where</label>

@@ -12,6 +12,7 @@ import { slugify } from "@/lib/slug";
 import { documentsApproved, missingDocuments } from "@/lib/documents";
 import { todayIn } from "@/lib/dates";
 import { approximateLocation } from "@/lib/geocode";
+import { complexIdFor } from "@/lib/complexes";
 import { blobUploadAccess, deleteImage, deleteStored, describeBlob, statLocalFile, storageMode } from "@/lib/storage";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, isAllowedDuration, isAllowedVideoType, isVideoPathForListing } from "@/lib/video";
 
@@ -82,9 +83,12 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
   const placeChanged = v.city !== listing.city || v.region !== listing.region || v.postalCode !== listing.postalCode;
   const location = placeChanged || listing.latitude == null ? await approximateLocation({ postalCode: v.postalCode, city: v.city, region: v.region }) : null;
 
+  const complexId = await complexIdFor(v.complexName, v.city, v.region);
+
   await db.listing.update({
     where: { id },
     data: {
+      complexId,
       ...(location ? location : placeChanged ? { latitude: null, longitude: null } : {}),
       title: v.title,
       summary: v.summary,

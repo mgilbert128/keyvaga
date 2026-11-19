@@ -114,6 +114,9 @@ model Listing {
   currency            String             @default("USD") @db.Char(3)
   /// Instant book is the launch default; kept per listing so request-to-book can be added later.
   instantBook         Boolean            @default(true)
+  /// Condo building or resort this unit is in (shared page lists every Keyvaga unit there).
+  complexId           String?
+  complex             Complex?           @relation(fields: [complexId], references: [id], onDelete: SetNull)
   minNights           Int                @default(1)
   cancellationPolicy  CancellationPolicy @default(MODERATE)
   /// Friday and Saturday nights; null = same as nightlyRateCents.
@@ -196,6 +199,7 @@ model Listing {
 
   @@index([status, city])
   @@index([ownerId])
+  @@index([complexId])
 }
 
 /// A date range with its own nightly rate, e.g. summer or holidays. [startDate, endDate) like bookings.
@@ -1000,4 +1004,19 @@ model OwnerWaitlist {
 
   @@index([createdAt])
   @@index([email])
+}
+
+/// A condo building or resort (e.g. "Crystal Shores West"). Created when an owner names it on a listing.
+model Complex {
+  id          String    @id @default(cuid())
+  /// slugify(name + city + region), so the same building typed twice is one complex.
+  slug        String    @unique
+  name        String
+  city        String
+  region      String
+  description String    @default("")
+  createdAt   DateTime  @default(now())
+  listings    Listing[]
+
+  @@index([city, region])
 }

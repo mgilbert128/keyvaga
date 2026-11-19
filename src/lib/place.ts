@@ -76,3 +76,9 @@ export function stateCode(region: string): string | null {
   if (/^\p{L}{2}$/u.test(v)) return US_STATES[v.toUpperCase()] ? v.toUpperCase() : null;
   return NAME_TO_CODE.get(v.toLowerCase().replace(/\s+/g, " ")) ?? null;
 }
+
+/** Ways a state may be stored on a listing ("AL" and "Alabama"), for exact-match filters. */
+export function regionVariants(region: string): string[] {
+  const code = stateCode(region);
+  return code ? [code, US_STATES[code]!] : [region.trim()];
+}

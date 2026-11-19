@@ -10,6 +10,7 @@ import { StatusActions } from "@/components/owner/StatusActions";
 import { DeleteListing } from "@/components/owner/DeleteListing";
 import { deleteListing } from "@/app/actions/listings";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
+import { complexNamesIn } from "@/lib/complexes";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
 import { OwnershipSection } from "@/components/owner/OwnershipSection";
@@ -134,6 +135,8 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             amenities: listing.amenities,
             cancellationPolicy: listing.cancellationPolicy,
             instantBook: listing.instantBook,
+            complexName: listing.complexId ? ((await db.complex.findUnique({ where: { id: listing.complexId }, select: { name: true } }))?.name ?? "") : "",
+            complexSuggestions: await complexNamesIn(listing.city, listing.region),
             checkInInstructions: listing.checkInInstructions,
             accessReleaseDays: listing.accessReleaseDays,
             guidebook: listing.guidebook,

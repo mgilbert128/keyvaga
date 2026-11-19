@@ -6,6 +6,7 @@ import { SearchFilters } from "@/components/search/SearchFilters";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { searchListings } from "@/lib/listings";
 import { parseSearchParams } from "@/lib/search-params";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Search stays" };
 
@@ -25,6 +26,7 @@ async function SearchBody({ searchParams }: { searchParams: PageProps<"/search">
   const f = parseSearchParams(await searchParams);
   const datesInvalid = Boolean(f.checkIn && f.checkOut && f.checkOut <= f.checkIn);
   const results = await searchListings(f);
+  const complex = f.complex ? await db.complex.findUnique({ where: { slug: f.complex }, select: { name: true } }) : null;
   const activeCount =
     (f.minPriceCents !== undefined ? 1 : 0) + (f.maxPriceCents !== undefined ? 1 : 0) + (f.bedrooms ? 1 : 0) +
     (f.types?.length ?? 0) + (f.amenities?.length ?? 0) + (f.sort && f.sort !== "recommended" ? 1 : 0);
@@ -36,7 +38,7 @@ async function SearchBody({ searchParams }: { searchParams: PageProps<"/search">
 
   return (
     <>
-      <StaySearchForm defaults={{ where: f.raw.where, checkIn: f.raw.checkIn, checkOut: f.raw.checkOut, guests: f.raw.guests }} />
+      <StaySearchForm defaults={{ where: f.raw.where, checkIn: f.raw.checkIn, checkOut: f.raw.checkOut, guests: f.raw.guests, complex: complex ? f.complex : undefined }} />
       <SearchFilters raw={f.raw} types={f.types ?? []} amenities={f.amenities ?? []} activeCount={activeCount} />
       {datesInvalid ? (
         <p role="alert" className="font-medium text-danger">Check-out must be after check-in. Showing all dates.</p>
@@ -44,6 +46,7 @@ async function SearchBody({ searchParams }: { searchParams: PageProps<"/search">
       <section aria-labelledby="results-title" className="flex flex-col gap-6">
         <h2 id="results-title" className="text-xl font-bold" aria-live="polite">
           {results.length === 1 ? "1 stay" : `${results.length} stays`}
+          {complex ? ` at ${complex.name}` : ""}
           {f.where ? ` matching “${f.where}”` : ""}
         </h2>
         {results.length === 0 ? (

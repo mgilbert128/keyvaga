@@ -33,6 +33,7 @@ export function parseSearchParams(sp: Raw): SearchFilters & { raw: Record<string
     maxPriceCents: maxPrice !== undefined ? maxPrice * 100 : undefined,
     types: all(sp.type).filter((t) => TYPES.has(t)) as PropertyType[],
     amenities: all(sp.amenity).filter(isAmenityKey),
+    complex: first(sp.complex)?.replace(/[^a-z0-9-]/g, "").slice(0, 80) || undefined,
     sort,
     raw: {
       where,
@@ -42,6 +43,7 @@ export function parseSearchParams(sp: Raw): SearchFilters & { raw: Record<string
       minPrice: minPrice?.toString(),
       maxPrice: maxPrice?.toString(),
       bedrooms: first(sp.bedrooms),
+      complex: first(sp.complex)?.replace(/[^a-z0-9-]/g, "").slice(0, 80) || undefined,
       sort,
     },
   };

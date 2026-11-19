@@ -7,6 +7,7 @@ import { ListingCard } from "@/components/listings/ListingCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, Chip } from "@/components/ui/Card";
 import { getFeaturedListings } from "@/lib/listings";
+import { listDestinations } from "@/lib/destinations";
 import { FeesSection, OwnerValueSection } from "@/components/marketing/FeesSection";
 import { HeroCarousel, type Slide } from "@/components/home/HeroCarousel";
 import { curatedHero, getHeroSlides } from "@/lib/hero";
@@ -70,6 +71,10 @@ export default function HomePage() {
           <FeaturedStays />
         </Suspense>
       </section>
+
+      <Suspense fallback={null}>
+        <Destinations />
+      </Suspense>
 
       <FeesSection />
 
@@ -158,6 +163,28 @@ async function FeaturedStays() {
         </li>
       ))}
     </ul>
+  );
+}
+
+async function Destinations() {
+  const list = (await listDestinations()).slice(0, 8);
+  if (list.length < 2) return null; // one town isn't worth a section yet
+  return (
+    <section aria-labelledby="destinations-title" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="destinations-title" className="text-2xl font-bold tracking-tight sm:text-3xl">Explore destinations</h2>
+        <Link href="/destinations" className="font-semibold text-brand underline underline-offset-4">All destinations</Link>
+      </div>
+      <ul className="flex flex-wrap gap-3">
+        {list.map((d) => (
+          <li key={d.slug}>
+            <Link href={`/destinations/${d.slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-5 font-semibold hover:border-brand">
+              {d.label} <span className="text-sm font-normal text-ink-muted">{d.count}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

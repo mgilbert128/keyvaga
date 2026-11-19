@@ -62,6 +62,7 @@ export const listingSchema = z.object({
   guidebook: text(8000),
   cancellationPolicy: z.enum(["FLEXIBLE", "MODERATE", "STRICT"], { message: "Choose a cancellation policy." }),
   instantBook: z.boolean(),
+  complexName: z.string().trim().max(80, "Keep the building name under 80 characters."),
   amenities: z.array(z.string()).transform((keys) => [...new Set(keys.filter(isAmenityKey))]),
 });
 
@@ -93,6 +94,7 @@ export function listingFormToObject(fd: FormData) {
     guidebook: get("guidebook"),
     cancellationPolicy: get("cancellationPolicy") || "MODERATE",
     instantBook: get("bookingMode") !== "REQUEST",
+    complexName: get("complexName"),
     amenities: fd.getAll("amenities").map(String),
   };
 }
