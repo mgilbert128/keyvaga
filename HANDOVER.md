@@ -262,3 +262,9 @@ Spec phases (section 12 of the brief):
 - **Ratings on cards:** average and count from `Review`, via `cardSelect`/`toCard`.
 - **Owner earnings CSV:** `/owner/payouts/report.csv?year=YYYY` (bookings by check-in year + paid payment requests, with totals). Linked from the Payouts page.
 - **Analytics:** Vercel Web Analytics script tag in the root layout (no package). Enable it in the Vercel project's Analytics tab.
+
+## Keeping deals on Keyvaga (added 2026-11-19)
+
+- `src/lib/contact-mask.ts` replaces phone numbers, emails, outside links and payment-app handles with "[contact info hidden until booked]".
+- Applied to: job messages until that provider's job is booked (ASSIGNED or later), quote messages and job descriptions (always), booking messages while a stay is REQUESTED, and public provider profile text (bio, pricing, availability).
+- Finished jobs show **Book again** (prefilled request to the same provider) and, for cleaning, a shortcut to set them as the listing's regular cleaner.
