@@ -28,7 +28,7 @@ export default function Page({ params }: PageProps<"/complexes/[slug]">) {
 async function ComplexPage({ params }: { params: PageProps<"/complexes/[slug]">["params"] }) {
   const { slug } = await params;
   await connection();
-  const c = await db.complex.findUnique({ where: { slug }, select: { id: true, name: true, city: true, region: true, description: true, listings: { where: { status: "PUBLISHED" }, select: { amenities: true } } } });
+  const c = await db.complex.findUnique({ where: { slug }, select: { id: true, slug: true, name: true, city: true, region: true, description: true, listings: { where: { status: "PUBLISHED" }, select: { amenities: true } } } });
   if (!c || c.listings.length === 0) notFound();
   const stays = await listingCardsWhere({ complexId: c.id });
   // Amenities every unit lists are almost always the building's (pool, elevator, beach access…).
