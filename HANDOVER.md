@@ -240,3 +240,17 @@ Spec phases (section 12 of the brief):
 - Cleanup must: remove test bookings/payments/payment requests/job payments; call `releaseBookingInHospitable` for test bookings on linked listings first; clear users' `stripeCustomerId`, `stripeAccountId`, `payoutsEnabled`; delete the `@keyvaga.test` demo accounts and their paused demo listings; keep real accounts, listings, photos, Hospitable links, tax rates.
 - Before volume: handle `charge.dispute.created`/`closed` (flag booking, hold payout, email admin); check Radar + 3DS; confirm with Stripe how long funds can be held before transfer (payouts wait for check-in).
 - Vercel must be on Pro before live payments.
+
+## Request to book (added 2026-11-19)
+
+- Per listing: **How guests book** in the owner's listing settings (`Listing.instantBook`). Off = request to book.
+- Checkout for a request creates the deposit/full PaymentIntent with `capture_method: "manual"` (card authorized, not charged). When it reaches `requires_capture`, the booking moves `PENDING_PAYMENT → REQUESTED`, `holdExpiresAt` = now + 24 h (`REQUEST_HOURS`), and owner + guest are emailed.
+- Owner accepts (`approveRequest`) → PaymentIntent captured → normal confirm path (door codes, Hospitable block, auto messages, balance schedule).
+- Owner declines / guest withdraws (`endRequest`) or the deadline passes (`expireStaleHolds`, run by the cron, on the owner Bookings page and before new bookings) → PaymentIntent cancelled (hold released), booking `CANCELLED` with `cancelledBy` = `declined` | `withdrawn` | `expired`.
+- A REQUESTED booking holds its dates (overlap constraint and availability queries include it while `holdExpiresAt` is in the future).
+- **Stripe webhook: also subscribe to `payment_intent.amount_capturable_updated`** so a request registers even if the guest closes the tab after paying.
+
+## Area map (added 2026-11-19)
+
+- `Listing.latitude/longitude` = approximate point. Set on listing save from postal code + town + state via OpenStreetMap Nominatim (`src/lib/geocode.ts`, rounded to 2 decimals), or from Hospitable on import; older listings are filled lazily when their page is viewed.
+- The stay page shows an OpenStreetMap embed of a ~5 km box with a soft circle, never a pin; coordinates are rounded again at display.
