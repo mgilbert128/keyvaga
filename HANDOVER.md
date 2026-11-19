@@ -274,3 +274,9 @@ Spec phases (section 12 of the brief):
 - `OwnerFee` rows (kind `LOCKS`, period `YYYY-MM`): $4 (`LOCK_FEE_CENTS`) × locks assigned to a listing, created by the daily job (`accrueLockFees`, unique per owner+month).
 - `payOutBooking` deducts owed fees (oldest first, whole fees only) from the transfer, marks them COLLECTED and records `Booking.feesDeductedCents`. Owners with no payouts carry the balance forward.
 - Shown on the Smart locks page (price notice), Payouts page (last 12 months) and the earnings CSV. Admin waiving (status WAIVED) has no UI yet.
+
+## Verified ratings from other sites (added 2026-11-19)
+
+- `ExternalRating` (one per listing + platform: Airbnb, Vrbo, Booking.com, Google). Owners submit link, rating and count on the listing editor ("Ratings from other sites"); the link must be https on that platform's domain.
+- Admins verify at `/admin/ratings` (open link, confirm same property and numbers) and approve or reject with a note (owner is emailed). Any owner edit resets to PENDING.
+- Approved ratings show for 180 days (`RATING_VALID_DAYS`) as badges on the stay page, and on cards only when the listing has no Keyvaga reviews. Never mixed into Keyvaga's own review average.
