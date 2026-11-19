@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sleepingSchema } from "@/lib/sleeping";
 import { isAmenityKey } from "@/lib/amenities";
 import { dollarsToCents } from "@/lib/pricing";
 import { formatRegion, formatTown } from "@/lib/place";
@@ -54,6 +55,13 @@ export const listingSchema = z.object({
   nightlyRate: money("a nightly rate", { required: false }),
   cleaningFee: money("a cleaning fee", { required: false }),
   petFee: money("a pet fee", { required: false }),
+  sleeping: z.string().transform((v, ctx) => {
+    let data: unknown = [];
+    try { data = v ? JSON.parse(v) : []; } catch { ctx.addIssue({ code: "custom", message: "Sleeping arrangements couldn't be read. Please try again." }); return []; }
+    const r = sleepingSchema.safeParse(data);
+    if (!r.success) { ctx.addIssue({ code: "custom", message: r.error.issues[0]?.message ?? "Check the sleeping arrangements." }); return []; }
+    return r.data;
+  }),
   minNights: int("Minimum stay", 1, 365),
   checkInTime: time,
   checkOutTime: time,
@@ -87,6 +95,7 @@ export function listingFormToObject(fd: FormData) {
     nightlyRate: get("nightlyRate"),
     cleaningFee: get("cleaningFee"),
     petFee: get("petFee"),
+    sleeping: get("sleeping") || "[]",
     minNights: get("minNights") || "1",
     checkInTime: get("checkInTime") || "16:00",
     checkOutTime: get("checkOutTime") || "10:00",

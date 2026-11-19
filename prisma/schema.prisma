@@ -116,6 +116,8 @@ model Listing {
   instantBook         Boolean            @default(true)
   /// Charged once per stay, only when the guest says they're bringing a pet (cents; 0 = no pet fee).
   petFeeCents         Int                @default(0)
+  /// Sleeping arrangements: [{ name: "Primary bedroom", beds: [{ type: "king", count: 1 }] }] (see src/lib/sleeping.ts).
+  sleeping            Json               @default("[]")
   /// Condo building or resort this unit is in (shared page lists every Keyvaga unit there).
   complexId           String?
   complex             Complex?           @relation(fields: [complexId], references: [id], onDelete: SetNull)

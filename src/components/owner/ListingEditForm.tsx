@@ -9,6 +9,8 @@ import { PROPERTY_TYPES } from "@/lib/property-types";
 import { AMENITY_GROUPS } from "@/lib/amenities";
 import { CANCELLATION_POLICIES, POLICY_INFO } from "@/lib/booking-money";
 import type { ListingFormState } from "@/lib/validation/listing";
+import { SleepingEditor } from "@/components/owner/SleepingEditor";
+import type { SleepingRoom } from "@/lib/sleeping";
 
 export type EditableListing = {
   id: string;
@@ -28,6 +30,7 @@ export type EditableListing = {
   nightlyRate: string;
   cleaningFee: string;
   petFee: string;
+  sleeping: SleepingRoom[];
   minNights: number;
   checkInTime: string;
   checkOutTime: string;
@@ -117,6 +120,10 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
           <Field label="Bathrooms" id="bathrooms" type="number" min={0} max={50} step={0.5} inputMode="decimal" defaultValue={listing.bathrooms} error={e.bathrooms} />
           <Field label="Sleeps (max guests)" id="maxGuests" type="number" min={1} max={50} inputMode="numeric" defaultValue={listing.maxGuests} error={e.maxGuests} />
         </div>
+      </Section>
+
+      <Section title="Sleeping arrangements" description="List each room and its beds so guests know exactly where everyone will sleep.">
+        <SleepingEditor initial={listing.sleeping} error={e.sleeping} maxGuests={listing.maxGuests} />
       </Section>
 
       <Section title="Pricing" description="All prices are in US dollars. Seasonal and date prices, weekend rates and weekly or monthly discounts are on the Pricing page in your portal.">

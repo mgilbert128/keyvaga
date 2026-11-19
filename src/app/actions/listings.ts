@@ -12,6 +12,7 @@ import { slugify } from "@/lib/slug";
 import { documentsApproved, missingDocuments } from "@/lib/documents";
 import { todayIn } from "@/lib/dates";
 import { approximateLocation } from "@/lib/geocode";
+import type { Prisma } from "@/generated/prisma/client";
 import { complexIdFor } from "@/lib/complexes";
 import { blobUploadAccess, deleteImage, deleteStored, describeBlob, statLocalFile, storageMode } from "@/lib/storage";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, isAllowedDuration, isAllowedVideoType, isVideoPathForListing } from "@/lib/video";
@@ -105,6 +106,7 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
       nightlyRateCents: v.nightlyRate,
       cleaningFeeCents: v.cleaningFee,
       petFeeCents: v.petFee,
+      sleeping: v.sleeping as unknown as Prisma.InputJsonValue,
       // A pet fee means pets are welcome: keep the amenity in step so guests see it.
       ...(v.petFee > 0 && !v.amenities.includes("pets_allowed") ? { amenities: [...v.amenities, "pets_allowed"] } : {}),
       minNights: v.minNights,

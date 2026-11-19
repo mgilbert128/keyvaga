@@ -15,7 +15,7 @@ export async function getPublishedStay(slug: string) {
       seasonalRates: { select: { name: true, startDate: true, endDate: true, nightlyRateCents: true } },
       // Custom per-night prices from the owner calendar (future nights only).
       dateRates: { where: { date: { gte: new Date(Date.now() - 2 * 86_400_000) } }, select: { date: true, rateCents: true } },
-      amenities: true, houseRules: true, checkInTime: true, checkOutTime: true,
+      amenities: true, sleeping: true, houseRules: true, checkInTime: true, checkOutTime: true,
       // Exact address deliberately not selected: guests get it only after booking.
       photos: { orderBy: { position: "asc" }, select: { id: true, url: true, alt: true } },
       videoKey: true, videoUrl: true, videoAccess: true, videoDurationSec: true,

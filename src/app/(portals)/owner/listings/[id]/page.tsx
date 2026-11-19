@@ -11,6 +11,7 @@ import { DeleteListing } from "@/components/owner/DeleteListing";
 import { deleteListing } from "@/app/actions/listings";
 import { ListingEditForm } from "@/components/owner/ListingEditForm";
 import { complexNamesIn } from "@/lib/complexes";
+import { parseSleeping } from "@/lib/sleeping";
 import { PhotoManager } from "@/components/owner/PhotoManager";
 import { VideoManager } from "@/components/owner/VideoManager";
 import { OwnershipSection } from "@/components/owner/OwnershipSection";
@@ -129,6 +130,7 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             nightlyRate: listing.nightlyRateCents ? centsToDollarsInput(listing.nightlyRateCents) : "",
             cleaningFee: listing.cleaningFeeCents ? centsToDollarsInput(listing.cleaningFeeCents) : "",
             petFee: listing.petFeeCents ? centsToDollarsInput(listing.petFeeCents) : "",
+            sleeping: parseSleeping(listing.sleeping),
             minNights: listing.minNights,
             checkInTime: listing.checkInTime,
             checkOutTime: listing.checkOutTime,

@@ -7,6 +7,7 @@ import { refreshStaleFeeds } from "@/lib/calendar-sync";
 import { refreshHospitableIfStale } from "@/lib/hospitable";
 import { approximateLocation } from "@/lib/geocode";
 import { AreaMap } from "@/components/listings/AreaMap";
+import { bedLine, parseSleeping } from "@/lib/sleeping";
 import { getPublishedStay, getStayReviews, getUnavailableNights } from "@/lib/stay";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -140,6 +141,21 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
             {stay.summary ? <p className="text-lg">{stay.summary}</p> : null}
             {stay.description ? <p className="whitespace-pre-line text-ink-muted">{stay.description}</p> : null}
           </section>
+
+          {parseSleeping(stay.sleeping).length ? (
+            <section aria-labelledby="sleeping" className="flex flex-col gap-4 border-t border-line pt-8">
+              <h2 id="sleeping" className="text-2xl font-bold">Where you&apos;ll sleep</h2>
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {parseSleeping(stay.sleeping).map((room, i) => (
+                  <li key={i} className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 text-brand" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 21v-3M21 21v-3M6 10V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3M12 10V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
+                    <p className="font-semibold">{room.name}</p>
+                    <p className="text-sm text-ink-muted">{room.beds.map(bedLine).join(", ")}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {stay.amenities.length ? (
             <section aria-labelledby="amenities" className="flex flex-col gap-4 border-t border-line pt-8">
