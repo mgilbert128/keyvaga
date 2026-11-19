@@ -268,3 +268,9 @@ Spec phases (section 12 of the brief):
 - `src/lib/contact-mask.ts` replaces phone numbers, emails, outside links and payment-app handles with "[contact info hidden until booked]".
 - Applied to: job messages until that provider's job is booked (ASSIGNED or later), quote messages and job descriptions (always), booking messages while a stay is REQUESTED, and public provider profile text (bio, pricing, availability).
 - Finished jobs show **Book again** (prefilled request to the same provider) and, for cleaning, a shortcut to set them as the listing's regular cleaner.
+
+## Owner fees: smart locks (added 2026-11-19)
+
+- `OwnerFee` rows (kind `LOCKS`, period `YYYY-MM`): $4 (`LOCK_FEE_CENTS`) × locks assigned to a listing, created by the daily job (`accrueLockFees`, unique per owner+month).
+- `payOutBooking` deducts owed fees (oldest first, whole fees only) from the transfer, marks them COLLECTED and records `Booking.feesDeductedCents`. Owners with no payouts carry the balance forward.
+- Shown on the Smart locks page (price notice), Payouts page (last 12 months) and the earnings CSV. Admin waiving (status WAIVED) has no UI yet.
