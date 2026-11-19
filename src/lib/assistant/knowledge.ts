@@ -8,7 +8,7 @@ import { AUTO_RELEASE_DAYS, JOB_OWNER_FEE_BPS, JOB_PROVIDER_FEE_BPS } from "@/li
 
 const pct = (bps: number) => `${bps / 100}%`;
 
-export const SUPPORT_EMAIL = "hello@keyvaga.com";
+export const SUPPORT_EMAIL = "support@keyvaga.com";
 
 export function knowledgeBase(): string {
   return `# Keyvaga: facts for the help assistant

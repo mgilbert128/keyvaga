@@ -31,7 +31,8 @@ export async function sendEmail(to: string | string[], content: EmailContent, op
         subject,
         html,
         text,
-        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+        // Replies to site emails reach the support inbox unless a sender sets their own (e.g. a guest's address).
+        reply_to: opts.replyTo ?? process.env.SUPPORT_EMAIL ?? "support@keyvaga.com",
       }),
       signal: AbortSignal.timeout(8000),
     });

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export type LegalSection = { id: string; title: string; body: ReactNode };
 
-export const CONTACT_EMAIL = "hello@keyvaga.com";
+export const CONTACT_EMAIL = "support@keyvaga.com";
 export const LEGAL_UPDATED = "November 15, 2026";
 
 /** Shared layout for Terms, Privacy and Cancellation policy: title, date, contents list, numbered sections. */

@@ -53,7 +53,7 @@ export function AssistantWidget() {
         setTurns([...history, { role: "assistant", content: answer }]);
       }
     } catch {
-      setTurns([...history, { role: "assistant", content: "Sorry, I couldn't connect. Please try again, or email hello@keyvaga.com." }]);
+      setTurns([...history, { role: "assistant", content: "Sorry, I couldn't connect. Please try again, or email support@keyvaga.com." }]);
     } finally {
       setBusy(false);
       inputRef.current?.focus();
@@ -104,7 +104,7 @@ export function AssistantWidget() {
             />
             <button type="submit" disabled={busy || !input.trim()} className="min-h-11 rounded-control bg-brand px-4 font-semibold text-on-brand disabled:opacity-50">Send</button>
           </form>
-          <p className="px-4 pb-3 text-[11px] leading-snug text-ink-muted">AI can make mistakes. It can&apos;t see your account. For help with a booking, email <a href="mailto:hello@keyvaga.com" className="underline">hello@keyvaga.com</a>.</p>
+          <p className="px-4 pb-3 text-[11px] leading-snug text-ink-muted">AI can make mistakes. It can&apos;t see your account. For help with a booking, email <a href="mailto:support@keyvaga.com" className="underline">support@keyvaga.com</a>.</p>
         </div>
       ) : null}
       <button
