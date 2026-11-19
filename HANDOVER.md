@@ -254,3 +254,11 @@ Spec phases (section 12 of the brief):
 
 - `Listing.latitude/longitude` = approximate point. Set on listing save from postal code + town + state via OpenStreetMap Nominatim (`src/lib/geocode.ts`, rounded to 2 decimals), or from Hospitable on import; older listings are filled lazily when their page is viewed.
 - The stay page shows an OpenStreetMap embed of a ~5 km box with a soft circle, never a pin; coordinates are rounded again at display.
+
+## Complexes, destinations, ratings, owner report, analytics (added 2026-11-19)
+
+- **Condo complexes:** `Complex` model (slug = slugify(name + city + region), unique). Owners type a building name on the listing form (suggestions from the same town); `complexIdFor` upserts it. Pages at `/complexes/[slug]` (units + amenities every unit shares). Search matches building names; `?complex=<slug>` filters to one building. Admin editing of complex descriptions is not built yet.
+- **Destinations:** computed from published listings grouped by town + state (`src/lib/destinations.ts`); `/destinations` and `/destinations/[slug]` (e.g. `gulf-shores-al`). Home page shows them once there are 2+ towns. `src/app/sitemap.ts` lists stays, buildings and destinations; robots.ts points to it.
+- **Ratings on cards:** average and count from `Review`, via `cardSelect`/`toCard`.
+- **Owner earnings CSV:** `/owner/payouts/report.csv?year=YYYY` (bookings by check-in year + paid payment requests, with totals). Linked from the Payouts page.
+- **Analytics:** Vercel Web Analytics script tag in the root layout (no package). Enable it in the Vercel project's Analytics tab.
