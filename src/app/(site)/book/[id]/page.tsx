@@ -80,6 +80,7 @@ async function Checkout({ params }: { params: PageProps<"/book/[id]">["params"] 
           <dl className="flex flex-col gap-2 border-t border-line pt-4">
             <div className="flex justify-between"><dt>{nights} night{nights === 1 ? "" : "s"}</dt><dd>{formatCents(b.nightlyCents)}</dd></div>
             {b.cleaningCents ? <div className="flex justify-between"><dt>Cleaning fee</dt><dd>{formatCents(b.cleaningCents)}</dd></div> : null}
+            {b.petFeeCents ? <div className="flex justify-between"><dt>Pet fee</dt><dd>{formatCents(b.petFeeCents)}</dd></div> : null}
             <div className="flex justify-between"><dt>Keyvaga service fee</dt><dd>{formatCents(b.serviceCents)}</dd></div>
             {parseTaxLines(b.taxLines).map((t) => <div key={t.name} className="flex justify-between"><dt>{t.name} ({formatRate(t.ratePpm)})</dt><dd>{formatCents(t.cents)}</dd></div>)}
             <div className="flex justify-between border-t border-line pt-2 text-lg font-bold"><dt>Total (USD)</dt><dd>{formatCents(b.totalCents)}</dd></div>

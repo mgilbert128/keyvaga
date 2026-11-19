@@ -62,7 +62,7 @@ async function ensureCustomer(userId: string): Promise<string> {
  * Step 1 of checkout: holds the dates for HOLD_MINUTES and creates the Stripe payment for what's due now.
  * The database refuses overlapping bookings, so two guests can't hold the same nights.
  */
-export async function startBooking(input: { guestId: string; listingId: string; checkIn: Date; checkOut: Date; guests: number }) {
+export async function startBooking(input: { guestId: string; listingId: string; checkIn: Date; checkOut: Date; guests: number; pets?: boolean }) {
   const listing = await db.listing.findFirst({ where: { id: input.listingId, status: "PUBLISHED" }, include: { seasonalRates: true, dateRates: { where: { date: { gte: input.checkIn, lt: input.checkOut } } } } });
   if (!listing) throw new BookingError("This stay isn't available.");
   if (listing.ownerId === input.guestId) throw new BookingError("You can't book your own listing.");
@@ -81,8 +81,12 @@ export async function startBooking(input: { guestId: string; listingId: string; 
   if (rangeHasConflict(input.checkIn, input.checkOut, unavailableNights(blocks.map((b) => ({ start: b.startDate, end: b.endDate })))))
     throw new BookingError("Some of those nights aren't available. Try other dates.");
 
-  const taxes = await taxesFor(listing, quote.totalCents);
-  const amounts = bookingAmounts(quote.totalCents, taxes);
+  const petsOk = listing.petFeeCents > 0 || listing.amenities.includes("pets_allowed");
+  if (input.pets && !petsOk) throw new BookingError("This place doesn't allow pets.");
+  const petFeeCents = input.pets ? listing.petFeeCents : 0;
+  const subtotalCents = quote.totalCents + petFeeCents;
+  const taxes = await taxesFor(listing, subtotalCents);
+  const amounts = bookingAmounts(subtotalCents, taxes);
   const schedule = paymentSchedule(amounts.guestTotalCents, input.checkIn, today);
 
   await expireStaleHolds(listing.id);
@@ -100,6 +104,8 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         isRequest: !listing.instantBook,
         nightlyCents: quote.nightsCents - quote.discountCents, // nights after any weekly/monthly discount
         cleaningCents: quote.cleaningCents,
+        pets: Boolean(input.pets),
+        petFeeCents,
         serviceCents: amounts.guestFeeCents,
         totalCents: amounts.guestTotalCents,
         hostFeeCents: amounts.hostFeeCents,
@@ -348,7 +354,7 @@ export async function paidSoFar(bookingId: string) {
 export async function previewCancellation(bookingId: string, by: "guest" | "owner") {
   const b = await db.booking.findUniqueOrThrow({ where: { id: bookingId } });
   const { paidCents } = await paidSoFar(bookingId);
-  const subtotal = b.nightlyCents + b.cleaningCents;
+  const subtotal = b.nightlyCents + b.cleaningCents + b.petFeeCents;
   const amounts = bookingAmounts(subtotal, { keyvagaTaxCents: b.keyvagaTaxCents, ownerTaxCents: b.ownerTaxCents });
   return cancellationOutcome({ by, policy: b.cancellationPolicy, amounts, paidCents, checkIn: b.checkIn, today: todayIn() });
 }

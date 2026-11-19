@@ -4,7 +4,7 @@ import { formatRate, parseTaxLines } from "@/lib/tax-calc";
 const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 type B = {
-  checkIn: Date; checkOut: Date; guests: number; nightlyCents: number; cleaningCents: number; serviceCents: number; totalCents: number;
+  checkIn: Date; checkOut: Date; guests: number; nightlyCents: number; cleaningCents: number; petFeeCents?: number; serviceCents: number; totalCents: number;
   dueNowCents: number; balanceCents: number; balanceDueDate: Date | null; balanceStatus: string; refundedCents: number; status: string;
   hostFeeCents: number; hostPayoutCents: number; payoutDueCents: number; payoutStatus: string;
   ownerTaxCents?: number; taxLines?: unknown;
@@ -24,6 +24,7 @@ export function BookingSummary({ b, view }: { b: B; view: "guest" | "owner" }) {
         <div className="flex justify-between"><dt className="text-ink-muted">Guests</dt><dd>{b.guests}</dd></div>
         <div className="flex justify-between border-t border-line pt-2"><dt>{nights} night{nights === 1 ? "" : "s"}</dt><dd>{formatCents(b.nightlyCents)}</dd></div>
         {b.cleaningCents ? <div className="flex justify-between"><dt>Cleaning fee</dt><dd>{formatCents(b.cleaningCents)}</dd></div> : null}
+        {b.petFeeCents ? <div className="flex justify-between"><dt>Pet fee</dt><dd>{formatCents(b.petFeeCents)}</dd></div> : null}
         {view === "guest" ? (
           <>
             <div className="flex justify-between"><dt>Keyvaga service fee</dt><dd>{formatCents(b.serviceCents)}</dd></div>

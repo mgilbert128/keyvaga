@@ -104,6 +104,9 @@ export async function updateListing(id: string, _prev: ListingFormState, formDat
       maxGuests: v.maxGuests,
       nightlyRateCents: v.nightlyRate,
       cleaningFeeCents: v.cleaningFee,
+      petFeeCents: v.petFee,
+      // A pet fee means pets are welcome: keep the amenity in step so guests see it.
+      ...(v.petFee > 0 && !v.amenities.includes("pets_allowed") ? { amenities: [...v.amenities, "pets_allowed"] } : {}),
       minNights: v.minNights,
       checkInTime: v.checkInTime,
       checkOutTime: v.checkOutTime,

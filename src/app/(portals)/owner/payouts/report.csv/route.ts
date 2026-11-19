@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     },
   });
 
-  const header = ["Type", "Booking", "Listing", "Guest", "Check in", "Check out", "Nights", "Status", "Rent (USD)", "Cleaning (USD)", "Keyvaga host fee (USD)", "Lodging tax for you to remit (USD)", "Your payout (USD)", "Payout status", "Description"];
+  const header = ["Type", "Booking", "Listing", "Guest", "Check in", "Check out", "Nights", "Status", "Rent (USD)", "Cleaning (USD)", "Pet fee (USD)", "Keyvaga host fee (USD)", "Lodging tax for you to remit (USD)", "Your payout (USD)", "Payout status", "Description"];
   const rows: (string | number)[][] = [];
   for (const b of bookings) {
     const nights = Math.round((b.checkOut.getTime() - b.checkIn.getTime()) / 86_400_000);
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     rows.push([
       "Booking", b.id.slice(-8).toUpperCase(), b.listing.title, b.guest.name, day(b.checkIn), day(b.checkOut), nights,
       cancelled ? "Cancelled (partial payout)" : b.checkOut <= new Date() ? "Completed" : "Upcoming",
-      cancelled ? "" : dollars(b.nightlyCents), cancelled ? "" : dollars(b.cleaningCents), cancelled ? "" : dollars(b.hostFeeCents), cancelled ? "" : dollars(b.ownerTaxCents),
+      cancelled ? "" : dollars(b.nightlyCents), cancelled ? "" : dollars(b.cleaningCents), cancelled ? "" : dollars(b.petFeeCents), cancelled ? "" : dollars(b.hostFeeCents), cancelled ? "" : dollars(b.ownerTaxCents),
       dollars(cancelled ? b.payoutDueCents : b.hostPayoutCents),
       b.payoutStatus === "PAID" ? "Paid" : b.payoutStatus === "PENDING" ? "Scheduled" : "None",
       "",
@@ -47,13 +47,13 @@ export async function GET(request: Request) {
     for (const r of b.paymentRequests) {
       rows.push([
         "Extra", b.id.slice(-8).toUpperCase(), b.listing.title, b.guest.name, day(b.checkIn), day(b.checkOut), "", "Paid",
-        dollars(r.amountCents), "", dollars(r.hostFeeCents), dollars(r.ownerTaxCents), dollars(r.ownerPayoutCents),
+        dollars(r.amountCents), "", "", dollars(r.hostFeeCents), dollars(r.ownerTaxCents), dollars(r.ownerPayoutCents),
         r.paidOutAt ? "Paid" : "Scheduled", r.description,
       ]);
     }
   }
   const total = (i: number) => dollars(rows.reduce((t, r) => t + Math.round(Number(r[i] || 0) * 100), 0));
-  rows.push(["Total", "", "", "", "", "", "", "", total(8), total(9), total(10), total(11), total(12), "", ""]);
+  rows.push(["Total", "", "", "", "", "", "", "", total(8), total(9), total(10), total(11), total(12), total(13), "", ""]);
 
   return new Response([header, ...rows].map((l) => l.map(cell).join(",")).join("\r\n") + "\r\n", {
     headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="keyvaga-earnings-${year}.csv"`, "cache-control": "no-store" },

@@ -19,7 +19,7 @@ export async function taxReportFor(month: string) {
   if (!range) return null;
   const bookings = await db.booking.findMany({
     where: { checkIn: { gte: range.start, lt: range.end }, taxCents: { gt: 0 }, status: { in: ["CONFIRMED", "COMPLETED", "CANCELLED"] } },
-    select: { status: true, nightlyCents: true, cleaningCents: true, taxCents: true, taxRetainedCents: true, taxLines: true },
+    select: { status: true, nightlyCents: true, cleaningCents: true, petFeeCents: true, taxCents: true, taxRetainedCents: true, taxLines: true },
   });
   return { ...range, rows: buildTaxReport(bookings) };
 }

@@ -114,6 +114,8 @@ model Listing {
   currency            String             @default("USD") @db.Char(3)
   /// Instant book is the launch default; kept per listing so request-to-book can be added later.
   instantBook         Boolean            @default(true)
+  /// Charged once per stay, only when the guest says they're bringing a pet (cents; 0 = no pet fee).
+  petFeeCents         Int                @default(0)
   /// Condo building or resort this unit is in (shared page lists every Keyvaga unit there).
   complexId           String?
   complex             Complex?           @relation(fields: [complexId], references: [id], onDelete: SetNull)
@@ -362,6 +364,9 @@ model Booking {
   holdExpiresAt         DateTime?
   /// The listing needed the owner's approval when this was booked (request to book).
   isRequest             Boolean            @default(false)
+  /// Guest said they're bringing a pet; petFeeCents is part of the stay subtotal like cleaning.
+  pets                  Boolean            @default(false)
+  petFeeCents           Int                @default(0)
   stripePaymentMethodId String?
   confirmedAt           DateTime?
   cancelledAt           DateTime?

@@ -128,6 +128,7 @@ async function EditListing({ params, searchParams }: Pick<PageProps<"/owner/list
             maxGuests: listing.maxGuests,
             nightlyRate: listing.nightlyRateCents ? centsToDollarsInput(listing.nightlyRateCents) : "",
             cleaningFee: listing.cleaningFeeCents ? centsToDollarsInput(listing.cleaningFeeCents) : "",
+            petFee: listing.petFeeCents ? centsToDollarsInput(listing.petFeeCents) : "",
             minNights: listing.minNights,
             checkInTime: listing.checkInTime,
             checkOutTime: listing.checkOutTime,

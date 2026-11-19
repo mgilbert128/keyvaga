@@ -17,7 +17,8 @@ export async function reserve(formData: FormData) {
   const checkInS = String(formData.get("checkIn") ?? "");
   const checkOutS = String(formData.get("checkOut") ?? "");
   const guests = Number.parseInt(String(formData.get("guests") ?? "1"), 10) || 1;
-  const back = `/stays/${encodeURIComponent(slug)}?checkIn=${checkInS}&checkOut=${checkOutS}&guests=${guests}`;
+  const pets = formData.get("pets") === "1";
+  const back = `/stays/${encodeURIComponent(slug)}?checkIn=${checkInS}&checkOut=${checkOutS}&guests=${guests}${pets ? "&pets=1" : ""}`;
 
   const user = await getCurrentUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(back)}`);
@@ -30,7 +31,7 @@ export async function reserve(formData: FormData) {
 
   let bookingId: string;
   try {
-    ({ bookingId } = await startBooking({ guestId: user.id, listingId, checkIn, checkOut, guests }));
+    ({ bookingId } = await startBooking({ guestId: user.id, listingId, checkIn, checkOut, guests, pets }));
   } catch (e) {
     const msg = e instanceof BookingError ? e.message : "Something went wrong starting your booking. Please try again.";
     if (!(e instanceof BookingError)) console.error("startBooking failed", e);

@@ -27,6 +27,7 @@ export type EditableListing = {
   maxGuests: number;
   nightlyRate: string;
   cleaningFee: string;
+  petFee: string;
   minNights: number;
   checkInTime: string;
   checkOutTime: string;
@@ -118,11 +119,14 @@ export function ListingEditForm({ listing }: { listing: EditableListing }) {
         </div>
       </Section>
 
-      <Section title="Pricing" description="All prices are in US dollars. Seasonal rates and discounts come later.">
+      <Section title="Pricing" description="All prices are in US dollars. Seasonal and date prices, weekend rates and weekly or monthly discounts are on the Pricing page in your portal.">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Field label="Nightly rate ($)" id="nightlyRate" inputMode="decimal" placeholder="185" defaultValue={listing.nightlyRate} error={e.nightlyRate} />
           <Field label="Cleaning fee ($)" id="cleaningFee" inputMode="decimal" placeholder="95" defaultValue={listing.cleaningFee} error={e.cleaningFee} hint="Charged once per stay." />
           <Field label="Minimum stay (nights)" id="minNights" type="number" min={1} max={365} inputMode="numeric" defaultValue={listing.minNights} error={e.minNights} />
+        </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <Field label="Pet fee ($, optional)" id="petFee" inputMode="decimal" placeholder="75" defaultValue={listing.petFee} error={e.petFee} hint="Charged once per stay, only if the guest says they're bringing a pet. Leave blank for no pet fee." />
         </div>
       </Section>
 

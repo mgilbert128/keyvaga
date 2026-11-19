@@ -90,8 +90,13 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   }
   if (!quoteError && guests && guests > stay.maxGuests) quoteError = `This place sleeps up to ${stay.maxGuests}.`;
   const reserveError = str(sp.error)?.slice(0, 200);
-  const taxes = quote?.ok && !quoteError ? await taxesFor(stay, quote.totalCents) : null;
-  const amounts = quote?.ok && !quoteError ? bookingAmounts(quote.totalCents, taxes ?? undefined) : null;
+  // Pet fee: only when the listing welcomes pets and the guest ticked "Bringing a pet".
+  const petsOk = stay.petFeeCents > 0 || stay.amenities.includes("pets_allowed");
+  const pets = petsOk && str(sp.pets) === "1";
+  const petFeeCents = pets ? stay.petFeeCents : 0;
+  const subtotalCents = quote?.ok ? quote.totalCents + petFeeCents : 0;
+  const taxes = quote?.ok && !quoteError ? await taxesFor(stay, subtotalCents) : null;
+  const amounts = quote?.ok && !quoteError ? bookingAmounts(subtotalCents, taxes ?? undefined) : null;
   const schedule = amounts && checkIn ? paymentSchedule(amounts.guestTotalCents, checkIn, today) : null;
   const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -239,6 +244,12 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                 <label htmlFor="guests" className="text-sm font-semibold">Guests</label>
                 <input id="guests" name="guests" type="number" min={1} max={stay.maxGuests} inputMode="numeric" defaultValue={guests ?? 1} className={inputClass} />
               </div>
+              {petsOk ? (
+                <label className="flex min-h-11 cursor-pointer items-center gap-3">
+                  <input type="checkbox" name="pets" value="1" defaultChecked={pets} className="h-5 w-5 accent-[var(--kv-brand)]" />
+                  <span>Bringing a pet{stay.petFeeCents > 0 ? <span className="text-ink-muted"> ({formatCents(stay.petFeeCents)} pet fee per stay)</span> : null}</span>
+                </label>
+              ) : null}
               <button type="submit" className={buttonClass("secondary", "w-full")}>Check price</button>
             </form>
 
@@ -274,6 +285,9 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                     {quote.cleaningCents ? (
                       <div className="flex justify-between gap-4"><dt>Cleaning fee</dt><dd>{formatCents(quote.cleaningCents)}</dd></div>
                     ) : null}
+                    {petFeeCents ? (
+                      <div className="flex justify-between gap-4"><dt>Pet fee</dt><dd>{formatCents(petFeeCents)}</dd></div>
+                    ) : null}
                     <div className="flex justify-between gap-4"><dt>Keyvaga service fee</dt><dd>{formatCents(amounts.guestFeeCents)}</dd></div>
                     {taxes?.lines.map((t) => (
                       <div key={t.name} className="flex justify-between gap-4"><dt>{t.name} ({formatRate(t.ratePpm)})</dt><dd>{formatCents(t.cents)}</dd></div>
@@ -303,6 +317,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                 <input type="hidden" name="checkIn" value={toISODate(checkIn)} />
                 <input type="hidden" name="checkOut" value={toISODate(checkOut)} />
                 <input type="hidden" name="guests" value={guests ?? 1} />
+                {pets ? <input type="hidden" name="pets" value="1" /> : null}
                 <button type="submit" className={buttonClass("primary", "w-full")}>{stay.instantBook ? "Reserve" : "Request to book"}</button>
               </form>
             ) : (

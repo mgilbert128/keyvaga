@@ -66,6 +66,7 @@ export type TaxReportBooking = {
   status: string;
   nightlyCents: number;
   cleaningCents: number;
+  petFeeCents?: number;
   taxCents: number;
   taxRetainedCents: number | null;
   taxLines: unknown;
@@ -83,7 +84,7 @@ export function buildTaxReport(bookings: TaxReportBooking[]): TaxReportRow[] {
     if (lines.length === 0 || b.taxCents <= 0) continue;
     const factor = b.status === "CANCELLED" ? Math.max(0, Math.min(1, (b.taxRetainedCents ?? 0) / b.taxCents)) : b.status === "CONFIRMED" || b.status === "COMPLETED" ? 1 : 0;
     if (factor === 0) continue;
-    const taxable = Math.round((b.nightlyCents + b.cleaningCents) * factor);
+    const taxable = Math.round((b.nightlyCents + b.cleaningCents + (b.petFeeCents ?? 0)) * factor);
     for (const l of lines) {
       const key = `${l.filedBy}|${l.state}|${l.city}|${l.name}|${l.ratePpm}`;
       const row = rows.get(key) ?? { name: l.name, filedBy: l.filedBy, state: l.state, city: l.city, ratePpm: l.ratePpm, stays: 0, taxableCents: 0, taxCents: 0 };
