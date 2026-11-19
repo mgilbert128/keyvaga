@@ -111,3 +111,22 @@ export function lowestRateCents(listing: PriceInputs, from: Date, days = 365): n
   }
   return Number.isFinite(min) ? min : listing.nightlyRateCents;
 }
+
+/**
+ * Typical nightly rate: the middle (median) price over the next `days` nights. Shown on cards and listing pages
+ * before the guest picks dates, so one discounted night doesn't become the headline price.
+ */
+export function typicalRateCents(listing: PriceInputs, from: Date, days = 90): number {
+  const custom = new Map((listing.dateRates ?? []).map((r) => [+r.date, r.rateCents]));
+  const fast: PriceInputs = { ...listing, dateRates: undefined };
+  const rates: number[] = [];
+  for (let i = 0; i < days; i++) {
+    const date = addDays(from, i);
+    const rate = custom.get(+date) ?? rateForNight(fast, date).rateCents;
+    if (rate > 0) rates.push(rate);
+  }
+  if (!rates.length) return listing.nightlyRateCents;
+  rates.sort((a, b) => a - b);
+  const mid = Math.floor(rates.length / 2);
+  return rates.length % 2 ? rates[mid]! : Math.round((rates[mid - 1]! + rates[mid]!) / 2);
+}

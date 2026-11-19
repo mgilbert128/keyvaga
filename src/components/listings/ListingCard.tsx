@@ -46,7 +46,7 @@ export function ListingCard({ listing, index, query }: { listing: ListingCardDat
       ) : (
         <div className="mt-auto">
           <p className="text-xl font-semibold sm:text-2xl">
-            <span className="text-base font-medium sm:text-lg">From </span>
+            <span className="text-base font-medium sm:text-lg">Typically </span>
             {formatCents(listing.price.nightlyCents)} <span className="text-base font-medium sm:text-lg">/ night</span>
           </p>
           {listing.price.minNights ? (

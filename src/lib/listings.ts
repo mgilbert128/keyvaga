@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { db } from "@/lib/db";
 import { listingVerification } from "@/lib/documents";
 import { addDays, todayIn } from "@/lib/dates";
-import { lowestRateCents, quoteStay, type PriceInputs } from "@/lib/pricing";
+import { quoteStay, typicalRateCents, type PriceInputs } from "@/lib/pricing";
 import { bookingAmounts } from "@/lib/booking-money";
 import { destinationTerms } from "@/lib/place";
 import type { Prisma } from "@/generated/prisma/client";
@@ -19,7 +19,7 @@ export type ListingCardData = {
   /** The owner's base rate (kept for reference; cards show `price`). */
   nightlyRateCents: number;
   /**
-   * What the card shows. Without dates: the lowest nightly rate in the next 12 months ("From $X / night").
+   * What the card shows. Without dates: the typical (median) nightly rate over the next 90 days ("Typically $X / night").
    * With dates: the guest's total for that stay (nights, discounts, cleaning and Keyvaga's guest fee; before taxes).
    */
   price: CardPrice;
@@ -69,9 +69,9 @@ export function cardPrice(l: PriceInputs, today: Date, stay?: { checkIn: Date; c
   if (stay) {
     const q = quoteStay(l, stay.checkIn, stay.checkOut);
     if (q.ok) return { kind: "stay", nights: q.nights, totalCents: bookingAmounts(q.totalCents).guestTotalCents, nightlyCents: q.nightlyRateCents };
-    if (q.reason === "below_min_nights") return { kind: "from", nightlyCents: lowestRateCents(l, today), minNights: q.minNights };
+    if (q.reason === "below_min_nights") return { kind: "from", nightlyCents: typicalRateCents(l, today), minNights: q.minNights };
   }
-  return { kind: "from", nightlyCents: lowestRateCents(l, today) };
+  return { kind: "from", nightlyCents: typicalRateCents(l, today) };
 }
 
 /** Builds card data from a row loaded with cardSelect(today). Pass the guest's dates to price that stay. */
