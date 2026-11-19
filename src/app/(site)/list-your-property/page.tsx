@@ -6,6 +6,9 @@ import { HOST_FEE_PERCENT } from "@/lib/earnings";
 import { WaitlistForm } from "@/components/marketing/WaitlistForm";
 import { softLaunch } from "@/lib/launch";
 
+/** Hero photo credit. Set href to the Keyvaga listing (e.g. "/stays/mountain-peak-lodge-…") once it is published. */
+const PHOTO_CREDIT: { label: string; href: string | null } = { label: "Mountain Peak Lodge, Gatlinburg, TN", href: null };
+
 export const metadata: Metadata = {
   title: "List your property",
   description: "Free to list. Keep 95% of your booking revenue, with calendar, bookings and payouts in one place.",
@@ -28,7 +31,7 @@ export default function ListYourPropertyPage() {
     <div className="flex flex-col gap-10 pt-2 sm:pt-6">
       <section aria-labelledby="lyp-title" className="relative isolate -mx-4 overflow-hidden sm:mx-0 sm:rounded-[28px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hero/gulf-beach-aerial.webp" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[45%_center]" fetchPriority="high" />
+        <img src="/hero/mountain-peak-lodge-deck.webp" alt="" className="absolute inset-0 -z-10 h-full w-full object-cover object-[55%_center]" fetchPriority="high" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-[#0f2a35]/85 via-[#0f2a35]/55 to-[#0f2a35]/10" />
         <div className="flex min-h-[460px] max-w-2xl flex-col justify-center gap-5 px-6 py-12 text-white sm:min-h-[520px] sm:px-12">
           <h1 id="lyp-title" className="font-brand text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-sm sm:text-5xl">List your property on Keyvaga</h1>
@@ -44,6 +47,10 @@ export default function ListYourPropertyPage() {
             {waitlist ? "Join the waitlist" : "Get started"}
           </ButtonLink>
         </div>
+        {/* Photo used with the owner's permission. Link it to his Keyvaga listing once Mountain Peak Lodge is live. */}
+        <p className="absolute bottom-3 right-4 rounded-full bg-black/45 px-3 py-1 text-xs text-white/90 backdrop-blur-sm">
+          Photo: {PHOTO_CREDIT.href ? <a href={PHOTO_CREDIT.href} className="underline underline-offset-2 hover:text-white">{PHOTO_CREDIT.label}</a> : PHOTO_CREDIT.label}
+        </p>
       </section>
       <section aria-labelledby="keep-title" className="flex flex-col gap-4">
         <h2 id="keep-title" className="text-2xl font-bold tracking-tight sm:text-3xl">What you&apos;d keep</h2>
