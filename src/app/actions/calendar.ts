@@ -167,3 +167,16 @@ export async function removeDateDiscount(listingId: string, discountId: string) 
   await db.dateDiscount.deleteMany({ where: { id: discountId, listingId } });
   refresh(listing);
 }
+
+/** Security deposit amount for future bookings (0 turns it off). Held on check-in day, released after checkout. */
+export async function updateSecurityDeposit(listingId: string, _prev: FormResult, fd: FormData): Promise<FormResult> {
+  const listing = await ownedListing(listingId);
+  const raw = String(fd.get("deposit") ?? "").trim();
+  const cents = raw === "" || raw === "0" ? 0 : dollarsToCents(raw);
+  if (cents === null) return { message: "Enter the deposit in dollars, like 500, or 0 for none." };
+  if (cents !== 0 && cents < 5_000) return { message: "Set the deposit to at least $50, or 0 for none." };
+  if (cents > 500_000) return { message: "Keep the deposit at $5,000 or less." };
+  await db.listing.update({ where: { id: listingId }, data: { securityDepositCents: cents } });
+  refresh(listing);
+  return { ok: true, message: cents ? "Security deposit saved. It applies to new bookings." : "Security deposit turned off for new bookings." };
+}

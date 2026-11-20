@@ -293,3 +293,14 @@ Spec phases (section 12 of the brief):
 - Owners select nights on Calendar, open the **Discount** tab, and enter a percentage from 1 to 90 (quick picks for 10–30%) plus an optional name guests see. Stored in `DateDiscount` as [startDate, endDate) with percentBps.
 - `quoteStay` takes the percentage off each discounted night (the largest discount if several overlap), whatever that night's price is, including Hospitable or PriceLabs prices. Cleaning and pet fees aren't discounted. It never stacks with weekly or monthly discounts: the guest gets whichever saves more.
 - The listing page shows active discounts, cards show "Up to X% off select dates" (next 90 days), and the calendar shows prices after the discount with a −X% tag. Remove discounts from the Discounts list on the calendar page.
+
+## Security deposits (holds)
+- Owners set a deposit per listing on Pricing (`Listing.securityDepositCents`, $50–$5,000, 0 = off). It's copied to the booking at checkout (`Booking.securityDepositCents`), and the card is saved with `setup_future_usage` whenever there's a deposit.
+- `src/lib/deposits.ts`, run from the hourly cron:
+  - On check-in day, place an off-session manual-capture PaymentIntent (metadata kind `SECURITY_DEPOSIT`) and store it in `DepositHold`. The expiry comes from Stripe's `capture_before`, or now + 4 days if Stripe doesn't send one.
+  - Within 30 hours of expiry, if the stay and its 5-day release window aren't over, place a new hold first, then cancel the old one. A failed renewal keeps the old hold and retries up to 3 times, then emails the owner.
+  - Release automatically at `releaseBy` (5 days after checkout, noon Central), and release within the hour when a booking is cancelled.
+- Owner booking page: **Release full deposit**, or **Charge for damage** (amount up to the hold, with a reason the guest sees). The charge captures that amount, Stripe releases the rest, and the full charge is transferred to the owner (no Keyvaga fee).
+- Webhook: `payment_intent.canceled` on the current hold marks it released (the authorization expired).
+- Holds are off-session, so Visa holds last about 4 days 18 hours. Extended authorizations (up to 30 days) need Stripe IC+ pricing, so we renew instead.
+- Test before launch: placement, renewal on a 7+ night stay, release, partial charge and transfer. Confirm with Stripe whether cancelled authorizations carry any fee.

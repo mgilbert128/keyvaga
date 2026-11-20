@@ -2,6 +2,7 @@ import { expireStaleHolds } from "@/lib/bookings";
 import { runCalendarSync } from "@/lib/calendar-sync";
 import { runHospitableSync } from "@/lib/hospitable";
 import { runPriceLabsSync } from "@/lib/pricelabs";
+import { runDepositJobs } from "@/lib/deposits";
 import { reportJobFailures } from "@/lib/monitoring";
 
 /**
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
   const calendars = await runCalendarSync().catch((e) => ({ error: String(e) }));
   const hospitable = await runHospitableSync().catch((e) => ({ error: `error: ${String(e)}` }));
   const pricelabs = await runPriceLabsSync().catch((e) => ({ error: `error: ${String(e)}` }));
-  const result = { expired, calendars, hospitable, pricelabs };
+  const deposits = await runDepositJobs().catch((e) => ({ error: `error: ${String(e)}` }));
+  const result = { expired, calendars, hospitable, pricelabs, deposits };
   await reportJobFailures("hourly jobs", result);
   return Response.json(result);
 }

@@ -380,6 +380,12 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
                     ) : (
                       <p><strong>Pay {formatCents(schedule.dueNowCents)} today.</strong> Check-in is within 30 days, so the full amount is due now.</p>
                     )}
+                    {stay.securityDepositCents > 0 ? (
+                      <p className="mt-2">
+                        <strong>Refundable security deposit: {formatCents(stay.securityDepositCents)}.</strong> A hold (not a charge) is placed on your card on check-in day
+                        and released within 5 days after checkout unless the host reports damage.
+                      </p>
+                    ) : null}
                   </div>
                 </>
               ) : null}

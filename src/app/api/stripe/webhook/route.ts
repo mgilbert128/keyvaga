@@ -1,3 +1,4 @@
+import { syncDepositIntent } from "@/lib/deposits";
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
@@ -27,7 +28,8 @@ export async function POST(request: Request) {
       case "payment_intent.amount_capturable_updated": // request to book: card authorized, waiting for the owner
       case "payment_intent.payment_failed":
       case "payment_intent.canceled":
-        if ((event.data.object as Stripe.PaymentIntent).metadata?.paymentRequestId) await syncRequestPayment(event.data.object as Stripe.PaymentIntent);
+        if ((event.data.object as Stripe.PaymentIntent).metadata?.kind === "SECURITY_DEPOSIT") await syncDepositIntent(event.data.object as Stripe.PaymentIntent);
+        else if ((event.data.object as Stripe.PaymentIntent).metadata?.paymentRequestId) await syncRequestPayment(event.data.object as Stripe.PaymentIntent);
         else if ((event.data.object as Stripe.PaymentIntent).metadata?.jobId) await syncJobPayment(event.data.object as Stripe.PaymentIntent);
         else await syncPaymentIntent(event.data.object as Stripe.PaymentIntent);
         break;

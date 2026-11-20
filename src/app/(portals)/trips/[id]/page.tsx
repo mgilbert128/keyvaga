@@ -47,7 +47,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
   const sp = await searchParams;
   await connection(); // may talk to Stripe: only for real requests, never prefetches
   const user = await requirePortal("guest", `/trips/${id}`);
-  let b = await db.booking.findUnique({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
+  let b = await db.booking.findUnique({ where: { id }, include: { depositHold: true, listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
   if (!b || b.guestId !== user.id) notFound();
 
   // Coming back from Stripe: confirm the payment right away instead of waiting for the webhook.
@@ -55,7 +55,7 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
     for (const p of b.payments.filter((p) => p.status === "PENDING" && p.stripeId?.startsWith("pi_"))) {
       await syncPaymentIntent(p.stripeId!).catch((e) => console.error("sync failed", e));
     }
-    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
+    b = await db.booking.findUniqueOrThrow({ where: { id }, include: { depositHold: true, listing: { select: { title: true, city: true, region: true, slug: true, checkInTime: true, checkOutTime: true, houseRules: true, addressLine1: true, addressLine2: true, postalCode: true, checkInInstructions: true, accessReleaseDays: true, guidebook: true, timeZone: true, owner: { select: { name: true } } } }, payments: true, review: true, paymentRequests: { orderBy: { createdAt: "desc" } } } });
   }
   if (b.status === "PENDING_PAYMENT") redirect(`/book/${b.id}`);
   // Coming back from paying a payment request: confirm it right away.
@@ -117,6 +117,18 @@ async function Trip({ params, searchParams }: Pick<PageProps<"/trips/[id]">, "pa
           <ButtonLink href={`/messages/${b.id}`} variant="secondary">Message host</ButtonLink>
         </div>
         <Card><BookingSummary b={b} view="guest" /></Card>
+        {b.securityDepositCents > 0 && b.status !== "CANCELLED" ? (
+          <Card className="flex flex-col gap-1">
+            <h2 className="text-lg font-bold">Refundable security deposit: {formatCents(b.securityDepositCents)}</h2>
+            <p className="text-ink-muted">
+              {!b.depositHold ? "A hold (not a charge) is placed on your card on check-in day and released within 5 days after checkout unless the host reports damage."
+                : b.depositHold.status === "HELD" ? "On hold on your card. It's released within 5 days after checkout unless the host reports damage."
+                : b.depositHold.status === "CHARGED" ? `Your host charged ${formatCents(b.depositHold.chargedCents)}. Reason: ${b.depositHold.chargeReason ?? ""}`
+                : b.depositHold.status === "RELEASED" ? "Released. Your bank may take a few days to show it."
+                : "Your host will be in touch about the deposit."}
+            </p>
+          </Card>
+        ) : null}
         {b.paymentRequests.length ? (
           <Card className="flex flex-col gap-4" id="payment-requests">
             <h2 className="text-xl font-bold">Payment requests from your host</h2>

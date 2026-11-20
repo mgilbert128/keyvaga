@@ -117,6 +117,7 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         taxLines: taxes.lines.length ? (taxes.lines as unknown as Prisma.InputJsonValue) : undefined,
         cancellationPolicy: listing.cancellationPolicy,
         dueNowCents: schedule.dueNowCents,
+        securityDepositCents: listing.securityDepositCents,
         balanceCents: schedule.kind === "split" ? schedule.balanceCents : 0,
         balanceDueDate: schedule.kind === "split" ? schedule.balanceDueDate : null,
       },
@@ -136,8 +137,8 @@ export async function startBooking(input: { guestId: string; listingId: string; 
         amount: schedule.dueNowCents,
         currency: "usd",
         customer,
-        // Save the card so the balance can be charged automatically later.
-        ...(schedule.kind === "split" ? { setup_future_usage: "off_session" as const } : {}),
+        // Save the card so the balance (and any security deposit hold) can be charged automatically later.
+        ...(schedule.kind === "split" || listing.securityDepositCents > 0 ? { setup_future_usage: "off_session" as const } : {}),
         automatic_payment_methods: { enabled: true },
         // Request to book: only authorize the card now; it's charged when the owner accepts.
         ...(listing.instantBook ? {} : { capture_method: "manual" as const }),

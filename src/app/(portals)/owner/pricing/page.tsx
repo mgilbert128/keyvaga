@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { ownerListingsWithSelection } from "@/lib/owner-pages";
-import { addSeason, deleteSeason, updatePricing } from "@/app/actions/calendar";
+import { addSeason, deleteSeason, updatePricing, updateSecurityDeposit } from "@/app/actions/calendar";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
 import { Card } from "@/components/ui/Card";
@@ -65,6 +65,21 @@ async function Pricing({ searchParams }: { searchParams: PageProps<"/owner/prici
                   <Field label="Weekend rate ($ per night)" id="weekendRate" inputMode="decimal" placeholder={`Same as base (${centsToDollarsInput(listing.nightlyRateCents)})`} defaultValue={listing.weekendRateCents ? centsToDollarsInput(listing.weekendRateCents) : ""} />
                   <Field label="Weekly discount, 7+ nights (%)" id="weeklyDiscount" type="number" min={0} max={90} step={1} inputMode="numeric" defaultValue={listing.weeklyDiscountBps / 100} />
                   <Field label="Monthly discount, 28+ nights (%)" id="monthlyDiscount" type="number" min={0} max={90} step={1} inputMode="numeric" defaultValue={listing.monthlyDiscountBps / 100} />
+                </div>
+              </ActionForm>
+            </Card>
+
+            <Card className="flex flex-col gap-4" id="security-deposit">
+              <div>
+                <h2 className="text-xl font-bold">Security deposit</h2>
+                <p className="text-ink-muted">
+                  A refundable hold on the guest&apos;s card, placed automatically on check-in day. It isn&apos;t charged unless you report damage.
+                  After checkout you have 5 days to release it or charge some or all of it with a reason (from the booking page). If you do nothing, it&apos;s released automatically.
+                </p>
+              </div>
+              <ActionForm action={updateSecurityDeposit.bind(null, listing.id)} submitLabel="Save deposit">
+                <div className="max-w-xs">
+                  <Field label="Deposit amount ($), 0 for none" id="deposit" inputMode="decimal" placeholder="0" defaultValue={listing.securityDepositCents ? centsToDollarsInput(listing.securityDepositCents) : "0"} />
                 </div>
               </ActionForm>
             </Card>

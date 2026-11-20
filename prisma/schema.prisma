@@ -167,6 +167,8 @@ model Listing {
   pricelabsSyncedAt    DateTime?
   pricelabsSyncError   String?
   dateDiscounts        DateDiscount[]
+  /// Refundable security deposit held on the guest's card from check-in day (0 = none). See src/lib/deposits.ts.
+  securityDepositCents Int                @default(0)
   calendarFeeds       CalendarFeed[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
@@ -337,6 +339,9 @@ enum BookingStatus {
 /// A Postgres exclusion constraint (see migration) refuses overlapping active
 /// bookings for the same listing.
 model Booking {
+  /// Security deposit for this stay (copied from the listing at booking). Held on check-in day, not charged.
+  securityDepositCents  Int                @default(0)
+  depositHold           DepositHold?
   id                    String             @id @default(cuid())
   listingId             String
   guestId               String
@@ -1125,4 +1130,37 @@ model DateDiscount {
   listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@index([listingId, endDate])
+}
+
+enum DepositStatus {
+  HELD
+  FAILED
+  RELEASED
+  CHARGED
+}
+
+/// A security deposit hold on the guest's card (Stripe manual-capture PaymentIntent). Placed on check-in day,
+/// renewed before it expires, released by the owner or automatically at releaseBy, or charged for damage.
+model DepositHold {
+  id                    String        @id @default(cuid())
+  bookingId             String        @unique
+  amountCents           Int
+  status                DepositStatus
+  stripePaymentIntentId String?
+  /// When the current authorization runs out (Stripe's capture_before).
+  expiresAt             DateTime?
+  /// Owner must release or charge by this time (5 days after checkout); after that it's released automatically.
+  releaseBy             DateTime
+  renewals              Int           @default(0)
+  attempts              Int           @default(0)
+  lastError             String?
+  chargedCents          Int           @default(0)
+  chargeReason          String?
+  stripeTransferId      String?
+  decidedAt             DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  booking               Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
 }

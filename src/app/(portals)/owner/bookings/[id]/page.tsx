@@ -21,6 +21,11 @@ import { formatCents } from "@/lib/money";
 import { addDays, todayIn } from "@/lib/dates";
 import { paidSoFar } from "@/lib/bookings";
 import { doorCodesFor } from "@/lib/locks";
+import { DepositPanel } from "@/components/booking/DepositPanel";
+import { chargeDepositAction, releaseDepositAction } from "@/app/actions/deposits";
+import { centsToDollarsInput } from "@/lib/pricing";
+
+const depDay = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 
 export const metadata: Metadata = { title: "Booking", robots: { index: false } };
 
@@ -36,7 +41,7 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
   const { id } = await params;
   await connection();
   const user = await requirePortal("owner", `/owner/bookings/${id}`);
-  const b = await db.booking.findUnique({ where: { id }, include: { paymentRequests: { orderBy: { createdAt: "desc" } }, listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true, timeZone: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
+  const b = await db.booking.findUnique({ where: { id }, include: { depositHold: true, paymentRequests: { orderBy: { createdAt: "desc" } }, listing: { select: { id: true, title: true, ownerId: true, regularCleanerId: true, timeZone: true } }, guest: { select: { name: true, email: true } }, jobs: { where: { category: "cleaning", status: { not: "CANCELLED" } }, include: { acceptedQuote: { include: { provider: { select: { businessName: true } } } }, targetProvider: { select: { businessName: true } } }, take: 1 } } });
   if (!b || b.listing.ownerId !== user.id || b.status === "PENDING_PAYMENT") notFound();
   const today = todayIn();
   const canCancel = b.status === "CONFIRMED" && b.checkOut > today;
@@ -84,6 +89,30 @@ async function OwnerBooking({ params }: { params: PageProps<"/owner/bookings/[id
         </div>
         <Card><BookingSummary b={b} view="owner" /></Card>
         <DoorCodeLine bookingId={b.id} />
+        {b.securityDepositCents > 0 && b.status !== "CANCELLED" ? (
+          <Card className="flex flex-col gap-3" id="deposit">
+            <h2 className="text-xl font-bold">Security deposit: {formatCents(b.securityDepositCents)}</h2>
+            {!b.depositHold ? (
+              <p className="text-ink-muted">The hold is placed on the guest&apos;s card automatically on check-in day.</p>
+            ) : b.depositHold.status === "HELD" ? (
+              <>
+                <p className="text-ink-muted">
+                  On hold on the guest&apos;s card. Release it or charge for damage by <strong>{depDay.format(b.depositHold.releaseBy)}</strong>; after that it&apos;s released automatically.
+                  {b.depositHold.lastError ? <span className="text-danger"> Note: {b.depositHold.lastError}</span> : null}
+                </p>
+                {today >= b.checkIn ? (
+                  <DepositPanel release={releaseDepositAction.bind(null, b.id)} charge={chargeDepositAction.bind(null, b.id)} maxDollars={`$${centsToDollarsInput(b.depositHold.amountCents)}`} />
+                ) : null}
+              </>
+            ) : b.depositHold.status === "FAILED" ? (
+              <p className="text-danger">We couldn&apos;t place the hold on the guest&apos;s card{b.depositHold.lastError ? `: ${b.depositHold.lastError}` : "."} We&apos;ll keep trying for a few hours.</p>
+            ) : b.depositHold.status === "CHARGED" ? (
+              <p>Charged {formatCents(b.depositHold.chargedCents)}{b.depositHold.chargedCents < b.depositHold.amountCents ? ` (the other ${formatCents(b.depositHold.amountCents - b.depositHold.chargedCents)} was released)` : ""}. Reason: {b.depositHold.chargeReason}</p>
+            ) : (
+              <p className="text-ink-muted">Released{b.depositHold.decidedAt ? ` ${depDay.format(b.depositHold.decidedAt)}` : ""}.</p>
+            )}
+          </Card>
+        ) : null}
         {(b.status === "CONFIRMED" || b.status === "COMPLETED") && today <= addDays(b.checkOut, 14) ? (
           <Card className="flex flex-col gap-4" id="payment-requests">
             <div className="flex flex-col gap-1">
