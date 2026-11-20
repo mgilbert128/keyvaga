@@ -39,6 +39,9 @@ async function Pricing({ searchParams }: { searchParams: PageProps<"/owner/prici
     <PortalShell portal="Owner" user={user} nav={ownerNav("/owner/pricing")}>
       <div className="flex flex-col gap-6 pt-6 sm:pt-10">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Pricing</h1>
+        <p className="text-ink-muted">
+          Use PriceLabs? <Link href="/owner/pricelabs" className="font-semibold text-brand underline underline-offset-4">Connect it</Link> and your PriceLabs nightly prices will update here automatically.
+        </p>
         {!listing ? (
           <p className="text-ink-muted">Add a listing first. <Link href="/owner/listings/new" className="text-brand underline">Add a listing</Link></p>
         ) : (

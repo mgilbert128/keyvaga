@@ -206,7 +206,7 @@ export async function deleteListing(id: string, _prev: DeleteListingState, formD
     await db.$transaction([
       db.calendarFeed.deleteMany({ where: { listingId: id } }),
       db.calendarBlock.deleteMany({ where: { listingId: id, source: { not: "OWNER" } } }),
-      db.listing.update({ where: { id }, data: { deletedAt: new Date(), status: "PAUSED", featured: false, icalToken: null, hospitablePropertyId: null, hospitableSyncedAt: null, hospitableSyncError: null } }),
+      db.listing.update({ where: { id }, data: { deletedAt: new Date(), status: "PAUSED", featured: false, icalToken: null, hospitablePropertyId: null, hospitableSyncedAt: null, hospitableSyncError: null, pricelabsListingId: null, pricelabsPms: null } }),
     ]);
   }
   revalidatePath("/owner/listings");

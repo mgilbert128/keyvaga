@@ -12,7 +12,7 @@ const others = [
   { name: "OwnerRez and other property managers", body: "Connect any system that offers iCal calendar links from the Connections screen in your owner portal." },
   { name: "Smart locks", body: "Schlage, Yale, August and more: a unique, timed door code for every stay and every cleaner, removed automatically on cancellation." },
   { name: "Stripe", body: "Secure guest payments and fast payouts to your bank account through Stripe Connect." },
-  { name: "Dynamic pricing", body: "Use PriceLabs or your preferred pricing tool through Hospitable, or set seasonal, weekend and per-date prices on Keyvaga." },
+  { name: "PriceLabs", body: "Connect your PriceLabs account from your owner portal and your dynamic nightly prices update on Keyvaga automatically. Or use PriceLabs through Hospitable, or set seasonal, weekend and per-date prices yourself." },
 ];
 
 export default function IntegrationsPage() {

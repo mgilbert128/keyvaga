@@ -280,3 +280,11 @@ Spec phases (section 12 of the brief):
 - `ExternalRating` (one per listing + platform: Airbnb, Vrbo, Booking.com, Google). Owners submit link, rating and count on the listing editor ("Ratings from other sites"); the link must be https on that platform's domain.
 - Admins verify at `/admin/ratings` (open link, confirm same property and numbers) and approve or reject with a note (owner is emailed). Any owner edit resets to PENDING.
 - Approved ratings show for 180 days (`RATING_VALID_DAYS`) as badges on the stay page, and on cards only when the listing has no Keyvaga reviews. Never mixed into Keyvaga's own review average.
+
+## PriceLabs (owner's own Customer API key)
+- Owners connect at /owner/pricelabs by pasting their PriceLabs Customer API key (PriceLabs → Account Settings → API Details). PriceLabs bills them $1/listing/month.
+- The key is checked against `GET /v1/listings_minimal`, then stored AES-256-GCM encrypted in `PriceLabsConnection` (src/lib/secret-box.ts). The encryption key comes from `INTEGRATIONS_SECRET`, or is derived from `CRON_SECRET` if that isn't set. **Changing whichever one is in use makes saved keys unreadable**, and owners would have to reconnect.
+- Linked listings (`Listing.pricelabsListingId` and `pricelabsPms`) get nightly prices for 365 days from `POST /v1/listing_prices`, written to `DateRate`. The owner's own PriceLabs override (`user_price` > 0) is used first, then `price`. Runs from the hourly cron (`runPriceLabsSync`), and owners can trigger it with "Update prices now".
+- Prices only. Availability still comes from iCal or Hospitable. A listing can take prices from Hospitable or PriceLabs, not both.
+- Min-stay and weekly/monthly discounts from PriceLabs are not imported yet.
+- Next step: apply for PriceLabs' Integration API (partner program), so owners can choose Keyvaga inside PriceLabs and don't need a key.

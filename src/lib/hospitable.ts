@@ -122,8 +122,9 @@ export async function importHospitableProperty(ownerId: string, propertyId: stri
 
 /** Links an existing Keyvaga listing (keeps its details and photos) and syncs the calendar. */
 export async function linkHospitableProperty(ownerId: string, listingId: string, propertyId: string) {
-  const l = await db.listing.findUnique({ where: { id: listingId }, select: { ownerId: true } });
+  const l = await db.listing.findUnique({ where: { id: listingId }, select: { ownerId: true, pricelabsListingId: true } });
   if (!l || l.ownerId !== ownerId) throw new HospitableError("Listing not found.");
+  if (l.pricelabsListingId) throw new HospitableError("That listing gets its prices straight from PriceLabs. Unlink it on the PriceLabs page first.");
   const taken = await db.listing.findUnique({ where: { hospitablePropertyId: propertyId }, select: { id: true } });
   if (taken && taken.id !== listingId) throw new HospitableError("That Hospitable property is already linked to another listing.");
   await db.listing.update({ where: { id: listingId }, data: { hospitablePropertyId: propertyId } });

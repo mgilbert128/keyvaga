@@ -53,6 +53,7 @@ model User {
   stripeAccountId    String?                  @unique
   payoutsEnabled     Boolean                  @default(false)
   ownerFees          OwnerFee[]
+  pricelabs          PriceLabsConnection?
 }
 
 /// One person can hold several roles (e.g. a guest who is also an owner).
@@ -160,6 +161,11 @@ model Listing {
   hospitablePropertyId String?           @unique
   hospitableSyncedAt   DateTime?
   hospitableSyncError  String?
+  /// Linked PriceLabs listing (owner's own PriceLabs account via their Customer API key). Nightly prices → DateRate.
+  pricelabsListingId   String?
+  pricelabsPms         String?
+  pricelabsSyncedAt    DateTime?
+  pricelabsSyncError   String?
   calendarFeeds       CalendarFeed[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
@@ -1091,4 +1097,14 @@ model DestinationContent {
   slug      String   @id
   intro     String
   updatedAt DateTime @updatedAt
+}
+
+/// An owner's PriceLabs Customer API key, encrypted (src/lib/secret-box.ts). Never shown again after saving.
+model PriceLabsConnection {
+  ownerId     String   @id
+  apiKeyEnc   String
+  keyLast4    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

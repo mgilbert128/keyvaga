@@ -105,6 +105,14 @@ async function Overview() {
           <ButtonLink href="/owner/calendar" variant="secondary">Open calendar</ButtonLink>
         </Card>
 
+        <Card className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold sm:text-2xl">PriceLabs</h2>
+            <p className="text-ink-muted">Connect your PriceLabs account so your dynamic prices update on Keyvaga automatically.</p>
+          </div>
+          <ButtonLink href="/owner/pricelabs" variant="secondary">Open PriceLabs</ButtonLink>
+        </Card>
+
         {canUseHospitable(user) ? (
           <Card className="flex flex-wrap items-center justify-between gap-4">
             <div>
