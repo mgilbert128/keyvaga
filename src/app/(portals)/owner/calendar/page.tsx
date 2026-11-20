@@ -104,7 +104,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
                   href: info.href,
                   past,
                   custom: "custom" in info ? Boolean(info.custom) : false,
-                  discountPct: "discountPct" in info ? info.discountPct : 0,
+                  discountPct: ("discountPct" in info ? info.discountPct : 0) ?? 0,
                   a11y: `${dayFmt.format(d)}: ${info.kind === "booked" ? `booked by ${info.label}` : info.kind === "blocked" ? `blocked (${info.label})` : past ? "past" : `available at ${info.label}${"custom" in info && info.custom ? ", custom price" : ""}${"discountPct" in info && info.discountPct ? `, ${info.discountPct}% off` : ""}`}`,
                 };
               }),
