@@ -26,7 +26,20 @@ export type PriceInputs = {
   seasons?: SeasonInput[];
   /** Custom prices for specific nights (from the owner calendar). */
   dateRates?: { date: Date; rateCents: number }[];
+  /** Percent-off discounts for date ranges (from the owner calendar). */
+  discounts?: DiscountInput[];
 };
+
+export type DiscountInput = { name: string; startDate: Date; endDate: Date; percentBps: number };
+
+/** The discount for one night (the largest, if several overlap), or undefined. */
+export function discountForNight(listing: Pick<PriceInputs, "discounts">, date: Date): DiscountInput | undefined {
+  let best: DiscountInput | undefined;
+  for (const d of listing.discounts ?? []) if (date >= d.startDate && date < d.endDate && (!best || d.percentBps > best.percentBps)) best = d;
+  return best;
+}
+
+export const pctLabel = (bps: number) => `${bps % 100 === 0 ? bps / 100 : (bps / 100).toFixed(1)}%`;
 
 export const WEEKLY_NIGHTS = 7;
 export const MONTHLY_NIGHTS = 28;
@@ -66,8 +79,9 @@ export function rateForNight(listing: PriceInputs, date: Date): { rateCents: num
 }
 
 /**
- * Price for a stay before Keyvaga's fees. Weekly (7+ nights) and monthly (28+ nights) discounts
- * apply to the nights only, not the cleaning fee; the larger one applies, never both.
+ * Price for a stay before Keyvaga's fees. Discounts apply to the nights only, not the cleaning fee, and never stack:
+ * the guest gets whichever is bigger of the weekly (7+ nights) or monthly (28+ nights) discount, or the owner's
+ * date discounts (each discounted night's percentage, added up).
  */
 export function quoteStay(listing: PriceInputs, checkIn: Date, checkOut: Date): StayQuote {
   const nights = nightsBetween(checkIn, checkOut);
@@ -81,8 +95,21 @@ export function quoteStay(listing: PriceInputs, checkIn: Date, checkOut: Date): 
   const monthly = nights >= MONTHLY_NIGHTS ? (listing.monthlyDiscountBps ?? 0) : 0;
   const weekly = nights >= WEEKLY_NIGHTS ? (listing.weeklyDiscountBps ?? 0) : 0;
   const bps = Math.max(monthly, weekly);
-  const discountCents = Math.round((nightsCents * bps) / 10_000);
-  const discountLabel = bps === 0 ? null : `${monthly >= weekly ? "Monthly" : "Weekly"} discount (${bps / 100}%)`;
+  const lengthCents = Math.round((nightsCents * bps) / 10_000);
+  const used = new Map<string, number>();
+  let dateCents = 0;
+  for (const n of perNight) {
+    const d = discountForNight(listing, n.date);
+    if (!d) continue;
+    dateCents += Math.round((n.rateCents * d.percentBps) / 10_000);
+    used.set(d.name, d.percentBps);
+  }
+  const useDates = dateCents > 0 && dateCents >= lengthCents;
+  const discountCents = useDates ? dateCents : lengthCents;
+  const [onlyName, onlyBps] = used.size === 1 ? [...used][0]! : [null, 0];
+  const discountLabel = useDates
+    ? onlyName ? `${onlyName} (${pctLabel(onlyBps)} off)` : "Special discounts"
+    : bps === 0 ? null : `${monthly >= weekly ? "Monthly" : "Weekly"} discount (${bps / 100}%)`;
   return {
     ok: true,
     nights,

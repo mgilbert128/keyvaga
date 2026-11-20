@@ -8,7 +8,7 @@ import { connection } from "next/server";
 import { requirePortal } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { ownerListingsWithSelection } from "@/lib/owner-pages";
-import { blockDates, resetDatePrice, setDatePrice, unblockDates } from "@/app/actions/calendar";
+import { addDateDiscount, blockDates, removeDateDiscount, resetDatePrice, setDatePrice, unblockDates } from "@/app/actions/calendar";
 import { CalendarSelector, type CalendarCell } from "@/components/owner/CalendarSelector";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { ownerNav } from "@/components/layout/portal-nav";
@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { buttonClass } from "@/components/ui/Button";
 import { ListingPicker } from "@/components/owner/ListingPicker";
 import { addDays, monthGrid, todayIn, toISODate } from "@/lib/dates";
-import { rateForNight } from "@/lib/pricing";
+import { discountForNight, pctLabel, rateForNight } from "@/lib/pricing";
 import { formatCents } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Calendar" };
@@ -53,7 +53,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
     );
   }
 
-  const listing = await db.listing.findUniqueOrThrow({ where: { id: current.id }, include: { seasonalRates: true, dateRates: { where: { date: { gte: first, lt: next } } } } });
+  const listing = await db.listing.findUniqueOrThrow({ where: { id: current.id }, include: { seasonalRates: true, dateRates: { where: { date: { gte: first, lt: next } } }, dateDiscounts: { where: { endDate: { gt: today } }, orderBy: { startDate: "asc" } } } });
   const [bookings, blocks] = await Promise.all([
     db.booking.findMany({
       where: { listingId: listing.id, checkIn: { lt: next }, checkOut: { gt: first }, OR: [{ status: "CONFIRMED" }, { status: "PENDING_PAYMENT", holdExpiresAt: { gt: new Date() } }, { status: "REQUESTED", holdExpiresAt: { gt: new Date() } }] },
@@ -71,7 +71,9 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
     const block = blocks.find((b) => d >= b.startDate && d < b.endDate);
     if (block) return { kind: "blocked" as const, label: block.note ?? "Blocked", href: null, start: +d === +block.startDate };
     const rate = rateForNight({ ...listing, seasons: listing.seasonalRates, dateRates: listing.dateRates }, d);
-    return { kind: "open" as const, label: formatCents(rate.rateCents), href: null, start: false, custom: rate.source === "custom" };
+    const disc = discountForNight({ discounts: listing.dateDiscounts }, d);
+    const cents = disc ? rate.rateCents - Math.round((rate.rateCents * disc.percentBps) / 10_000) : rate.rateCents;
+    return { kind: "open" as const, label: formatCents(cents), href: null, start: false, custom: rate.source === "custom", discountPct: disc ? Math.round(disc.percentBps / 100) : 0 };
   };
   const q = (extra: Record<string, string>) => `/owner/calendar?${new URLSearchParams({ listing: listing.id, month: m, ...extra })}`;
 
@@ -102,17 +104,35 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/owner/cale
                   href: info.href,
                   past,
                   custom: "custom" in info ? Boolean(info.custom) : false,
-                  a11y: `${dayFmt.format(d)}: ${info.kind === "booked" ? `booked by ${info.label}` : info.kind === "blocked" ? `blocked (${info.label})` : past ? "past" : `available at ${info.label}${"custom" in info && info.custom ? ", custom price" : ""}`}`,
+                  discountPct: "discountPct" in info ? info.discountPct : 0,
+                  a11y: `${dayFmt.format(d)}: ${info.kind === "booked" ? `booked by ${info.label}` : info.kind === "blocked" ? `blocked (${info.label})` : past ? "past" : `available at ${info.label}${"custom" in info && info.custom ? ", custom price" : ""}${"discountPct" in info && info.discountPct ? `, ${info.discountPct}% off` : ""}`}`,
                 };
               }),
             )}
             setPrice={setDatePrice.bind(null, listing.id)}
             block={blockDates.bind(null, listing.id)}
             resetPrice={resetDatePrice.bind(null, listing.id)}
+            addDiscount={addDateDiscount.bind(null, listing.id)}
           />
         </Card>
 
         <div className="grid grid-cols-1 gap-6">
+          <Card className="flex flex-col gap-3" id="discounts">
+            <h2 className="text-xl font-bold">Discounts</h2>
+            <p className="text-sm text-ink-muted">To add one, select dates on the calendar and open the Discount tab. Guests see the discount on your listing and the savings at checkout.</p>
+            {listing.dateDiscounts.length === 0 ? (
+              <p className="text-ink-muted">No discounts yet.</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-line">
+                {listing.dateDiscounts.map((dd) => (
+                  <li key={dd.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span><strong>{pctLabel(dd.percentBps)} off</strong> · {dd.name} · {shortFmt.format(dd.startDate)} – {shortFmt.format(addDays(dd.endDate, -1))}</span>
+                    <form action={removeDateDiscount.bind(null, listing.id, dd.id)}><button type="submit" className={buttonClass("ghost", "text-danger")}>Remove</button></form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
           <Card className="flex flex-col gap-3">
             <h2 className="text-xl font-bold">Upcoming blocks</h2>
             {blocks.length === 0 ? (

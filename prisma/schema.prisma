@@ -166,6 +166,7 @@ model Listing {
   pricelabsPms         String?
   pricelabsSyncedAt    DateTime?
   pricelabsSyncError   String?
+  dateDiscounts        DateDiscount[]
   calendarFeeds       CalendarFeed[]
   /// Amenity keys from the catalog in src/lib/amenities.ts
   amenities           String[]           @default([])
@@ -1107,4 +1108,21 @@ model PriceLabsConnection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+/// A percentage off the nightly price for a date range, set from the owner calendar (e.g. 20% off Dec 1–15).
+/// Applies on top of whatever the night costs (base, weekend, seasonal, custom, Hospitable or PriceLabs).
+model DateDiscount {
+  id         String   @id @default(cuid())
+  listingId  String
+  name       String
+  startDate  DateTime @db.Date
+  /// Exclusive: the night before endDate is the last discounted night.
+  endDate    DateTime @db.Date
+  /// 2000 = 20%
+  percentBps Int
+  createdAt  DateTime @default(now())
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, endDate])
 }

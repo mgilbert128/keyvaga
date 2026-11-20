@@ -34,6 +34,8 @@ export type ListingCardData = {
   complex?: { name: string; slug: string };
   /** Verified rating from another site (shown only when there are no Keyvaga reviews yet). */
   outside?: { label: string; rating: number; scale: number; reviewCount: number };
+  /** Largest owner date discount in the next 90 days, in basis points ("Up to 20% off select dates"). */
+  deal?: number;
 };
 
 export type CardPrice =
@@ -57,6 +59,7 @@ export const cardSelect = (today: Date) => ({
   monthlyDiscountBps: true,
   seasonalRates: { select: { name: true, startDate: true, endDate: true, nightlyRateCents: true } },
   dateRates: { where: { date: { gte: today, lt: addDays(today, 400) } }, select: { date: true, rateCents: true } },
+  dateDiscounts: { where: { endDate: { gt: today }, startDate: { lt: addDays(today, 400) } }, select: { name: true, startDate: true, endDate: true, percentBps: true } },
   photos: { orderBy: { position: "asc" as const }, take: 1, select: { url: true, alt: true } },
   hostingRole: true,
   permitRequired: true,
@@ -80,17 +83,19 @@ export function cardPrice(l: PriceInputs, today: Date, stay?: { checkIn: Date; c
 
 /** Builds card data from a row loaded with cardSelect(today). Pass the guest's dates to price that stay. */
 export function toCard(row: CardRow, today: Date, stay?: { checkIn: Date; checkOut: Date }): ListingCardData {
-  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, reviews, complex, externalRatings, ...l } = row;
+  const { photos, hostingRole, permitRequired, documents, seasonalRates, dateRates, dateDiscounts, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, reviews, complex, externalRatings, ...l } = row;
   const rating = reviews.length ? { average: Math.round((reviews.reduce((t, r) => t + r.rating, 0) / reviews.length) * 10) / 10, count: reviews.length } : undefined;
   const verified = listingVerification({ hostingRole, permitRequired, documents }, today).host !== null;
   const price = cardPrice(
-    { nightlyRateCents: l.nightlyRateCents, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, seasons: seasonalRates, dateRates },
+    { nightlyRateCents: l.nightlyRateCents, cleaningFeeCents, minNights, weekendRateCents, weeklyDiscountBps, monthlyDiscountBps, seasons: seasonalRates, dateRates, discounts: dateDiscounts },
     today,
     stay,
   );
   const top = rating ? undefined : shownRatings(externalRatings)[0];
   const outside = top ? { label: top.label, rating: top.rating, scale: top.scale, reviewCount: top.reviewCount } : undefined;
-  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified, rating, complex: complex ?? undefined, outside };
+  const soon = addDays(today, 90);
+  const deal = dateDiscounts.filter((d) => d.startDate < soon).reduce((m, d) => Math.max(m, d.percentBps), 0) || undefined;
+  return { ...l, price, coverUrl: photos[0]?.url ?? null, coverAlt: photos[0]?.alt || l.title, verified, rating, complex: complex ?? undefined, outside, deal };
 }
 
 export async function getFeaturedListings(): Promise<ListingCardData[]> {

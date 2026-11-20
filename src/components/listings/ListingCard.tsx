@@ -31,6 +31,11 @@ export function ListingCard({ listing, index, query }: { listing: ListingCardDat
             <span aria-hidden="true" className="text-brand">★</span> <span className="font-semibold">{listing.outside.rating}</span>{listing.outside.scale !== 5 ? `/${listing.outside.scale}` : ""} <span className="text-ink-muted">on {listing.outside.label} ({listing.outside.reviewCount.toLocaleString()})</span>
           </p>
         ) : null}
+        {listing.deal ? (
+          <p className="mt-1 mr-2 inline-flex items-center rounded-full bg-brand px-2.5 py-0.5 text-xs font-semibold text-on-brand">
+            Up to {listing.deal % 100 === 0 ? listing.deal / 100 : (listing.deal / 100).toFixed(1)}% off select dates
+          </p>
+        ) : null}
         {listing.verified ? (
           <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-soft px-2.5 py-0.5 text-xs font-semibold text-on-soft" title="Keyvaga checked this host's ownership documents">
             <span aria-hidden="true">✓</span> Verified host

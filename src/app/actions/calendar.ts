@@ -145,3 +145,25 @@ export async function resetDatePrice(listingId: string, _prev: FormResult, fd: F
   refresh(listing);
   return { ok: true, message: count ? "Back to your normal prices." : "Those nights already use your normal prices." };
 }
+
+/** Adds a percent-off discount to the selected nights (e.g. 20% off a slow week). Overlaps are fine: the larger one applies. */
+export async function addDateDiscount(listingId: string, _prev: FormResult, fd: FormData): Promise<FormResult> {
+  const listing = await ownedListing(listingId);
+  const range = selectedRange(fd);
+  if ("error" in range) return { message: range.error };
+  const percent = Number(String(fd.get("percent") ?? "").replace("%", "").trim());
+  if (!Number.isFinite(percent) || percent < 1 || percent > 90) return { message: "Enter a discount between 1% and 90%." };
+  const name = String(fd.get("name") ?? "").replace(/\s+/g, " ").trim().slice(0, 60) || "Discount";
+  const active = await db.dateDiscount.count({ where: { listingId, endDate: { gt: new Date() } } });
+  if (active >= 50) return { message: "That's a lot of discounts. Remove some old ones first." };
+  const bps = Math.round(percent * 100);
+  await db.dateDiscount.create({ data: { listingId, name, startDate: range.start, endDate: range.end, percentBps: bps } });
+  refresh(listing);
+  return { ok: true, message: `${percent}% off added for ${range.nights.length} night${range.nights.length === 1 ? "" : "s"}. Existing bookings keep the price they paid.` };
+}
+
+export async function removeDateDiscount(listingId: string, discountId: string) {
+  const listing = await ownedListing(listingId);
+  await db.dateDiscount.deleteMany({ where: { id: discountId, listingId } });
+  refresh(listing);
+}

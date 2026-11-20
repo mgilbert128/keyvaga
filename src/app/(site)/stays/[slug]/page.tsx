@@ -22,7 +22,9 @@ import { formatCents } from "@/lib/money";
 import { amenityLabel } from "@/lib/amenities";
 import { propertyTypeLabel } from "@/lib/property-types";
 import { parseISODate, rangeHasConflict, todayIn, toISODate, addDays } from "@/lib/dates";
-import { quoteStay, typicalRateCents } from "@/lib/pricing";
+import { pctLabel, quoteStay, typicalRateCents } from "@/lib/pricing";
+
+const discountDates = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 import { taxesFor } from "@/lib/tax";
 import { formatRate } from "@/lib/tax-calc";
 import { bookingAmounts, paymentSchedule, POLICY_INFO } from "@/lib/booking-money";
@@ -95,7 +97,7 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
   if (checkIn && checkOut) {
     if (checkIn < today) quoteError = "Check-in can't be in the past.";
     else {
-      quote = quoteStay({ ...stay, seasons: stay.seasonalRates, dateRates: stay.dateRates }, checkIn, checkOut);
+      quote = quoteStay({ ...stay, seasons: stay.seasonalRates, dateRates: stay.dateRates, discounts: stay.dateDiscounts }, checkIn, checkOut);
       if (!quote.ok) quoteError = quote.reason === "below_min_nights" ? `This stay has a ${quote.minNights}-night minimum.` : "Check-out must be after check-in.";
       else if (rangeHasConflict(checkIn, checkOut, unavailable)) quoteError = "Some of those nights are already booked. Try other dates.";
     }
@@ -223,6 +225,15 @@ async function Stay({ params, searchParams }: Pick<PageProps<"/stays/[slug]">, "
               <p className="text-ink-muted">
                 {[stay.weeklyDiscountBps ? `${stay.weeklyDiscountBps / 100}% off stays of 7+ nights` : null, stay.monthlyDiscountBps ? `${stay.monthlyDiscountBps / 100}% off stays of 28+ nights` : null].filter(Boolean).join(" · ")}
               </p>
+            ) : null}
+            {stay.dateDiscounts.filter((d) => d.endDate > today).length ? (
+              <ul className="flex flex-col gap-1" aria-label="Special discounts">
+                {stay.dateDiscounts.filter((d) => d.endDate > today).map((d, i) => (
+                  <li key={i} className="font-semibold text-on-soft">
+                    <span className="rounded-full bg-soft px-2.5 py-0.5">{pctLabel(d.percentBps)} off</span> {d.name}: {discountDates.formatRange(d.startDate, addDays(d.endDate, -1))}
+                  </li>
+                ))}
+              </ul>
             ) : null}
             <AvailabilityCalendar
               months={[firstMonth, { year: second.getUTCFullYear(), monthIndex: second.getUTCMonth() }]}

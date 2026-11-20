@@ -57,3 +57,21 @@ describe("custom prices for specific nights", () => {
     expect(q).toMatchObject({ ok: true, nights: 4, nightsCents: 30_000 + 3 * 45_000, totalCents: 30_000 + 3 * 45_000 + 10_000 });
   });
 });
+
+describe("date discounts", () => {
+  const fall = { name: "Fall special", startDate: d("2026-11-16"), endDate: d("2026-11-19"), percentBps: 2000 }; // Mon–Wed nights
+  it("takes the percentage off only the discounted nights, not cleaning", () => {
+    const q = quoteStay({ ...base, discounts: [fall] }, d("2026-11-15"), d("2026-11-20")); // Sun–Thu: 3 of 5 nights discounted
+    expect(q).toMatchObject({ ok: true, nightsCents: 100_000, discountCents: 12_000, discountLabel: "Fall special (20% off)", totalCents: 100_000 - 12_000 + 10_000 });
+  });
+  it("uses the larger discount when two overlap", () => {
+    const q = quoteStay({ ...base, discounts: [fall, { ...fall, name: "Flash", percentBps: 3000 }] }, d("2026-11-16"), d("2026-11-17"));
+    expect(q).toMatchObject({ ok: true, discountCents: 6_000, discountLabel: "Flash (30% off)" });
+  });
+  it("doesn't stack with weekly discounts: the guest gets the bigger one", () => {
+    const weekBig = quoteStay({ ...base, weeklyDiscountBps: 1500, discounts: [fall] }, d("2026-11-15"), d("2026-11-22")); // 7 nights
+    expect(weekBig).toMatchObject({ ok: true, discountCents: 21_000, discountLabel: "Weekly discount (15%)" });
+    const datesBig = quoteStay({ ...base, weeklyDiscountBps: 500, discounts: [fall] }, d("2026-11-15"), d("2026-11-22"));
+    expect(datesBig).toMatchObject({ ok: true, discountCents: 12_000, discountLabel: "Fall special (20% off)" });
+  });
+});

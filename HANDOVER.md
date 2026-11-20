@@ -288,3 +288,8 @@ Spec phases (section 12 of the brief):
 - Prices only. Availability still comes from iCal or Hospitable. A listing can take prices from Hospitable or PriceLabs, not both.
 - Min-stay and weekly/monthly discounts from PriceLabs are not imported yet.
 - Next step: apply for PriceLabs' Integration API (partner program), so owners can choose Keyvaga inside PriceLabs and don't need a key.
+
+## Date discounts (owner calendar)
+- Owners select nights on Calendar, open the **Discount** tab, and enter a percentage from 1 to 90 (quick picks for 10–30%) plus an optional name guests see. Stored in `DateDiscount` as [startDate, endDate) with percentBps.
+- `quoteStay` takes the percentage off each discounted night (the largest discount if several overlap), whatever that night's price is, including Hospitable or PriceLabs prices. Cleaning and pet fees aren't discounted. It never stacks with weekly or monthly discounts: the guest gets whichever saves more.
+- The listing page shows active discounts, cards show "Up to X% off select dates" (next 90 days), and the calendar shows prices after the discount with a −X% tag. Remove discounts from the Discounts list on the calendar page.
