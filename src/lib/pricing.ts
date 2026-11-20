@@ -106,9 +106,9 @@ export function quoteStay(listing: PriceInputs, checkIn: Date, checkOut: Date): 
   }
   const useDates = dateCents > 0 && dateCents >= lengthCents;
   const discountCents = useDates ? dateCents : lengthCents;
-  const [onlyName, onlyBps] = used.size === 1 ? [...used][0]! : [null, 0];
+  const only: [string, number] | undefined = used.size === 1 ? [...used][0] : undefined;
   const discountLabel = useDates
-    ? onlyName ? `${onlyName} (${pctLabel(onlyBps)} off)` : "Special discounts"
+    ? only ? `${only[0]} (${pctLabel(only[1])} off)` : "Special discounts"
     : bps === 0 ? null : `${monthly >= weekly ? "Monthly" : "Weekly"} discount (${bps / 100}%)`;
   return {
     ok: true,
